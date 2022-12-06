@@ -10,4 +10,4 @@ One primary advantage this generator gives over other generators is this: If you
 
 I can't find any repetitions in the first 100 billion digits, but if you can find any please bring it to my notice. I am not experienced in detecting patterns in data sets, so any feedback would be appreciated.
 
-As you can probably see, this is in it's infancy. Any comments, tips or suggestions would be greatly appreciated.
+As you can probably see, this project in it's infancy. Any comments, tips or suggestions would be greatly appreciated.
