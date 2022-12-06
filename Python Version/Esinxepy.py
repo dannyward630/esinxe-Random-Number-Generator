@@ -2,14 +2,14 @@ import math
 import time
 
 #e = 2.718281828459045235
-#maxintvalue = 1000000000000000000
+#maxintvalue = 10000000000000000000
 
-# Returns a random integer between 0 and 10^18
+# Returns a random integer between 0 and 10^19
 
 class Random:    
     
     __e = 2.718281828459045235
-    __maxintvalue = 1000000000000000000
+    __maxintvalue = 10000000000000000000
     seed = time.time()
     
     def SetSeed(self, localseed):
