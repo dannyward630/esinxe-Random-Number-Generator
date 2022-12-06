@@ -4,7 +4,7 @@ Version 1.0.0 @ 12/5/2022
 
 Author: Danny Ward
 
-This is a unique generator in that it chooses value y from key x using the function e^sin(x^e), instead of running values through an algorithm. The seed can be specified or not, depending on your preference.
+This is a unique generator in that it chooses value y from key x using the function e^sin(x^e), instead of running values through an algorithm.
 
 One primary advantage this generator gives over other generators is this: If you want to generate the xth random value in a series beginning at the seed value, a standard generator would calculate every value from the seed until x. By using a function instead of an algorithm, this generator can calculate the xth value instantly, without having to cycle through every previous one. In certain applications, especially in the gaming industry, this can become a bottleneck when procedurally generating terrain far from the starting (seed) value. I discovered the issue earlier in 2022 when creating a Minecraft clone.
 
