@@ -11,3 +11,13 @@ One primary advantage this generator gives over other generators is this: If you
 I can't find any repetitions in the first 100 billion digits, but if you can find any please bring it to my notice. I am not experienced in detecting patterns in data sets, so any feedback would be appreciated.
 
 As you can probably see, this is in it's infancy. Any comments, tips or suggestions would be greatly appreciated.
+
+$$___$$_ __$$$___ $$___$$_ $$___$$_ __$$$___ $$______
+$$$_$$$_ _$$_$$__ $$$__$$_ $$___$$_ _$$_$$__ $$______
+$$$$$$$_ $$___$$_ $$$$_$$_ $$___$$_ $$___$$_ $$______
+$$_$_$$_ $$$$$$$_ $$_$$$$_ $$___$$_ $$$$$$$_ $$______
+$$___$$_ $$___$$_ $$__$$$_ $$___$$_ $$___$$_ $$____$_
+$$___$$_ $$___$$_ $$___$$_ _$$$$$__ $$___$$_ $$$$$$$_
+
+SetSeed() sets the seed, currently it takes any number between 0 and 10^18.
+Must Finish
