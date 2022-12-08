@@ -8,12 +8,12 @@ $$___$$_ $$___$$_ $$___$$_ _$$$$$__ $$___$$_ $$$$$$$_
 DEPENDENCIES: time.h, cmath, iostream, list, std
 
 NOTES: 
-  1. The maximum value is capped at 10^18 for now; May change in future versions, or upon request.
+  1. The maximum value is capped at 10^9 for now; May change in future versions, or upon request.
 
 
 Class Random() is the primary class
 
-SetSeed() sets the seed, currently it takes any number between 0 and 10^18. 
+SetSeed() sets the seed, currently it takes any number between 0 and 10^9. 
 
 Next() returns a random integer.
 
