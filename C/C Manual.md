@@ -14,6 +14,6 @@ NOTES:
 Class Random() is the primary class
 
 SetSeed() sets the seed, currently it takes any number between 0 and 10^18. 
-Next() returns a random integer 
-NextMax(maxvalue) Returns a random integer between 0 and maxvalue 
-NextMinMax(minvalue, maxvalue) Returns a random integer within a specified range
+Next() returns a random integer.
+NextMax(maxvalue) Returns a random integer between 0 and maxvalue.
+NextMinMax(minvalue, maxvalue) Returns a random integer within a specified range.
