@@ -1,8 +1,14 @@
+$$___$$_ __$$$___ $$___$$_ $$___$$_ __$$$___ $$______
+$$$_$$$_ _$$_$$__ $$$__$$_ $$___$$_ _$$_$$__ $$______
+$$$$$$$_ $$___$$_ $$$$_$$_ $$___$$_ $$___$$_ $$______
+$$_$_$$_ $$$$$$$_ $$_$$$$_ $$___$$_ $$$$$$$_ $$______
+$$___$$_ $$___$$_ $$__$$$_ $$___$$_ $$___$$_ $$____$_
+$$___$$_ $$___$$_ $$___$$_ _$$$$$__ $$___$$_ $$$$$$$_
+
 DEPENDENCIES: time.h, cmath, iostream, list, std
 
 NOTES: 
-
-The maximum value is capped at 10^18 for now; May change in future versions, or upon request.
+  1. The maximum value is capped at 10^18 for now; May change in future versions, or upon request.
 
 
 Class Random() is the primary class
