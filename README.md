@@ -1,4 +1,4 @@
-This is a Random Number Generator (RNG) for Python, C# and C++ (Other languages coming soon)
+This is a Random Number Generator (RNG) for Python, C#, C++, C and Ruby (Other languages coming soon)
 
 Version 1.0.0 @ 12/5/2022
 
