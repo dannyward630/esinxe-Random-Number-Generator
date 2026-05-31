@@ -1,0 +1,223 @@
+import collections
+import importlib.util
+import os
+import shutil
+import statistics
+import subprocess
+import tempfile
+import textwrap
+import unittest
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+PYTHON_IMPL = ROOT / "Python" / "Esinxepy1-0-0.py"
+EXPECTED_FIRST_VALUES = [
+    540659726606785873,
+    454886589211414944,
+    778200017661327597,
+    205171434679333405,
+    248800117070709450,
+]
+
+
+def load_python_impl():
+    spec = importlib.util.spec_from_file_location("esinxepy", PYTHON_IMPL)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class PythonBehaviorTests(unittest.TestCase):
+    def setUp(self):
+        self.module = load_python_impl()
+
+    def test_next_advances_and_next_at_matches(self):
+        rng = self.module.Random(12345)
+        self.assertEqual([rng.Next() for _ in range(5)], EXPECTED_FIRST_VALUES)
+
+        rng.SetSeed(12345)
+        self.assertEqual([rng.NextAt(i) for i in range(5)], EXPECTED_FIRST_VALUES)
+
+    def test_set_seed_resets_sequence(self):
+        rng = self.module.Random(12345)
+        first = rng.Next()
+        rng.Next()
+        rng.SetSeed(12345)
+        self.assertEqual(rng.Next(), first)
+
+    def test_ranges_are_lower_inclusive_upper_exclusive(self):
+        rng = self.module.Random(12345)
+        values = rng.NextListMinMax(1000, 50, 100)
+        self.assertTrue(all(50 <= value < 100 for value in values))
+        self.assertGreater(len(set(values)), 45)
+
+    def test_distribution_smoke_for_100_buckets(self):
+        rng = self.module.Random(1)
+        values = rng.NextListMax(10000, 100)
+        counts = collections.Counter(values)
+        expected = len(values) / 100
+        chi_square = sum(
+            ((counts[bucket] - expected) ** 2) / expected
+            for bucket in range(100)
+        )
+
+        self.assertEqual(len(counts), 100)
+        self.assertLess(chi_square, 160)
+        self.assertLess(abs(statistics.mean(values) - 49.5), 1.0)
+
+
+class CrossLanguageSmokeTests(unittest.TestCase):
+    def test_c_header_compiles_and_matches_reference_values(self):
+        source = textwrap.dedent(
+            """
+            #include <stdio.h>
+            #include "C/Esinxec1-0-0.h"
+
+            int main(void)
+            {
+                SetSeed(12345);
+                for (int i = 0; i < 5; i++)
+                {
+                    printf("%llu\\n", (unsigned long long)Next());
+                }
+                return 0;
+            }
+            """
+        )
+        output = compile_and_run("c", source)
+        self.assertEqual(parse_int_lines(output), EXPECTED_FIRST_VALUES)
+
+    def test_cpp_header_compiles_and_matches_reference_values(self):
+        source = textwrap.dedent(
+            """
+            #include <iostream>
+            #include "C++/Esinxecpp1-0-0.h"
+
+            int main()
+            {
+                Esinxecpp::Random rng;
+                rng.SetSeed(12345);
+                for (int i = 0; i < 5; i++)
+                {
+                    std::cout << rng.Next() << "\\n";
+                }
+                return 0;
+            }
+            """
+        )
+        output = compile_and_run("cpp", source)
+        self.assertEqual(parse_int_lines(output), EXPECTED_FIRST_VALUES)
+
+    def test_ruby_matches_reference_values(self):
+        script = textwrap.dedent(
+            """
+            load 'Ruby/Esinxeruby1-0-0.rb'
+            rng = Random.new
+            rng.SetSeed(12345)
+            5.times { puts rng.Next }
+            """
+        )
+        result = subprocess.run(
+            ["ruby", "-e", script],
+            cwd=ROOT,
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+        self.assertEqual(parse_int_lines(result.stdout), EXPECTED_FIRST_VALUES)
+
+    def test_csharp_matches_reference_values_when_dotnet_is_available(self):
+        dotnet = shutil.which("dotnet") or str(Path.home() / ".dotnet" / "dotnet")
+        if not Path(dotnet).exists():
+            self.skipTest("dotnet is not installed")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            (tmp / "Esinxecs1-0-0.cs").write_text(
+                (ROOT / "C#" / "Esinxecs1-0-0.cs").read_text()
+            )
+            (tmp / "Program.cs").write_text(
+                textwrap.dedent(
+                    """
+                    using System;
+
+                    class Program
+                    {
+                        static void Main()
+                        {
+                            var rng = new Esinxecs.Random();
+                            rng.SetSeed(12345);
+                            for (var i = 0; i < 5; i++)
+                            {
+                                Console.WriteLine(rng.Next());
+                            }
+                        }
+                    }
+                    """
+                )
+            )
+            (tmp / "EsinxeSmoke.csproj").write_text(
+                textwrap.dedent(
+                    """
+                    <Project Sdk="Microsoft.NET.Sdk">
+                      <PropertyGroup>
+                        <OutputType>Exe</OutputType>
+                        <TargetFramework>net8.0</TargetFramework>
+                        <ImplicitUsings>enable</ImplicitUsings>
+                        <Nullable>enable</Nullable>
+                      </PropertyGroup>
+                    </Project>
+                    """
+                ).strip()
+            )
+            env = os.environ.copy()
+            env["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1"
+            result = subprocess.run(
+                [dotnet, "run", "--project", str(tmp / "EsinxeSmoke.csproj")],
+                cwd=ROOT,
+                check=True,
+                text=True,
+                capture_output=True,
+                env=env,
+            )
+            self.assertEqual(parse_int_lines(result.stdout), EXPECTED_FIRST_VALUES)
+
+
+def compile_and_run(kind, source):
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp = Path(tmpdir)
+        suffix = ".c" if kind == "c" else ".cpp"
+        source_path = tmp / f"main{suffix}"
+        output_path = tmp / "esinxe-test"
+        source_path.write_text(source)
+        compiler = "cc" if kind == "c" else "c++"
+        standard = "-std=c11" if kind == "c" else "-std=c++17"
+        command = [
+            compiler,
+            standard,
+            "-Wall",
+            "-Wextra",
+            "-Werror",
+            f"-I{ROOT}",
+            str(source_path),
+            "-o",
+            str(output_path),
+        ]
+        subprocess.run(command, cwd=ROOT, check=True, capture_output=True, text=True)
+        result = subprocess.run(
+            [str(output_path)],
+            cwd=ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        return result.stdout
+
+
+def parse_int_lines(output):
+    return [int(line) for line in output.splitlines() if line.strip()]
+
+
+if __name__ == "__main__":
+    unittest.main()

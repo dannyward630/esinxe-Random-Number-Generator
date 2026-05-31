@@ -1,21 +1,18 @@
-$$___$$_ __$$$___ $$___$$_ $$___$$_ __$$$___ $$______
-$$$_$$$_ _$$_$$__ $$$__$$_ $$___$$_ _$$_$$__ $$______
-$$$$$$$_ $$___$$_ $$$$_$$_ $$___$$_ $$___$$_ $$______
-$$_$_$$_ $$$$$$$_ $$_$$$$_ $$___$$_ $$$$$$$_ $$______
-$$___$$_ $$___$$_ $$__$$$_ $$___$$_ $$___$$_ $$____$_
-$$___$$_ $$___$$_ $$___$$_ _$$$$$__ $$___$$_ $$$$$$$_
+# C++ Manual
 
-DEPENDENCIES: time.h, cmath, iostream, list, std
-  
-NOTES:
-  1. The maximum value is capped at 10^18 for now; May change in future versions, or upon request.
+Dependencies: `cstdint`, `ctime`, `vector`
 
-Class Random() is the primary class
+`Esinxecpp::Random` is the primary class.
 
-SetSeed() sets the seed, currently it takes any number between 0 and 10^18.
-Next() returns a random integer
-NextMax(maxvalue) Returns a random integer between 0 and maxvalue
-NextMinMax(minvalue, maxvalue) Returns a random integer within a specified range
-NextList(length) Returns a list of random integers
-NextListMax(length, maxvalue) Returns a list of random integers between 0 and maxvalue
-NextListMinMax(length, minvalue, maxvalue) Returns a list of random integers between minvalue and maxvalue
+- `SetSeed(seed)` resets the seed and sequence index.
+- `Next()` returns the next integer and advances the sequence.
+- `NextAt(offset)` returns the integer at an offset without advancing.
+- `NextMax(maxvalue)` returns `0 <= value < maxvalue`.
+- `NextMaxAt(offset, maxvalue)` returns a bounded value without advancing.
+- `NextMinMax(minvalue, maxvalue)` returns `minvalue <= value < maxvalue`.
+- `NextMinMaxAt(offset, minvalue, maxvalue)` returns a ranged value without advancing.
+- `NextList(length)` returns `length` consecutive integers.
+- `NextListMax(length, maxvalue)` returns `length` bounded integers.
+- `NextListMinMax(length, minvalue, maxvalue)` returns `length` ranged integers.
+
+This generator is deterministic and non-cryptographic.

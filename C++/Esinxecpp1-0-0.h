@@ -1,164 +1,121 @@
 #ifndef ESINXECPP_H_INCLUDED
 #define ESINXECPP_H_INCLUDED
 
-#include <time.h>
-#include <cmath>
-#include <iostream>
-#include <list>
-using namespace std;
+#include <cstdint>
+#include <ctime>
+#include <vector>
 
 namespace Esinxecpp
 {
-
     class Random
     {
-        private: long double e = 2.718281828459045235;
-        private: unsigned long long int maxintvalue = 1000000000000000000; // 10^18
-        public: unsigned long long int globalseed = time(0);
+    private:
+        static constexpr std::uint64_t Gamma = 0x9E3779B97F4A7C15ULL;
+        static constexpr std::uint64_t MaxIntValue = 1000000000000000000ULL;
+        std::uint64_t seed = static_cast<std::uint64_t>(std::time(nullptr));
+        std::uint64_t index = 0;
 
-        public: void SetSeed(unsigned long long int seed)
+        static std::uint64_t Mix64(std::uint64_t value)
         {
-            globalseed = seed;
+            value = (value ^ (value >> 30)) * 0xBF58476D1CE4E5B9ULL;
+            value = (value ^ (value >> 27)) * 0x94D049BB133111EBULL;
+            return value ^ (value >> 31);
         }
 
-        private: long double Esinxe()
+        std::uint64_t RawAt(std::uint64_t offset) const
         {
-            long double equation = (pow(e, sin(pow(globalseed, e)) - 1 / e) / 2.3504);
-
-            if (equation > 1)
-            {
-                equation = 1;
-            }
-            if (equation < 0)
-            {
-                equation = 0;
-            }
-
-            return equation;
+            return Mix64(seed + (offset * Gamma));
         }
 
-        private: long double Esinxe(unsigned long long int offset)
+    public:
+        void SetSeed(std::uint64_t localSeed)
         {
-            long double equation = (pow(e, sin(pow(globalseed + offset, e)) - 1 / e) / 2.3504);
-
-            if (equation > 1)
-            {
-                equation = 1;
-            }
-            if (equation < 0)
-            {
-                equation = 0;
-            }
-
-            return equation;
+            seed = localSeed;
+            index = 0;
         }
 
-        public: unsigned long long int Next()
+        std::uint64_t NextAt(std::uint64_t offset) const
         {
-            long double value = Esinxe();
-            value *= maxintvalue;
-            return (unsigned long long int)value;
+            return RawAt(offset) % MaxIntValue;
         }
 
-        public: unsigned long long int NextMax(unsigned long long int maxvalue)
+        std::uint64_t Next()
         {
-            if (maxvalue <= 0)
-            {
-                maxvalue = 1;
-            }
-
-            long double value = Esinxe();
-            value *= maxvalue;
-            return (unsigned long long int)value;
+            return NextAt(index++);
         }
 
-        public: unsigned long long int NextMinMax(unsigned long long int minvalue, unsigned long long int maxvalue)
+        std::uint64_t NextMaxAt(std::uint64_t offset, std::uint64_t maxvalue) const
         {
-            if (minvalue < 0)
-            {
-                minvalue = 0;
-            }
-            if (minvalue > maxintvalue)
-            {
-                minvalue = maxintvalue - 1;
-            }
-            if (maxvalue < 0)
-            {
-                maxvalue = 1;
-            }
-            if (maxvalue <= minvalue)
+            if (maxvalue == 0)
             {
                 return 0;
             }
-
-            long double value = Esinxe();
-            value *= maxvalue - minvalue;
-            value += minvalue;
-            return (unsigned long long int)value;
+            return RawAt(offset) % maxvalue;
         }
 
-        public: list<unsigned long long int> NextList(unsigned long long int length)
+        std::uint64_t NextMax(std::uint64_t maxvalue)
         {
-            list<unsigned long long int> values;
-
-            for (unsigned long long int i = 0; i < length; i++)
-            {
-                long double value = Esinxe(i);
-                value *= maxintvalue;
-                values.push_back((unsigned long long int)value);
-            }
-            return values;
+            return NextMaxAt(index++, maxvalue);
         }
 
-        public: list<unsigned long long int> NextListMax(unsigned long long int length, unsigned long long int maxvalue)
+        std::uint64_t NextMinMaxAt(
+            std::uint64_t offset,
+            std::uint64_t minvalue,
+            std::uint64_t maxvalue) const
         {
-            list<unsigned long long int> values;
-
-            if (maxvalue <= 0)
-            {
-                maxvalue = 1;
-            }
-
-            for (unsigned long long int i = 0; i < length; i++)
-            {
-                long double value = Esinxe(i);
-                value *= maxvalue;
-                values.push_back((unsigned long long int)value);
-            }
-            return values;
-        }
-
-        public: list<unsigned long long int> NextListMinMax(unsigned long long int length, unsigned long long int minvalue, unsigned long long int maxvalue)
-        {
-            list<unsigned long long int> values;
-
-            if (minvalue < 0)
-            {
-                minvalue = 0;
-            }
-            if (minvalue > maxintvalue)
-            {
-                minvalue = maxintvalue - 1;
-            }
-            if (maxvalue < 0)
-            {
-                maxvalue = 1;
-            }
             if (maxvalue <= minvalue)
             {
-                return values;
+                return minvalue;
             }
+            return minvalue + NextMaxAt(offset, maxvalue - minvalue);
+        }
 
-            for (unsigned long long int i = 0; i < length; i++)
+        std::uint64_t NextMinMax(std::uint64_t minvalue, std::uint64_t maxvalue)
+        {
+            return NextMinMaxAt(index++, minvalue, maxvalue);
+        }
+
+        std::vector<std::uint64_t> NextList(std::uint64_t length)
+        {
+            std::vector<std::uint64_t> values;
+            values.reserve(static_cast<std::size_t>(length));
+            for (std::uint64_t i = 0; i < length; i++)
             {
-                long double value = Esinxe(i);
-                value *= maxvalue - minvalue;
-                value += minvalue;
-                values.push_back((unsigned long long int)value);
+                values.push_back(NextAt(index + i));
             }
+            index += length;
+            return values;
+        }
+
+        std::vector<std::uint64_t> NextListMax(
+            std::uint64_t length,
+            std::uint64_t maxvalue)
+        {
+            std::vector<std::uint64_t> values;
+            values.reserve(static_cast<std::size_t>(length));
+            for (std::uint64_t i = 0; i < length; i++)
+            {
+                values.push_back(NextMaxAt(index + i, maxvalue));
+            }
+            index += length;
+            return values;
+        }
+
+        std::vector<std::uint64_t> NextListMinMax(
+            std::uint64_t length,
+            std::uint64_t minvalue,
+            std::uint64_t maxvalue)
+        {
+            std::vector<std::uint64_t> values;
+            values.reserve(static_cast<std::size_t>(length));
+            for (std::uint64_t i = 0; i < length; i++)
+            {
+                values.push_back(NextMinMaxAt(index + i, minvalue, maxvalue));
+            }
+            index += length;
             return values;
         }
     };
 }
 
-#endif // ESINXECPP_H_INCLUDED
+#endif

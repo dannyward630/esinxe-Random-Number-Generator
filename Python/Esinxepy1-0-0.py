@@ -1,180 +1,90 @@
-import math
 import time
 
-#e = 2.718281828459045235
-#maxintvalue = 10000000000000000000
 
-# Returns a random integer between 0 and 10^19
+MASK_64 = (1 << 64) - 1
+GOLDEN_GAMMA = 0x9E3779B97F4A7C15
+MAX_INT_VALUE = 10**18
 
-class Random:    
-    
-    __e = 2.718281828459045235
-    __maxintvalue = 10000000000000000000
-    seed = time.time()
-    
+
+def _mix64(value):
+    value &= MASK_64
+    value = ((value ^ (value >> 30)) * 0xBF58476D1CE4E5B9) & MASK_64
+    value = ((value ^ (value >> 27)) * 0x94D049BB133111EB) & MASK_64
+    return (value ^ (value >> 31)) & MASK_64
+
+
+class Random:
+    """Deterministic random-access generator.
+
+    Next() advances through the sequence. NextAt(offset) computes any value in
+    the sequence directly without generating the values before it.
+    """
+
+    def __init__(self, seed=None):
+        self.seed = int(time.time_ns() if seed is None else seed) & MASK_64
+        self.index = 0
+
     def SetSeed(self, localseed):
-        Random.seed = localseed
+        self.seed = int(localseed) & MASK_64
+        self.index = 0
+
+    def _raw_at(self, offset):
+        return _mix64(self.seed + (int(offset) * GOLDEN_GAMMA))
+
+    def _bounded_at(self, offset, maxvalue):
+        maxvalue = int(maxvalue)
+        if maxvalue <= 0:
+            return 0
+        return self._raw_at(offset) % maxvalue
+
+    def _range_at(self, offset, minvalue, maxvalue):
+        minvalue = int(minvalue)
+        maxvalue = int(maxvalue)
+        if maxvalue <= minvalue:
+            return None
+        return minvalue + self._bounded_at(offset, maxvalue - minvalue)
+
+    def NextAt(self, offset):
+        return self._bounded_at(offset, MAX_INT_VALUE)
 
     def Next(self):
-        x = Random.seed
-        e = Random.__e
-        maxintvalue = Random.__maxintvalue
-        equation = (math.pow(e, math.sin(math.pow(x, e))) - 1 / e) / 2.3504
-        
-        if equation > 1:
-            equation == 1
-        if equation < 0:
-            equation == 0
-            
-        equation *= maxintvalue
-        
-        return int(equation)
+        value = self.NextAt(self.index)
+        self.index += 1
+        return value
 
-    # Returns a random integer between 0 and maxvalue
+    def NextMaxAt(self, offset, maxvalue):
+        return self._bounded_at(offset, maxvalue)
 
     def NextMax(self, maxvalue):
-        x = Random.seed
-        e = Random.__e
-        maxintvalue = Random.__maxintvalue
-        max = int(maxvalue)
-        if max > maxintvalue:
-            max = maxintvalue
-        if max <= 0:
-            max = 1
-            
-        equation = (math.pow(e, math.sin(math.pow(x, e))) - 1 / e) / 2.3504
-        
-        if equation > 1:
-            equation == 1
-        if equation < 0:
-            equation == 0
-            
-        equation *= max
-        
-        return int(equation)
+        value = self.NextMaxAt(self.index, maxvalue)
+        self.index += 1
+        return value
 
-    # Returns a random integer within a specified range
+    def NextMinMaxAt(self, offset, minvalue, maxvalue):
+        return self._range_at(offset, minvalue, maxvalue)
 
     def NextMinMax(self, minvalue, maxvalue):
-        x = Random.seed
-        e = Random.__e
-        maxintvalue = Random.__maxintvalue
-        min = int(minvalue)
-        max = int(maxvalue)
-        
-        if min > maxintvalue:
-            min = maxintvalue - 2
-        if min < 0:
-            min = 0
-        if max > maxintvalue:
-            max = maxintvalue
-        if max < 0:
-            max = 2
-            
-        if max <= min:
-            return None
-        
-        equation = (math.pow(e, math.sin(math.pow(x, e))) - 1 / e) / 2.3504
-        
-        if equation > 1:
-            equation == 1
-        if equation < 0:
-            equation == 0
-            
-        equation *= max - min
-        equation += min
-        
-        return int(equation)
-    
-    # Returns a list of random integers
-    
+        value = self.NextMinMaxAt(self.index, minvalue, maxvalue)
+        self.index += 1
+        return value
+
     def NextList(self, length):
-        x = Random.seed
-        e = Random.__e
-        maxintvalue = Random.__maxintvalue
-        randlist = list()    
-        
-        listlength = int(length)
-        
-        for i in range(listlength):
-            
-            equation = (math.pow(e, math.sin(math.pow(x + i, e))) - 1 / e) / 2.3504
-            
-            if equation > 1:
-                equation == 1
-            if equation < 0:
-                equation == 0
-                
-            equation *= maxintvalue
-            
-            randlist.append(int(equation))
-        
-        return randlist
-    
-    # Returns a list of random integers between 0 and maxvalue
-    
+        length = max(0, int(length))
+        values = [self.NextAt(self.index + i) for i in range(length)]
+        self.index += length
+        return values
+
     def NextListMax(self, length, maxvalue):
-        max = int(maxvalue)
-        x = Random.seed
-        e = Random.__e
-        maxintvalue = Random.__maxintvalue
-        if max > maxintvalue:
-            max = maxintvalue
-        if max <= 0:
-            max = 1
-        randlist = list()
-        listlength = int(length)
-        
-        for i in range(listlength):
-            
-            equation = (math.pow(e, math.sin(math.pow(x + i, e))) - 1 / e) / 2.3504
-            
-            if equation > 1:
-                equation == 1
-            if equation < 0:
-                equation == 0
-                
-            equation *= max
-            
-            randlist.append(int(equation))
-        
-        return randlist
-    
-    # Returns a list of random integers between minvalue and maxvalue
-    
+        length = max(0, int(length))
+        values = [self.NextMaxAt(self.index + i, maxvalue) for i in range(length)]
+        self.index += length
+        return values
+
     def NextListMinMax(self, length, minvalue, maxvalue):
-        x = Random.seed
-        e = Random.__e
-        maxintvalue = Random.__maxintvalue
-        min = int(minvalue)
-        max = int(maxvalue)
-        
-        if min > maxintvalue:
-            min = maxintvalue - 2
-        if min < 0:
-            min = 0
-        if max > maxintvalue:
-            max = maxintvalue
-        if max < 0:
-            max = 2
-            
-        if max <= min:
-            return None
-        randlist = list()
-        listlength = int(length)
-        
-        for i in range(listlength):
-                        
-            equation = (math.pow(e, math.sin(math.pow(x + i, e))) - 1 / e) / 2.3504
-            
-            if equation > 1:
-                equation == 1
-            if equation < 0:
-                equation == 0
-                
-            equation *= max - min
-            equation += min
-            
-            randlist.append(int(equation))
-        
-        return randlist
+        length = max(0, int(length))
+        values = [
+            self.NextMinMaxAt(self.index + i, minvalue, maxvalue)
+            for i in range(length)
+        ]
+        self.index += length
+        return values

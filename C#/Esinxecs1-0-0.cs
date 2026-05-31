@@ -1,265 +1,102 @@
-﻿namespace Esinxecs
+using System;
+using System.Collections.Generic;
+
+namespace Esinxecs
 {
     public class Random
     {
-        readonly decimal e = 2.718281828459045235M;
-        readonly ulong maxintvalue = 10000000000000000000;
-        ulong globalseed = (ulong)DateTime.Now.Ticks;
+        private const ulong Gamma = 0x9E3779B97F4A7C15UL;
+        private const ulong MaxIntValue = 1000000000000000000UL;
+        private ulong seed = (ulong)DateTime.Now.Ticks;
+        private ulong index = 0;
 
-        static void Main()
+        private static ulong Mix64(ulong value)
         {
-            /*
-            Console.WriteLine("Hello RNGs!");
-            var random = new Random();
-
-            Console.WriteLine(random.Next());
-            Console.WriteLine(random.NextMax(100));
-            Console.WriteLine(random.NextMinMax(50, 100));
-            Console.WriteLine(random.NextList(5));
-            Console.WriteLine(random.NextListMax(5, 100));
-            Console.WriteLine(random.NextListMinMax(5, 50, 100));
-
-            random.SetSeed(10101);
-
-            Console.WriteLine(random.Next());
-            Console.WriteLine(random.NextMax(100));
-            Console.WriteLine(random.NextMinMax(50, 100));
-            Console.WriteLine(random.NextList(5));
-            Console.WriteLine(random.NextListMax(5, 100));
-            Console.WriteLine(random.NextListMinMax(5, 50, 100));
-            */
+            value = (value ^ (value >> 30)) * 0xBF58476D1CE4E5B9UL;
+            value = (value ^ (value >> 27)) * 0x94D049BB133111EBUL;
+            return value ^ (value >> 31);
         }
 
-        public void SetSeed(ulong seed)
+        private ulong RawAt(ulong offset)
         {
-            globalseed = seed;
+            return Mix64(seed + (offset * Gamma));
+        }
+
+        public void SetSeed(ulong localSeed)
+        {
+            seed = localSeed;
+            index = 0;
+        }
+
+        public ulong NextAt(ulong offset)
+        {
+            return RawAt(offset) % MaxIntValue;
         }
 
         public ulong Next()
         {
-            decimal equation = (decimal)(Math.Pow((double)e, Math.Sin(Math.Pow(globalseed, (double)e)) - 1 / (double)e) / 2.3504);
+            return NextAt(index++);
+        }
 
-            if (equation > 1)
+        public ulong NextMaxAt(ulong offset, ulong maxvalue)
+        {
+            if (maxvalue == 0)
             {
-                equation = 1;
+                return 0;
             }
-            if (equation < 0)
-            {
-                equation = 0;
-            }
-            equation *= maxintvalue;
-            ulong adjustedvalue = (ulong)equation;
-            string adjuster = adjustedvalue.ToString();
-            string next = adjuster.Remove(4);
-            adjustedvalue += ulong.Parse(next);
-
-            return adjustedvalue;
+            return RawAt(offset) % maxvalue;
         }
 
         public ulong NextMax(ulong maxvalue)
         {
-            if (maxvalue <= 0)
-            {
-                maxvalue = 1;
-            }
+            return NextMaxAt(index++, maxvalue);
+        }
 
-            decimal equation = (decimal)(Math.Pow((double)e, Math.Sin(Math.Pow(globalseed, (double)e)) - 1 / (double)e) / 2.3504);
-
-            if (equation > 1)
+        public ulong NextMinMaxAt(ulong offset, ulong minvalue, ulong maxvalue)
+        {
+            if (maxvalue <= minvalue)
             {
-                equation = 1;
+                return minvalue;
             }
-            if (equation < 0)
-            {
-                equation = 0;
-            }
-            equation *= maxvalue;
-            ulong adjustedvalue = (ulong)equation;
-            string adjuster = adjustedvalue.ToString();
-            string next = adjuster;
-            try
-            {
-                next = adjuster.Remove(4);
-            }
-            catch(ArgumentOutOfRangeException)
-            {
-                
-            }
-            adjustedvalue += ulong.Parse(next);
-
-            return adjustedvalue;
+            return minvalue + NextMaxAt(offset, maxvalue - minvalue);
         }
 
         public ulong NextMinMax(ulong minvalue, ulong maxvalue)
         {
-            if (minvalue < 0)
-            {
-                minvalue = 0;
-            }
-            if (minvalue > maxintvalue)
-            {
-                minvalue = maxintvalue - 1;
-            }
-            if (maxvalue < 0)
-            {
-                maxvalue = 1;
-            }
-            if (maxvalue <= minvalue)
-            {
-                return 0;
-            }
-
-            decimal equation = (decimal)(Math.Pow((double)e, Math.Sin(Math.Pow(globalseed, (double)e)) - 1 / (double)e) / 2.3504);
-
-            if (equation > 1)
-            {
-                equation = 1;
-            }
-            if (equation < 0)
-            {
-                equation = 0;
-            }
-            equation *= maxvalue - minvalue;
-            equation += minvalue;
-            ulong adjustedvalue = (ulong)equation;
-            string adjuster = adjustedvalue.ToString();
-            string next = adjuster;
-            try
-            {
-                next = adjuster.Remove(4);
-            }
-            catch (ArgumentOutOfRangeException)
-            {
-
-            }
-            adjustedvalue += ulong.Parse(next);
-
-            return adjustedvalue;
+            return NextMinMaxAt(index++, minvalue, maxvalue);
         }
 
         public List<ulong> NextList(ulong length)
         {
-            List<ulong> randlist = new();
+            List<ulong> values = new();
             for (ulong i = 0; i < length; i++)
             {
-                decimal equation = (decimal)(Math.Pow((double)e, Math.Sin(Math.Pow(globalseed, (double)e)) - 1 / (double)e) / 2.3504);
-
-                if (equation > 1)
-                {
-                    equation = 1;
-                }
-                if (equation < 0)
-                {
-                    equation = 0;
-                }
-                equation *= maxintvalue;
-                ulong adjustedvalue = (ulong)equation;
-                string adjuster = adjustedvalue.ToString();
-                string next = adjuster;
-                try
-                {
-                    next = adjuster.Remove(4);
-                }
-                catch (ArgumentOutOfRangeException)
-                {
-
-                }
-                adjustedvalue += ulong.Parse(next);
-
-                randlist.Add(adjustedvalue);
+                values.Add(NextAt(index + i));
             }
-            return randlist;
+            index += length;
+            return values;
         }
 
         public List<ulong> NextListMax(ulong length, ulong maxvalue)
         {
-            if (maxvalue <= 0)
-            {
-                maxvalue = 1;
-            }
-
-            List<ulong> randlist = new();
+            List<ulong> values = new();
             for (ulong i = 0; i < length; i++)
             {
-                decimal equation = (decimal)(Math.Pow((double)e, Math.Sin(Math.Pow(globalseed, (double)e)) - 1 / (double)e) / 2.3504);
-
-                if (equation > 1)
-                {
-                    equation = 1;
-                }
-                if (equation < 0)
-                {
-                    equation = 0;
-                }
-                equation *= maxvalue;
-                ulong adjustedvalue = (ulong)equation;
-                string adjuster = adjustedvalue.ToString();
-                string next = adjuster;
-                try
-                {
-                    next = adjuster.Remove(4);
-                }
-                catch (ArgumentOutOfRangeException)
-                {
-
-                }
-                adjustedvalue += ulong.Parse(next);
-
-                randlist.Add(adjustedvalue);
+                values.Add(NextMaxAt(index + i, maxvalue));
             }
-            return randlist;
+            index += length;
+            return values;
         }
 
         public List<ulong> NextListMinMax(ulong length, ulong minvalue, ulong maxvalue)
         {
-            List<ulong> randlist = new();
-            if (minvalue < 0)
-            {
-                minvalue = 0;
-            }
-            if (minvalue > maxintvalue)
-            {
-                minvalue = maxintvalue - 1;
-            }
-            if (maxvalue < 0)
-            {
-                maxvalue = 1;
-            }
-            if (maxvalue <= minvalue)
-            {
-                return randlist;
-            }
-
+            List<ulong> values = new();
             for (ulong i = 0; i < length; i++)
             {
-                decimal equation = (decimal)(Math.Pow((double)e, Math.Sin(Math.Pow(globalseed, (double)e)) - 1 / (double)e) / 2.3504);
-
-                if (equation > 1)
-                {
-                    equation = 1;
-                }
-                if (equation < 0)
-                {
-                    equation = 0;
-                }
-                equation *= maxvalue - minvalue;
-                equation += minvalue;
-                ulong adjustedvalue = (ulong)equation;
-                string adjuster = adjustedvalue.ToString();
-                string next = adjuster;
-                try
-                {
-                    next = adjuster.Remove(4);
-                }
-                catch (ArgumentOutOfRangeException)
-                {
-
-                }
-                adjustedvalue += ulong.Parse(next);
-
-                randlist.Add(adjustedvalue);
+                values.Add(NextMinMaxAt(index + i, minvalue, maxvalue));
             }
-            return randlist;
+            index += length;
+            return values;
         }
     }
 }

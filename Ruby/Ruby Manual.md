@@ -1,21 +1,17 @@
-$$___$$_ __$$$___ $$___$$_ $$___$$_ __$$$___ $$______
-$$$_$$$_ _$$_$$__ $$$__$$_ $$___$$_ _$$_$$__ $$______
-$$$$$$$_ $$___$$_ $$$$_$$_ $$___$$_ $$___$$_ $$______
-$$_$_$$_ $$$$$$$_ $$_$$$$_ $$___$$_ $$$$$$$_ $$______
-$$___$$_ $$___$$_ $$__$$$_ $$___$$_ $$___$$_ $$____$_
-$$___$$_ $$___$$_ $$___$$_ _$$$$$__ $$___$$_ $$$$$$$_
+# Ruby Manual
 
-DEPENDENCIES: Math
-  
-NOTES:
-  1. The maximum value is capped at 10^17 for now; May change in future versions, or upon request.
+Dependencies: none
 
-Class Random() is the primary class
+`Random` is the primary class.
 
-SetSeed() sets the seed, currently it takes any number between 0 and 10^17.
+- `SetSeed(seed)` resets the seed and sequence index.
+- `Next()` returns the next integer and advances the sequence.
+- `Next(offset)` returns the integer at an offset without advancing.
+- `Next(offset, maxvalue)` returns `0 <= value < maxvalue`.
+- `Next(offset, minvalue, maxvalue)` returns `minvalue <= value < maxvalue`.
+- `NextArray(length)` returns `length` consecutive integers and advances.
+- `NextArray(length, offset)` returns values starting at `offset` without advancing.
+- `NextArray(length, offset, maxvalue)` returns bounded values without advancing.
+- `NextArray(length, offset, minvalue, maxvalue)` returns ranged values without advancing.
 
-Next(offset) returns a random integer
-
-NextList(length) Returns a list of random integers
-
-Overloads are described in the module.
+This generator is deterministic and non-cryptographic.
