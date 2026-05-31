@@ -43,6 +43,12 @@ Run the included smoke and statistical tests with:
 python3 -m unittest discover -s tests
 ```
 
+Or run the full local CI check:
+
+```sh
+./scripts/ci.sh
+```
+
 ## Python package
 
 The Python implementation can be installed locally:
