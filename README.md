@@ -21,6 +21,9 @@ for practical non-cryptographic use.
 This is not a cryptographic random number generator. Do not use it for
 passwords, tokens, key generation, gambling, or security-sensitive decisions.
 
+See [docs/RNG_ANALYSIS.md](docs/RNG_ANALYSIS.md) for a more detailed discussion
+of what this generator is and is not useful for.
+
 ## API
 
 - `SetSeed(seed)` resets the seed and sequence index.
