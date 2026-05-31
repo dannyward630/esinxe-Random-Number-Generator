@@ -1,5 +1,4 @@
 import collections
-import importlib.util
 import os
 import shutil
 import statistics
@@ -11,7 +10,6 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PYTHON_IMPL = ROOT / "Python" / "Esinxepy1-0-0.py"
 EXPECTED_FIRST_VALUES = [
     540659726606785873,
     454886589211414944,
@@ -28,16 +26,11 @@ EXPECTED_FIRST_RAW_VALUES = [
 ]
 
 
-def load_python_impl():
-    spec = importlib.util.spec_from_file_location("esinxepy", PYTHON_IMPL)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    return module
-
-
 class PythonBehaviorTests(unittest.TestCase):
     def setUp(self):
-        self.module = load_python_impl()
+        import esinxe
+
+        self.module = esinxe
 
     def test_next_advances_and_next_at_matches(self):
         rng = self.module.Random(12345)
@@ -62,6 +55,17 @@ class PythonBehaviorTests(unittest.TestCase):
             [rng.NextRawAt(i) for i in range(5)],
             EXPECTED_FIRST_RAW_VALUES,
         )
+
+    def test_legacy_python_file_reexports_package(self):
+        # The historical filename is not importable as a module because of
+        # hyphens, so load it by path and verify it exposes the package API.
+        import importlib.util
+
+        legacy = ROOT / "Python" / "Esinxepy1-0-0.py"
+        spec = importlib.util.spec_from_file_location("esinxepy_legacy", legacy)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        self.assertEqual(module.Random(12345).Next(), EXPECTED_FIRST_VALUES[0])
 
     def test_ranges_are_lower_inclusive_upper_exclusive(self):
         rng = self.module.Random(12345)

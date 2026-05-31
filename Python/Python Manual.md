@@ -2,11 +2,24 @@
 
 Dependencies: `time`
 
+New Python code should import the package:
+
+```python
+import esinxe
+
+rng = esinxe.Random(12345)
+```
+
+The original `Python/Esinxepy1-0-0.py` file reexports this package for
+compatibility.
+
 `Random()` is the primary class.
 
 - `SetSeed(seed)` resets the seed and sequence index.
 - `Next()` returns the next integer and advances the sequence.
 - `NextAt(offset)` returns the integer at an offset without advancing.
+- `NextRaw()` returns the next raw 64-bit value and advances.
+- `NextRawAt(offset)` returns the raw 64-bit value at an offset without advancing.
 - `NextMax(maxvalue)` returns `0 <= value < maxvalue`.
 - `NextMaxAt(offset, maxvalue)` returns a bounded value without advancing.
 - `NextMinMax(minvalue, maxvalue)` returns `minvalue <= value < maxvalue`.

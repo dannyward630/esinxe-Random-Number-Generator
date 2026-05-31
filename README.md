@@ -42,3 +42,22 @@ Run the included smoke and statistical tests with:
 ```sh
 python3 -m unittest discover -s tests
 ```
+
+## Python package
+
+The Python implementation can be installed locally:
+
+```sh
+python3 -m pip install -e .
+```
+
+Then import it with:
+
+```python
+import esinxe
+
+rng = esinxe.Random(12345)
+print(rng.NextAt(1000))
+```
+
+The historical `Python/Esinxepy1-0-0.py` file remains as a compatibility shim.
