@@ -26,6 +26,8 @@ passwords, tokens, key generation, gambling, or security-sensitive decisions.
 - `SetSeed(seed)` resets the seed and sequence index.
 - `Next()` returns the next value and advances the sequence.
 - `NextAt(offset)` returns the value at `offset` without advancing.
+- `NextRaw()` returns the next raw 64-bit value and advances the sequence.
+- `NextRawAt(offset)` returns the raw 64-bit value at `offset`.
 - `NextMax(maxvalue)` returns `0 <= value < maxvalue`.
 - `NextMaxAt(offset, maxvalue)` returns `0 <= value < maxvalue`.
 - `NextMinMax(minvalue, maxvalue)` returns `minvalue <= value < maxvalue`.

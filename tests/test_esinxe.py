@@ -136,7 +136,7 @@ class CrossLanguageSmokeTests(unittest.TestCase):
         script = textwrap.dedent(
             """
             load 'Ruby/Esinxeruby1-0-0.rb'
-            rng = Random.new
+            rng = Esinxe::Generator.new
             rng.SetSeed(12345)
             5.times { |i| puts "#{rng.Next} #{rng.NextRawAt(i)}" }
             """
