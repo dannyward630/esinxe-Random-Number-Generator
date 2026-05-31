@@ -27,6 +27,23 @@ namespace Esinxecpp
             return Mix64(seed + (offset * Gamma));
         }
 
+        static std::uint64_t Bounded(std::uint64_t value, std::uint64_t maxvalue)
+        {
+            if (maxvalue == 0)
+            {
+                return 0;
+            }
+            const std::uint64_t threshold =
+                static_cast<std::uint64_t>(0 - maxvalue) % maxvalue;
+            std::uint64_t nonce = 0;
+            while (value < threshold)
+            {
+                nonce++;
+                value = Mix64(value + (nonce * Gamma));
+            }
+            return value % maxvalue;
+        }
+
     public:
         void SetSeed(std::uint64_t localSeed)
         {
@@ -36,7 +53,7 @@ namespace Esinxecpp
 
         std::uint64_t NextAt(std::uint64_t offset) const
         {
-            return RawAt(offset) % MaxIntValue;
+            return Bounded(RawAt(offset), MaxIntValue);
         }
 
         std::uint64_t Next()
@@ -44,13 +61,19 @@ namespace Esinxecpp
             return NextAt(index++);
         }
 
+        std::uint64_t NextRawAt(std::uint64_t offset) const
+        {
+            return RawAt(offset);
+        }
+
+        std::uint64_t NextRaw()
+        {
+            return NextRawAt(index++);
+        }
+
         std::uint64_t NextMaxAt(std::uint64_t offset, std::uint64_t maxvalue) const
         {
-            if (maxvalue == 0)
-            {
-                return 0;
-            }
-            return RawAt(offset) % maxvalue;
+            return Bounded(RawAt(offset), maxvalue);
         }
 
         std::uint64_t NextMax(std::uint64_t maxvalue)

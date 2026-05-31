@@ -24,15 +24,35 @@ class Random
         Mix64(@seed + offset.to_i * Gamma)
     end
 
-    def NextAt(offset)
-        RawAt(offset) % Maxintvalue
-    end
-
-    def NextMaxAt(offset, maxvalue)
+    def Bounded(value, maxvalue)
         maxvalue = maxvalue.to_i
         return 0 if maxvalue <= 0
 
-        RawAt(offset) % maxvalue
+        threshold = ((1 << 64) - maxvalue) % maxvalue
+        nonce = 0
+        while value < threshold
+            nonce += 1
+            value = Mix64(value + nonce * Gamma)
+        end
+        value % maxvalue
+    end
+
+    def NextAt(offset)
+        Bounded(RawAt(offset), Maxintvalue)
+    end
+
+    def NextRawAt(offset)
+        RawAt(offset)
+    end
+
+    def NextRaw
+        value = NextRawAt(@index)
+        @index += 1
+        value
+    end
+
+    def NextMaxAt(offset, maxvalue)
+        Bounded(RawAt(offset), maxvalue)
     end
 
     def NextMinMaxAt(offset, minvalue, maxvalue)

@@ -22,6 +22,23 @@ namespace Esinxecs
             return Mix64(seed + (offset * Gamma));
         }
 
+        private static ulong Bounded(ulong value, ulong maxvalue)
+        {
+            if (maxvalue == 0)
+            {
+                return 0;
+            }
+
+            ulong threshold = unchecked(0UL - maxvalue) % maxvalue;
+            ulong nonce = 0;
+            while (value < threshold)
+            {
+                nonce++;
+                value = Mix64(value + (nonce * Gamma));
+            }
+            return value % maxvalue;
+        }
+
         public void SetSeed(ulong localSeed)
         {
             seed = localSeed;
@@ -30,7 +47,7 @@ namespace Esinxecs
 
         public ulong NextAt(ulong offset)
         {
-            return RawAt(offset) % MaxIntValue;
+            return Bounded(RawAt(offset), MaxIntValue);
         }
 
         public ulong Next()
@@ -38,13 +55,19 @@ namespace Esinxecs
             return NextAt(index++);
         }
 
+        public ulong NextRawAt(ulong offset)
+        {
+            return RawAt(offset);
+        }
+
+        public ulong NextRaw()
+        {
+            return NextRawAt(index++);
+        }
+
         public ulong NextMaxAt(ulong offset, ulong maxvalue)
         {
-            if (maxvalue == 0)
-            {
-                return 0;
-            }
-            return RawAt(offset) % maxvalue;
+            return Bounded(RawAt(offset), maxvalue);
         }
 
         public ulong NextMax(ulong maxvalue)

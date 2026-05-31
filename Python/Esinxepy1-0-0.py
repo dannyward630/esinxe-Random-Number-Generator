@@ -35,7 +35,13 @@ class Random:
         maxvalue = int(maxvalue)
         if maxvalue <= 0:
             return 0
-        return self._raw_at(offset) % maxvalue
+        threshold = ((1 << 64) - maxvalue) % maxvalue
+        value = self._raw_at(offset)
+        nonce = 0
+        while value < threshold:
+            nonce += 1
+            value = _mix64(value + (nonce * GOLDEN_GAMMA))
+        return value % maxvalue
 
     def _range_at(self, offset, minvalue, maxvalue):
         minvalue = int(minvalue)
@@ -46,6 +52,14 @@ class Random:
 
     def NextAt(self, offset):
         return self._bounded_at(offset, MAX_INT_VALUE)
+
+    def NextRawAt(self, offset):
+        return self._raw_at(offset)
+
+    def NextRaw(self):
+        value = self.NextRawAt(self.index)
+        self.index += 1
+        return value
 
     def Next(self):
         value = self.NextAt(self.index)

@@ -19,6 +19,13 @@ EXPECTED_FIRST_VALUES = [
     205171434679333405,
     248800117070709450,
 ]
+EXPECTED_FIRST_RAW_VALUES = [
+    17540659726606785873,
+    2454886589211414944,
+    3778200017661327597,
+    2205171434679333405,
+    3248800117070709450,
+]
 
 
 def load_python_impl():
@@ -45,6 +52,16 @@ class PythonBehaviorTests(unittest.TestCase):
         rng.Next()
         rng.SetSeed(12345)
         self.assertEqual(rng.Next(), first)
+
+    def test_raw_values_are_public_and_random_accessible(self):
+        rng = self.module.Random(12345)
+        self.assertEqual([rng.NextRaw() for _ in range(5)], EXPECTED_FIRST_RAW_VALUES)
+
+        rng.SetSeed(12345)
+        self.assertEqual(
+            [rng.NextRawAt(i) for i in range(5)],
+            EXPECTED_FIRST_RAW_VALUES,
+        )
 
     def test_ranges_are_lower_inclusive_upper_exclusive(self):
         rng = self.module.Random(12345)
@@ -79,14 +96,18 @@ class CrossLanguageSmokeTests(unittest.TestCase):
                 SetSeed(12345);
                 for (int i = 0; i < 5; i++)
                 {
-                    printf("%llu\\n", (unsigned long long)Next());
+                    printf("%llu %llu\\n",
+                        (unsigned long long)Next(),
+                        (unsigned long long)NextRawAt(i));
                 }
                 return 0;
             }
             """
         )
         output = compile_and_run("c", source)
-        self.assertEqual(parse_int_lines(output), EXPECTED_FIRST_VALUES)
+        pairs = parse_int_pairs(output)
+        self.assertEqual([pair[0] for pair in pairs], EXPECTED_FIRST_VALUES)
+        self.assertEqual([pair[1] for pair in pairs], EXPECTED_FIRST_RAW_VALUES)
 
     def test_cpp_header_compiles_and_matches_reference_values(self):
         source = textwrap.dedent(
@@ -100,14 +121,16 @@ class CrossLanguageSmokeTests(unittest.TestCase):
                 rng.SetSeed(12345);
                 for (int i = 0; i < 5; i++)
                 {
-                    std::cout << rng.Next() << "\\n";
+                    std::cout << rng.Next() << " " << rng.NextRawAt(i) << "\\n";
                 }
                 return 0;
             }
             """
         )
         output = compile_and_run("cpp", source)
-        self.assertEqual(parse_int_lines(output), EXPECTED_FIRST_VALUES)
+        pairs = parse_int_pairs(output)
+        self.assertEqual([pair[0] for pair in pairs], EXPECTED_FIRST_VALUES)
+        self.assertEqual([pair[1] for pair in pairs], EXPECTED_FIRST_RAW_VALUES)
 
     def test_ruby_matches_reference_values(self):
         script = textwrap.dedent(
@@ -115,7 +138,7 @@ class CrossLanguageSmokeTests(unittest.TestCase):
             load 'Ruby/Esinxeruby1-0-0.rb'
             rng = Random.new
             rng.SetSeed(12345)
-            5.times { puts rng.Next }
+            5.times { |i| puts "#{rng.Next} #{rng.NextRawAt(i)}" }
             """
         )
         result = subprocess.run(
@@ -125,7 +148,9 @@ class CrossLanguageSmokeTests(unittest.TestCase):
             text=True,
             capture_output=True,
         )
-        self.assertEqual(parse_int_lines(result.stdout), EXPECTED_FIRST_VALUES)
+        pairs = parse_int_pairs(result.stdout)
+        self.assertEqual([pair[0] for pair in pairs], EXPECTED_FIRST_VALUES)
+        self.assertEqual([pair[1] for pair in pairs], EXPECTED_FIRST_RAW_VALUES)
 
     def test_csharp_matches_reference_values_when_dotnet_is_available(self):
         dotnet = shutil.which("dotnet") or str(Path.home() / ".dotnet" / "dotnet")
@@ -150,7 +175,7 @@ class CrossLanguageSmokeTests(unittest.TestCase):
                             rng.SetSeed(12345);
                             for (var i = 0; i < 5; i++)
                             {
-                                Console.WriteLine(rng.Next());
+                                Console.WriteLine($"{rng.Next()} {rng.NextRawAt((ulong)i)}");
                             }
                         }
                     }
@@ -181,7 +206,9 @@ class CrossLanguageSmokeTests(unittest.TestCase):
                 capture_output=True,
                 env=env,
             )
-            self.assertEqual(parse_int_lines(result.stdout), EXPECTED_FIRST_VALUES)
+            pairs = parse_int_pairs(result.stdout)
+            self.assertEqual([pair[0] for pair in pairs], EXPECTED_FIRST_VALUES)
+            self.assertEqual([pair[1] for pair in pairs], EXPECTED_FIRST_RAW_VALUES)
 
 
 def compile_and_run(kind, source):
@@ -217,6 +244,14 @@ def compile_and_run(kind, source):
 
 def parse_int_lines(output):
     return [int(line) for line in output.splitlines() if line.strip()]
+
+
+def parse_int_pairs(output):
+    return [
+        tuple(int(part) for part in line.split())
+        for line in output.splitlines()
+        if line.strip()
+    ]
 
 
 if __name__ == "__main__":
