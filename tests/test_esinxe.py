@@ -1,4 +1,5 @@
 import collections
+import math
 import os
 import shutil
 import statistics
@@ -86,6 +87,40 @@ class PythonBehaviorTests(unittest.TestCase):
         self.assertEqual(len(counts), 100)
         self.assertLess(chi_square, 160)
         self.assertLess(abs(statistics.mean(values) - 49.5), 1.0)
+
+    def test_raw_bit_balance_smoke(self):
+        rng = self.module.Random(123456789)
+        values = [rng.NextRawAt(i) for i in range(50000)]
+        proportions = [
+            sum((value >> bit) & 1 for value in values) / len(values)
+            for bit in range(64)
+        ]
+
+        self.assertLess(min(proportions), 0.51)
+        self.assertGreater(max(proportions), 0.49)
+        self.assertLess(max(abs(p - 0.5) for p in proportions), 0.012)
+
+    def test_raw_avalanche_smoke(self):
+        base = self.module.Random(123456789)
+        flipped = self.module.Random(123456789 ^ (1 << 31))
+        distances = [
+            popcount(base.NextRawAt(i) ^ flipped.NextRawAt(i))
+            for i in range(10000)
+        ]
+
+        self.assertLess(abs(statistics.mean(distances) - 32), 0.4)
+        self.assertGreater(min(distances), 10)
+        self.assertLess(max(distances), 54)
+
+    def test_serial_correlation_smoke(self):
+        rng = self.module.Random(123456789)
+        values = [rng.NextRawAt(i) / (1 << 64) for i in range(50000)]
+        self.assertLess(abs(correlation(values[:-1], values[1:])), 0.015)
+
+    def test_no_raw_collisions_in_smoke_sample(self):
+        rng = self.module.Random(123456789)
+        values = [rng.NextRawAt(i) for i in range(100000)]
+        self.assertEqual(len(values), len(set(values)))
 
 
 class CrossLanguageSmokeTests(unittest.TestCase):
@@ -256,6 +291,19 @@ def parse_int_pairs(output):
         for line in output.splitlines()
         if line.strip()
     ]
+
+
+def popcount(value):
+    return bin(value).count("1")
+
+
+def correlation(xs, ys):
+    mean_x = statistics.mean(xs)
+    mean_y = statistics.mean(ys)
+    numerator = sum((x - mean_x) * (y - mean_y) for x, y in zip(xs, ys))
+    denominator_x = math.sqrt(sum((x - mean_x) ** 2 for x in xs))
+    denominator_y = math.sqrt(sum((y - mean_y) ** 2 for y in ys))
+    return numerator / (denominator_x * denominator_y)
 
 
 if __name__ == "__main__":
