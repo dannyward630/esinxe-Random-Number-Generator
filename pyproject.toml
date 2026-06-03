@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "esinxe"
-version = "1.0.3"
+version = "1.0.4"
 description = "Deterministic random-access number generator for procedural generation"
 readme = "README.md"
 requires-python = ">=3.9"

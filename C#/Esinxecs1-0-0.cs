@@ -9,6 +9,12 @@ namespace Esinxecs
         private const ulong MaxIntValue = 1000000000000000000UL;
         private ulong seed = (ulong)DateTime.Now.Ticks;
         private ulong index = 0;
+        private ulong key = 0;
+
+        public Random()
+        {
+            key = seed;
+        }
 
         private static ulong Mix64(ulong value)
         {
@@ -43,6 +49,7 @@ namespace Esinxecs
         {
             seed = localSeed;
             index = 0;
+            key = seed;
         }
 
         public ulong NextAt(ulong offset)
@@ -52,7 +59,10 @@ namespace Esinxecs
 
         public ulong Next()
         {
-            return NextAt(index++);
+            ulong value = Bounded(Mix64(key), MaxIntValue);
+            key += Gamma;
+            index++;
+            return value;
         }
 
         public ulong NextRawAt(ulong offset)
@@ -62,7 +72,10 @@ namespace Esinxecs
 
         public ulong NextRaw()
         {
-            return NextRawAt(index++);
+            ulong value = Mix64(key);
+            key += Gamma;
+            index++;
+            return value;
         }
 
         public ulong NextMaxAt(ulong offset, ulong maxvalue)
@@ -72,7 +85,10 @@ namespace Esinxecs
 
         public ulong NextMax(ulong maxvalue)
         {
-            return NextMaxAt(index++, maxvalue);
+            ulong value = Bounded(Mix64(key), maxvalue);
+            key += Gamma;
+            index++;
+            return value;
         }
 
         public ulong NextMinMaxAt(ulong offset, ulong minvalue, ulong maxvalue)
@@ -86,7 +102,14 @@ namespace Esinxecs
 
         public ulong NextMinMax(ulong minvalue, ulong maxvalue)
         {
-            return NextMinMaxAt(index++, minvalue, maxvalue);
+            ulong value = minvalue;
+            if (maxvalue > minvalue)
+            {
+                value = minvalue + Bounded(Mix64(key), maxvalue - minvalue);
+            }
+            key += Gamma;
+            index++;
+            return value;
         }
 
         public List<ulong> NextList(ulong length)
@@ -94,7 +117,8 @@ namespace Esinxecs
             List<ulong> values = new();
             for (ulong i = 0; i < length; i++)
             {
-                values.Add(NextAt(index + i));
+                values.Add(Bounded(Mix64(key), MaxIntValue));
+                key += Gamma;
             }
             index += length;
             return values;
@@ -105,7 +129,8 @@ namespace Esinxecs
             List<ulong> values = new();
             for (ulong i = 0; i < length; i++)
             {
-                values.Add(NextMaxAt(index + i, maxvalue));
+                values.Add(Bounded(Mix64(key), maxvalue));
+                key += Gamma;
             }
             index += length;
             return values;
@@ -116,7 +141,11 @@ namespace Esinxecs
             List<ulong> values = new();
             for (ulong i = 0; i < length; i++)
             {
-                values.Add(NextMinMaxAt(index + i, minvalue, maxvalue));
+                values.Add(
+                    maxvalue > minvalue
+                        ? minvalue + Bounded(Mix64(key), maxvalue - minvalue)
+                        : minvalue);
+                key += Gamma;
             }
             index += length;
             return values;

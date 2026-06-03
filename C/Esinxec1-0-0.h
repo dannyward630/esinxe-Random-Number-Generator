@@ -11,6 +11,7 @@ typedef struct EsinxeRandom
 {
     uint64_t seed;
     uint64_t index;
+    uint64_t key;
 } EsinxeRandom;
 
 static uint64_t EsinxeMix64(uint64_t value)
@@ -41,6 +42,7 @@ void EsinxeInit(EsinxeRandom *rng, uint64_t seed)
 {
     rng->seed = seed;
     rng->index = 0;
+    rng->key = seed;
 }
 
 void EsinxeSetTimeSeed(EsinxeRandom *rng)
@@ -55,7 +57,8 @@ uint64_t EsinxeNextRawAt(const EsinxeRandom *rng, uint64_t offset)
 
 uint64_t EsinxeNextRaw(EsinxeRandom *rng)
 {
-    uint64_t value = EsinxeNextRawAt(rng, rng->index);
+    uint64_t value = EsinxeMix64(rng->key);
+    rng->key += ESINXE_GAMMA;
     rng->index++;
     return value;
 }
@@ -67,7 +70,8 @@ uint64_t EsinxeNextAt(const EsinxeRandom *rng, uint64_t offset)
 
 uint64_t EsinxeNext(EsinxeRandom *rng)
 {
-    uint64_t value = EsinxeNextAt(rng, rng->index);
+    uint64_t value = EsinxeBounded(EsinxeMix64(rng->key), ESINXE_MAX_INT_VALUE);
+    rng->key += ESINXE_GAMMA;
     rng->index++;
     return value;
 }
@@ -79,7 +83,8 @@ uint64_t EsinxeNextMaxAt(const EsinxeRandom *rng, uint64_t offset, uint64_t maxv
 
 uint64_t EsinxeNextMax(EsinxeRandom *rng, uint64_t maxvalue)
 {
-    uint64_t value = EsinxeNextMaxAt(rng, rng->index, maxvalue);
+    uint64_t value = EsinxeBounded(EsinxeMix64(rng->key), maxvalue);
+    rng->key += ESINXE_GAMMA;
     rng->index++;
     return value;
 }
@@ -99,12 +104,17 @@ uint64_t EsinxeNextMinMaxAt(
 
 uint64_t EsinxeNextMinMax(EsinxeRandom *rng, uint64_t minvalue, uint64_t maxvalue)
 {
-    uint64_t value = EsinxeNextMinMaxAt(rng, rng->index, minvalue, maxvalue);
+    uint64_t value = minvalue;
+    if (maxvalue > minvalue)
+    {
+        value = minvalue + EsinxeBounded(EsinxeMix64(rng->key), maxvalue - minvalue);
+    }
+    rng->key += ESINXE_GAMMA;
     rng->index++;
     return value;
 }
 
-static EsinxeRandom esinxe_default_rng = {0, 0};
+static EsinxeRandom esinxe_default_rng = {0, 0, 0};
 
 void SetSeed(uint64_t seed)
 {

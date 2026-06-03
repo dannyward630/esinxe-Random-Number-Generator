@@ -3,6 +3,7 @@ set -eu
 
 python3 -m py_compile Python/Esinxepy1-0-0.py src/esinxe/__init__.py tests/test_esinxe.py
 ruby -c Ruby/Esinxeruby1-0-0.rb
+python3 setup.py build_ext --inplace >/dev/null
 python3 -m unittest discover -s tests
 
 tmpdir="$(mktemp -d)"

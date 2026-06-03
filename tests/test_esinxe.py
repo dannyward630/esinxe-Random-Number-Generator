@@ -124,6 +124,15 @@ class PythonBehaviorTests(unittest.TestCase):
         values = [rng.NextRawAt(i) for i in range(100000)]
         self.assertEqual(len(values), len(set(values)))
 
+    def test_native_extension_when_built_matches_python_contract(self):
+        native = getattr(self.module, "_native", None)
+        if native is None:
+            self.skipTest("native extension is not built")
+
+        rng = self.module.Random(12345)
+        self.assertEqual(native.raw_list(12345, 5), EXPECTED_FIRST_RAW_VALUES)
+        self.assertEqual(rng.NextList(5), EXPECTED_FIRST_VALUES)
+
 
 class CrossLanguageSmokeTests(unittest.TestCase):
     def test_c_header_compiles_and_matches_reference_values(self):

@@ -14,6 +14,7 @@ namespace Esinxecpp
         static constexpr std::uint64_t MaxIntValue = 1000000000000000000ULL;
         std::uint64_t seed = static_cast<std::uint64_t>(std::time(nullptr));
         std::uint64_t index = 0;
+        std::uint64_t key = seed;
 
         static std::uint64_t Mix64(std::uint64_t value)
         {
@@ -49,6 +50,7 @@ namespace Esinxecpp
         {
             seed = localSeed;
             index = 0;
+            key = seed;
         }
 
         std::uint64_t NextAt(std::uint64_t offset) const
@@ -58,7 +60,10 @@ namespace Esinxecpp
 
         std::uint64_t Next()
         {
-            return NextAt(index++);
+            std::uint64_t value = Bounded(Mix64(key), MaxIntValue);
+            key += Gamma;
+            index++;
+            return value;
         }
 
         std::uint64_t NextRawAt(std::uint64_t offset) const
@@ -68,7 +73,10 @@ namespace Esinxecpp
 
         std::uint64_t NextRaw()
         {
-            return NextRawAt(index++);
+            std::uint64_t value = Mix64(key);
+            key += Gamma;
+            index++;
+            return value;
         }
 
         std::uint64_t NextMaxAt(std::uint64_t offset, std::uint64_t maxvalue) const
@@ -78,7 +86,10 @@ namespace Esinxecpp
 
         std::uint64_t NextMax(std::uint64_t maxvalue)
         {
-            return NextMaxAt(index++, maxvalue);
+            std::uint64_t value = Bounded(Mix64(key), maxvalue);
+            key += Gamma;
+            index++;
+            return value;
         }
 
         std::uint64_t NextMinMaxAt(
@@ -95,7 +106,14 @@ namespace Esinxecpp
 
         std::uint64_t NextMinMax(std::uint64_t minvalue, std::uint64_t maxvalue)
         {
-            return NextMinMaxAt(index++, minvalue, maxvalue);
+            std::uint64_t value = minvalue;
+            if (maxvalue > minvalue)
+            {
+                value = minvalue + Bounded(Mix64(key), maxvalue - minvalue);
+            }
+            key += Gamma;
+            index++;
+            return value;
         }
 
         std::vector<std::uint64_t> NextList(std::uint64_t length)
@@ -104,7 +122,8 @@ namespace Esinxecpp
             values.reserve(static_cast<std::size_t>(length));
             for (std::uint64_t i = 0; i < length; i++)
             {
-                values.push_back(NextAt(index + i));
+                values.push_back(Bounded(Mix64(key), MaxIntValue));
+                key += Gamma;
             }
             index += length;
             return values;
@@ -118,7 +137,8 @@ namespace Esinxecpp
             values.reserve(static_cast<std::size_t>(length));
             for (std::uint64_t i = 0; i < length; i++)
             {
-                values.push_back(NextMaxAt(index + i, maxvalue));
+                values.push_back(Bounded(Mix64(key), maxvalue));
+                key += Gamma;
             }
             index += length;
             return values;
@@ -133,7 +153,11 @@ namespace Esinxecpp
             values.reserve(static_cast<std::size_t>(length));
             for (std::uint64_t i = 0; i < length; i++)
             {
-                values.push_back(NextMinMaxAt(index + i, minvalue, maxvalue));
+                values.push_back(
+                    maxvalue > minvalue
+                        ? minvalue + Bounded(Mix64(key), maxvalue - minvalue)
+                        : minvalue);
+                key += Gamma;
             }
             index += length;
             return values;

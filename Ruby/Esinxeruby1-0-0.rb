@@ -7,11 +7,13 @@ module Esinxe
         def initialize(seed = nil)
             @seed = (seed || Time.now.to_i) & Mask64
             @index = 0
+            @key = @seed
         end
 
         def SetSeed(seed = Time.now.to_i)
             @seed = seed.to_i & Mask64
             @index = 0
+            @key = @seed
         end
 
         def Mix64(value)
@@ -47,7 +49,8 @@ module Esinxe
         end
 
         def NextRaw
-            value = NextRawAt(@index)
+            value = Mix64(@key)
+            @key = (@key + Gamma) & Mask64
             @index += 1
             value
         end
@@ -67,7 +70,8 @@ module Esinxe
         def Next(*args)
             case args.size
             when 0
-                value = NextAt(@index)
+                value = Bounded(Mix64(@key), Maxintvalue)
+                @key = (@key + Gamma) & Mask64
                 @index += 1
                 value
             when 1
@@ -85,7 +89,11 @@ module Esinxe
             case args.size
             when 1
                 length = args[0].to_i
-                values = (0...length).map { |i| NextAt(@index + i) }
+                values = []
+                length.times do
+                    values << Bounded(Mix64(@key), Maxintvalue)
+                    @key = (@key + Gamma) & Mask64
+                end
                 @index += length
                 values
             when 2

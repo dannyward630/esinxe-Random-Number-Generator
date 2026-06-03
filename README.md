@@ -52,6 +52,13 @@ Or run the full local CI check:
 ./scripts/ci.sh
 ```
 
+Run the local performance benchmark with:
+
+```sh
+python3 setup.py build_ext --inplace
+python3 scripts/benchmark.py
+```
+
 ## Python package
 
 The Python implementation can be installed locally:
