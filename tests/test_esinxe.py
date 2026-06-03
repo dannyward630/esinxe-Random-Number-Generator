@@ -4,6 +4,7 @@ import os
 import shutil
 import statistics
 import subprocess
+import sys
 import tempfile
 import textwrap
 import unittest
@@ -11,6 +12,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
 EXPECTED_FIRST_VALUES = [
     540659726606785873,
     454886589211414944,

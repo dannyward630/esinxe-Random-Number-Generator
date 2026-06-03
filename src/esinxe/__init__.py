@@ -3,6 +3,7 @@
 import time
 
 
+__version__ = "1.0.3"
 MASK_64 = (1 << 64) - 1
 GOLDEN_GAMMA = 0x9E3779B97F4A7C15
 MAX_INT_VALUE = 10**18
@@ -111,5 +112,6 @@ __all__ = [
     "MASK_64",
     "MAX_INT_VALUE",
     "Random",
+    "__version__",
     "_mix64",
 ]

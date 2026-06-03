@@ -70,3 +70,10 @@ print(rng.NextAt(1000))
 ```
 
 The historical `Python/Esinxepy1-0-0.py` file remains as a compatibility shim.
+
+To build publishable Python artifacts:
+
+```sh
+python3 -m build
+python3 -m twine check dist/*
+```
