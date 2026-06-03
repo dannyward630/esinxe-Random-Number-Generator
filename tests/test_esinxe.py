@@ -135,6 +135,91 @@ class PythonBehaviorTests(unittest.TestCase):
 
 
 class CrossLanguageSmokeTests(unittest.TestCase):
+    def test_javascript_matches_reference_values(self):
+        if shutil.which("node") is None:
+            self.skipTest("node is not installed")
+        subprocess.run(
+            ["npm", "test"],
+            cwd=ROOT / "JavaScript",
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+
+    def test_rust_matches_reference_values(self):
+        if shutil.which("cargo") is None:
+            self.skipTest("cargo is not installed")
+        subprocess.run(
+            ["cargo", "test", "--quiet"],
+            cwd=ROOT / "Rust",
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+
+    def test_go_matches_reference_values_when_available(self):
+        if shutil.which("go") is None:
+            self.skipTest("go is not installed")
+        subprocess.run(
+            ["go", "test", "./..."],
+            cwd=ROOT / "Go",
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+
+    def test_java_matches_reference_values(self):
+        if shutil.which("javac") is None or shutil.which("java") is None:
+            self.skipTest("java is not installed")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            subprocess.run(
+                [
+                    "javac",
+                    "-d",
+                    tmpdir,
+                    str(ROOT / "JVM" / "java" / "com" / "esinxe" / "Random.java"),
+                    str(ROOT / "JVM" / "java" / "EsinxeSmokeTest.java"),
+                ],
+                cwd=ROOT,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            subprocess.run(
+                ["java", "-cp", tmpdir, "EsinxeSmokeTest"],
+                cwd=ROOT,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+
+    def test_kotlin_matches_reference_values_when_available(self):
+        if shutil.which("kotlinc") is None:
+            self.skipTest("kotlinc is not installed")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            jar = Path(tmpdir) / "esinxe-kotlin-test.jar"
+            subprocess.run(
+                [
+                    "kotlinc",
+                    str(ROOT / "JVM" / "kotlin" / "Esinxe.kt"),
+                    str(ROOT / "JVM" / "kotlin" / "EsinxeSmokeTest.kt"),
+                    "-include-runtime",
+                    "-d",
+                    str(jar),
+                ],
+                cwd=ROOT,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+            subprocess.run(
+                ["java", "-jar", str(jar)],
+                cwd=ROOT,
+                check=True,
+                text=True,
+                capture_output=True,
+            )
+
     def test_c_header_compiles_and_matches_reference_values(self):
         source = textwrap.dedent(
             """

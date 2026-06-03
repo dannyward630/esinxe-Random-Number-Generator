@@ -1,7 +1,7 @@
 # esinxe Random Number Generator
 
 esinxe is a deterministic, random-access number generator for Python, C#,
-C++, C, and Ruby.
+C++, C, Ruby, JavaScript/TypeScript, Rust, Go, Java, and Kotlin.
 
 Version 1.0.1
 
@@ -77,6 +77,21 @@ print(rng.NextAt(1000))
 ```
 
 The historical `Python/Esinxepy1-0-0.py` file remains as a compatibility shim.
+
+## Language implementations
+
+- `Python/` and `src/esinxe/`: Python package and legacy shim.
+- `C/`: C header implementation.
+- `C++/`: C++ header implementation.
+- `C#/`: C# implementation.
+- `Ruby/`: Ruby implementation.
+- `JavaScript/`: JavaScript implementation with TypeScript declarations.
+- `Rust/`: Rust crate.
+- `Go/`: Go module.
+- `JVM/java/`: Java implementation and smoke test.
+- `JVM/kotlin/`: Kotlin implementation and smoke test.
+
+All ports are expected to match `tests/vectors.json`.
 
 To build publishable Python artifacts:
 

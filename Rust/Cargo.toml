@@ -1,0 +1,10 @@
+[package]
+name = "esinxe"
+version = "1.0.4"
+edition = "2021"
+license = "MIT"
+description = "Deterministic random-access number generator for procedural generation"
+repository = "https://github.com/dannyward630/esinxe-Random-Number-Generator"
+
+[lib]
+path = "src/lib.rs"

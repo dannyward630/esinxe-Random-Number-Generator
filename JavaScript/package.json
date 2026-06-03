@@ -1,0 +1,19 @@
+{
+  "name": "esinxe",
+  "version": "1.0.4",
+  "description": "Deterministic random-access number generator for procedural generation",
+  "type": "module",
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "scripts": {
+    "test": "node --test"
+  },
+  "keywords": [
+    "deterministic",
+    "procedural-generation",
+    "random",
+    "random-access",
+    "rng"
+  ],
+  "license": "MIT"
+}
