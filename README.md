@@ -2,6 +2,11 @@
 
 **Version 1.1.0 · algorithm v1**
 
+[![CI](https://github.com/dannyward630/esinxe-Random-Number-Generator/actions/workflows/ci.yml/badge.svg)](https://github.com/dannyward630/esinxe-Random-Number-Generator/actions/workflows/ci.yml)
+[![Demo](https://img.shields.io/badge/demo-field_inspector-147d64)](https://dannyward630.github.io/esinxe-Random-Number-Generator/demo/)
+[![License: MIT](https://img.shields.io/badge/license-MIT-2f3437)](LICENSE)
+[![Algorithm: v1](https://img.shields.io/badge/algorithm-v1-8a4fff)](SPEC_V1.md)
+
 esinxe is a polyglot deterministic random field for procedural software.
 Give it a seed and a structured key, and it returns the same value in Python,
 C, C++, C#, Ruby, JavaScript/TypeScript, Rust, Go, Java, and Kotlin. No prior
@@ -31,6 +36,18 @@ loot = world.weightedChoice(
 
 The output is intentionally predictable. **esinxe is not cryptographic.**
 Never use it for secrets, tokens, gambling, lotteries, or security decisions.
+
+## Project Guide
+
+| Need | Start here |
+| --- | --- |
+| Copy a language example | [Language quick starts](docs/QUICK_STARTS.md) |
+| Understand every operation | [API reference](docs/API.md) |
+| Implement or verify a port | [Algorithm v1 specification](SPEC_V1.md) |
+| Understand design boundaries | [Architecture](docs/ARCHITECTURE.md) |
+| Review statistical evidence | [RNG analysis](docs/RNG_ANALYSIS.md) |
+| Contribute a change | [Contributing guide](CONTRIBUTING.md) |
+| Report a vulnerability | [Security policy](SECURITY.md) |
 
 ## What It Solves
 
@@ -81,7 +98,8 @@ Keyed calls read only the seed and never alter stream position.
 
 ## Try It
 
-Open the static field inspector:
+Use the [hosted deterministic field inspector](https://dannyward630.github.io/esinxe-Random-Number-Generator/demo/),
+or run it locally:
 
 ```sh
 python3 -m http.server 8765
@@ -145,3 +163,11 @@ packaging checks:
 The script explicitly names missing toolchains instead of treating them as a
 pass. Statistical conclusions remain bounded to the included sample sizes; see
 [docs/RNG_ANALYSIS.md](docs/RNG_ANALYSIS.md) for the practical quality verdict.
+
+## Project Policy
+
+Algorithm compatibility follows [the versioning policy](docs/VERSIONING.md).
+Changes are recorded in the [changelog](CHANGELOG.md), releases follow the
+[release checklist](RELEASING.md), and community help is described in
+[SUPPORT.md](SUPPORT.md). Contributions are governed by the
+[Code of Conduct](CODE_OF_CONDUCT.md).

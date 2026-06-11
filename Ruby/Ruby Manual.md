@@ -1,20 +1,36 @@
-# Ruby Manual
+# Ruby Port
 
-Dependencies: none
+`Esinxeruby1-0-0.rb` has no external dependencies. The primary type is
+`Esinxe::Generator`; it deliberately avoids replacing Ruby's built-in
+`Random`.
 
-`Esinxe::Generator` is the primary class. It intentionally does not define a
-top-level `Random` class, because Ruby already has one.
+## Quick Start
 
-- `SetSeed(seed)` resets the seed and sequence index.
-- `Next()` returns the next integer and advances the sequence.
-- `NextRaw()` returns the next raw 64-bit value and advances.
-- `NextRawAt(offset)` returns the raw 64-bit value at an offset without advancing.
-- `Next(offset)` returns the integer at an offset without advancing.
-- `Next(offset, maxvalue)` returns `0 <= value < maxvalue`.
-- `Next(offset, minvalue, maxvalue)` returns `minvalue <= value < maxvalue`.
-- `NextArray(length)` returns `length` consecutive integers and advances.
-- `NextArray(length, offset)` returns values starting at `offset` without advancing.
-- `NextArray(length, offset, maxvalue)` returns bounded values without advancing.
-- `NextArray(length, offset, minvalue, maxvalue)` returns ranged values without advancing.
+```ruby
+require_relative "Esinxeruby1-0-0"
+
+field = Esinxe::Generator.new(12_345)
+value = field.raw("terrain", Esinxe.i64(-4), Esinxe.u64(9))
+height = field.at2D(-4, 9, "terrain")
+```
+
+Plain integers are inferred as signed when negative and unsigned otherwise.
+Use `Esinxe.i64`, `Esinxe.u64`, and `Esinxe.bytes` for explicit key types.
+Strings encode as UTF-8 keys.
+
+The keyed methods are `raw`, `int`, `range`, `float01`, `at2D`, `at3D`,
+`chanceRatio`, `choose`, `shuffle`, and `weightedChoice`. Invalid keyed inputs
+raise Ruby exceptions and keyed calls never advance the stream.
+
+The historical `Next`, `NextRaw`, and `NextArray` overloads remain available
+for stream and offset access. See [the shared API reference](../docs/API.md)
+and [the frozen algorithm specification](../SPEC_V1.md).
+
+## Test
+
+```sh
+ruby -c Ruby/Esinxeruby1-0-0.rb
+python3 -m unittest discover -s tests
+```
 
 This generator is deterministic and non-cryptographic.

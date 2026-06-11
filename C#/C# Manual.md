@@ -1,20 +1,33 @@
-# C# Manual
+# C# Port
 
-Dependencies: `System`, `System.Collections.Generic`
+`Esinxecs1-0-0.cs` is a dependency-free source implementation for modern .NET.
+Add the file to a project and use `Esinxecs.Random`.
 
-`Esinxecs.Random` is the primary class.
+## Quick Start
 
-- `SetSeed(seed)` resets the seed and sequence index.
-- `Next()` returns the next integer and advances the sequence.
-- `NextAt(offset)` returns the integer at an offset without advancing.
-- `NextRaw()` returns the next raw 64-bit value and advances.
-- `NextRawAt(offset)` returns the raw 64-bit value at an offset without advancing.
-- `NextMax(maxvalue)` returns `0 <= value < maxvalue`.
-- `NextMaxAt(offset, maxvalue)` returns a bounded value without advancing.
-- `NextMinMax(minvalue, maxvalue)` returns `minvalue <= value < maxvalue`.
-- `NextMinMaxAt(offset, minvalue, maxvalue)` returns a ranged value without advancing.
-- `NextList(length)` returns `length` consecutive integers.
-- `NextListMax(length, maxvalue)` returns `length` bounded integers.
-- `NextListMinMax(length, minvalue, maxvalue)` returns `length` ranged integers.
+```csharp
+var field = new Esinxecs.Random(12345);
+ulong value = field.Raw(
+    Esinxecs.Random.Key.String("terrain"),
+    Esinxecs.Random.Key.I64(-4),
+    Esinxecs.Random.Key.U64(9));
+ulong height = field.At2D(-4, 9, "terrain");
+```
 
-This generator is deterministic and non-cryptographic.
+Keys are created with `Key.I64`, `Key.U64`, `Key.String`, and `Key.Bytes`. The
+keyed methods are `Raw`, `Int`, `Range`, `Float01`, `At2D`, `At3D`,
+`ChanceRatio`, `Choose`, `Shuffle`, and `WeightedChoice`. Invalid input raises
+an idiomatic .NET exception. Keyed calls do not alter stream position.
+
+The historical `Next*` methods remain available as stream conveniences. See
+[the shared API reference](../docs/API.md) and
+[the frozen algorithm specification](../SPEC_V1.md).
+
+## Test
+
+```sh
+./scripts/ci.sh
+```
+
+The root suite compiles and runs the C# conformance harness when `dotnet` is
+installed. This generator is deterministic and non-cryptographic.

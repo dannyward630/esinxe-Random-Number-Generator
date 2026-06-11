@@ -1,31 +1,40 @@
-# Python Manual
+# Python Port
 
-Dependencies: `time`
+The maintained package lives in `src/esinxe`. Python 3.9 or newer is supported.
+`Python/Esinxepy1-0-0.py` is retained as a compatibility import shim.
 
-New Python code should import the package:
+## Quick Start
+
+```sh
+python3 -m pip install -e .
+```
 
 ```python
 import esinxe
 
-rng = esinxe.Random(12345)
+field = esinxe.Random(12345)
+value = field.raw("terrain", esinxe.i64(-4), esinxe.u64(9))
+height = field.at2D(-4, 9, "terrain")
+loot = field.weightedChoice(["common", "rare"], [9, 1], "loot", esinxe.i64(-4))
 ```
 
-The original `Python/Esinxepy1-0-0.py` file reexports this package for
-compatibility.
+Plain negative integers encode as signed keys and non-negative integers as
+unsigned keys. Prefer `i64()` and `u64()` at persisted or cross-language
+boundaries. Strings are UTF-8 and `bytes` values use the bytes key tag.
 
-`Random()` is the primary class.
+The complete keyed API is `raw`, `int`, `range`, `float01`, `at2D`, `at3D`,
+`chanceRatio`, `choose`, `shuffle`, and `weightedChoice`. Invalid keyed inputs
+raise `TypeError`, `ValueError`, or `OverflowError`. Keyed calls never advance
+the stream.
 
-- `SetSeed(seed)` resets the seed and sequence index.
-- `Next()` returns the next integer and advances the sequence.
-- `NextAt(offset)` returns the integer at an offset without advancing.
-- `NextRaw()` returns the next raw 64-bit value and advances.
-- `NextRawAt(offset)` returns the raw 64-bit value at an offset without advancing.
-- `NextMax(maxvalue)` returns `0 <= value < maxvalue`.
-- `NextMaxAt(offset, maxvalue)` returns a bounded value without advancing.
-- `NextMinMax(minvalue, maxvalue)` returns `minvalue <= value < maxvalue`.
-- `NextMinMaxAt(offset, minvalue, maxvalue)` returns a ranged value without advancing.
-- `NextList(length)` returns `length` consecutive integers.
-- `NextListMax(length, maxvalue)` returns `length` bounded integers.
-- `NextListMinMax(length, minvalue, maxvalue)` returns `length` ranged integers.
+The historical `Next*` stream methods remain available for sequential and
+offset-based generation. See [the shared API reference](../docs/API.md) and
+[the frozen algorithm specification](../SPEC_V1.md).
+
+## Test
+
+```sh
+python3 -m unittest discover -s tests
+```
 
 This generator is deterministic and non-cryptographic.

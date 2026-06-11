@@ -1,20 +1,38 @@
-# C++ Manual
+# C++ Port
 
-Dependencies: `cstdint`, `ctime`, `vector`
+`Esinxecpp1-0-0.h` is a C++17, header-only implementation using only the
+standard library.
 
-`Esinxecpp::Random` is the primary class.
+## Quick Start
 
-- `SetSeed(seed)` resets the seed and sequence index.
-- `Next()` returns the next integer and advances the sequence.
-- `NextAt(offset)` returns the integer at an offset without advancing.
-- `NextRaw()` returns the next raw 64-bit value and advances.
-- `NextRawAt(offset)` returns the raw 64-bit value at an offset without advancing.
-- `NextMax(maxvalue)` returns `0 <= value < maxvalue`.
-- `NextMaxAt(offset, maxvalue)` returns a bounded value without advancing.
-- `NextMinMax(minvalue, maxvalue)` returns `minvalue <= value < maxvalue`.
-- `NextMinMaxAt(offset, minvalue, maxvalue)` returns a ranged value without advancing.
-- `NextList(length)` returns `length` consecutive integers.
-- `NextListMax(length, maxvalue)` returns `length` bounded integers.
-- `NextListMinMax(length, minvalue, maxvalue)` returns `length` ranged integers.
+```cpp
+#include "Esinxecpp1-0-0.h"
 
-This generator is deterministic and non-cryptographic.
+Esinxecpp::Random field(12345);
+std::vector<Esinxecpp::Key> keys{
+    Esinxecpp::Key::Utf8("terrain"),
+    Esinxecpp::Key::Signed(-4),
+    Esinxecpp::Key::Unsigned(9)
+};
+auto value = field.Raw(keys);
+auto height = field.At2D(-4, 9, "terrain");
+```
+
+`Key::Signed`, `Key::Unsigned`, `Key::Utf8`, and `Key::Bytes` make key types
+explicit. The keyed methods are `Raw`, `Int`, `Range`, `Float01`, `At2D`,
+`At3D`, `ChanceRatio`, `Choose`, `Shuffle`, and `WeightedChoice`. Invalid input
+raises a standard exception. Collection-returning methods produce copies, and
+keyed calls do not change stream state.
+
+The historical `Next*` methods remain as compatible stream conveniences. See
+[the shared API reference](../docs/API.md) and
+[the frozen algorithm specification](../SPEC_V1.md).
+
+## Test
+
+```sh
+python3 -m unittest discover -s tests
+```
+
+The root tests compile with C++17 and strict warnings. This generator is
+deterministic and non-cryptographic.

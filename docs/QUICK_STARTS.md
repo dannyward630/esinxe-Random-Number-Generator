@@ -51,6 +51,8 @@ let loot = field.weighted_choice(
 ## Go
 
 ```go
+import "github.com/dannyward630/esinxe-Random-Number-Generator/Go/esinxe"
+
 field := esinxe.New(12345)
 namespace := "terrain"
 height := field.At2D(-4, 9, &namespace)

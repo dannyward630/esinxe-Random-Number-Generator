@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If esinxe supports your project, please cite the repository."
+title: "esinxe: Versioned deterministic random fields"
+type: software
+authors:
+  - family-names: Ward
+    given-names: Danny
+repository-code: "https://github.com/dannyward630/esinxe-Random-Number-Generator"
+url: "https://dannyward630.github.io/esinxe-Random-Number-Generator/demo/"
+license: MIT
+version: 1.1.0
+date-released: 2026-06-11
+keywords:
+  - deterministic randomness
+  - procedural generation
+  - random access
+  - reproducible simulation
