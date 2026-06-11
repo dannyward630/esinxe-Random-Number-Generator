@@ -13,9 +13,14 @@ def main():
     sample_size = int(os.environ.get("ESINXE_BENCH_N", "500000"))
     print(f"native={esinxe._native is not None}")
     print(f"sample_size={sample_size}")
+    print("[random-access]")
+    bench("raw(u64(i))", sample_size, keyed_raw)
+    bench("NextRawAt(i)", sample_size, next_raw_at)
+    print("[sequential]")
     bench("NextRaw", sample_size, next_raw)
     bench("Next", sample_size, next_default)
     bench("NextMax(100)", sample_size, next_max100)
+    print("[batch]")
     bench("NextList(N)", sample_size, list_default)
     bench("NextListMax(N,100)", sample_size, list_max100)
 
@@ -39,6 +44,22 @@ def next_raw(sample_size):
     checksum = 0
     for _ in range(sample_size):
         checksum ^= rng.NextRaw()
+    return checksum
+
+
+def keyed_raw(sample_size):
+    rng = esinxe.Random(12345)
+    checksum = 0
+    for index in range(sample_size):
+        checksum ^= rng.raw(esinxe.u64(index))
+    return checksum
+
+
+def next_raw_at(sample_size):
+    rng = esinxe.Random(12345)
+    checksum = 0
+    for index in range(sample_size):
+        checksum ^= rng.NextRawAt(index)
     return checksum
 
 

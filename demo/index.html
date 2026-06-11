@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>esinxe v1 field inspector</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Deterministic random field</p>
+      <h1>esinxe <span>v1</span></h1>
+    </div>
+    <p class="warning">Non-cryptographic</p>
+  </header>
+
+  <main>
+    <section class="controls" aria-label="Field controls">
+      <label>
+        Seed
+        <input id="seed" value="12345" inputmode="numeric" spellcheck="false">
+      </label>
+      <label>
+        Namespace
+        <input id="namespace" value="terrain/surface" spellcheck="false">
+      </label>
+      <label>
+        View
+        <select id="view">
+          <option value="height">Height</option>
+          <option value="biome">Biome</option>
+          <option value="raw">Raw value</option>
+        </select>
+      </label>
+      <button id="regenerate" type="button">Regenerate</button>
+    </section>
+
+    <section class="workspace">
+      <div class="field-panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Coordinates -4 to 4</p>
+            <h2>2D field</h2>
+          </div>
+          <output id="selected">Select a cell</output>
+        </div>
+        <div id="grid" class="grid" role="grid" aria-label="Deterministic 2D values"></div>
+      </div>
+
+      <aside>
+        <section class="result-block">
+          <p class="eyebrow">Stable content</p>
+          <h2 id="choice">Waiting</h2>
+          <p id="choice-detail"></p>
+        </section>
+
+        <section class="snippet-block">
+          <div class="snippet-heading">
+            <h2>Same field, any port</h2>
+            <select id="language" aria-label="Snippet language">
+              <option>Python</option>
+              <option>JavaScript</option>
+              <option>Rust</option>
+              <option>Go</option>
+              <option>Java</option>
+            </select>
+          </div>
+          <pre><code id="snippet"></code></pre>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <footer>
+    <span id="fingerprint"></span>
+    <a href="../SPEC_V1.md">Algorithm specification</a>
+  </footer>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
