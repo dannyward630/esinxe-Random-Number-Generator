@@ -1,22 +1,56 @@
 #!/usr/bin/env sh
 set -eu
 
-python3 -m py_compile Python/Esinxepy1-0-0.py src/esinxe/__init__.py tests/test_esinxe.py
+root="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+cd "$root"
+
+local_tools="$HOME/.local/share/esinxe-toolchains"
+if ! command -v go >/dev/null 2>&1 && [ -x "$local_tools/go/bin/go" ]; then
+  PATH="$local_tools/go/bin:$PATH"
+fi
+if ! command -v kotlinc >/dev/null 2>&1 && [ -x "$local_tools/kotlinc/bin/kotlinc" ]; then
+  PATH="$local_tools/kotlinc/bin:$PATH"
+fi
+export PATH
+
+python3 -m py_compile \
+  Python/Esinxepy1-0-0.py \
+  src/esinxe/__init__.py \
+  examples/distributed_jobs.py \
+  examples/procedural_world.py \
+  scripts/generate_vectors.py \
+  tests/test_esinxe.py
+python3 scripts/generate_vectors.py >/dev/null
+git diff --exit-code -- tests/vectors-v1.json
 ruby -c Ruby/Esinxeruby1-0-0.rb
+node --check demo/app.js
 node --test JavaScript/test/*.test.js
+(cd JavaScript && npm run typecheck)
 if command -v cargo >/dev/null 2>&1; then
-  (cd Rust && cargo test --quiet)
+  cargo fmt --manifest-path Rust/Cargo.toml --check
+  cargo test --manifest-path Rust/Cargo.toml --quiet
 else
   echo "Skipping Rust tests: cargo not found"
 fi
 if command -v go >/dev/null 2>&1; then
+  gofmt_diff="$(mktemp)"
+  gofmt -d Go/esinxe/esinxe.go Go/esinxe/esinxe_test.go >"$gofmt_diff"
+  if [ -s "$gofmt_diff" ]; then
+    cat "$gofmt_diff"
+    rm -f "$gofmt_diff"
+    echo "Go formatting check failed"
+    exit 1
+  fi
+  rm -f "$gofmt_diff"
   (cd Go && go test ./...)
 else
   echo "Skipping Go tests: go not found"
 fi
 if command -v javac >/dev/null 2>&1 && command -v java >/dev/null 2>&1; then
   tmp_java_dir="$(mktemp -d)"
-  javac -d "$tmp_java_dir" JVM/java/com/esinxe/Random.java JVM/java/EsinxeSmokeTest.java
+  javac -Xlint:all -Werror -d "$tmp_java_dir" \
+    JVM/java/com/esinxe/Random.java \
+    JVM/java/EsinxeSmokeTest.java
   java -cp "$tmp_java_dir" EsinxeSmokeTest
   rm -rf "$tmp_java_dir"
 else
@@ -32,6 +66,9 @@ else
 fi
 python3 setup.py build_ext --inplace >/dev/null
 python3 -m unittest discover -s tests
+PYTHONPATH=src python3 examples/procedural_world.py >/dev/null
+PYTHONPATH=src python3 examples/distributed_jobs.py >/dev/null
+python3 scripts/analyze_rng.py
 
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
