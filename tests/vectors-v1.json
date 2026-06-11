@@ -1,0 +1,36 @@
+{
+  "algorithm": "esinxe-v1",
+  "packageVersion": "1.1.0",
+  "seed": "12345",
+  "cases": {
+    "rawEmpty": "1011603955933495094",
+    "rawSignedPositive": "8375777008512348728",
+    "rawUnsignedPositive": "3036097878260785046",
+    "rawMixed": "12374036822843504307",
+    "rawEmptyString": "16674029134230574194",
+    "rawEmptyBytes": "1966942287052825313",
+    "int100": "7",
+    "rangeSigned": "-193",
+    "floatUpper53": "6042010167404054",
+    "at2D": "7642296274646480051",
+    "at2DNoNamespace": "12949904772278389126",
+    "at3D": "3469495484090590785",
+    "chanceRatio": false,
+    "choose": "ocean",
+    "shuffle": [
+      "forest",
+      "ocean",
+      "tundra",
+      "desert"
+    ],
+    "weightedChoice": "common"
+  },
+  "invalidCases": [
+    "int bound zero",
+    "range with max <= min",
+    "chance denominator zero",
+    "empty choice",
+    "negative weight",
+    "zero total weight"
+  ]
+}
