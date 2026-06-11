@@ -2,7 +2,6 @@
 
 import esinxe
 
-
 world = esinxe.Random(20260611)
 
 

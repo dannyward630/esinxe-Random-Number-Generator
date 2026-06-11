@@ -1,3 +1,5 @@
+// Package esinxe provides versioned deterministic random fields and a
+// compatible random-access stream for non-cryptographic procedural software.
 package esinxe
 
 import "errors"

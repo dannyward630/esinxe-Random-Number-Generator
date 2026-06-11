@@ -6,3 +6,10 @@ __pycache__/
 *.so
 target/
 node_modules/
+.DS_Store
+.coverage
+.ruff_cache/
+.venv/
+coverage.xml
+htmlcov/
+_site/

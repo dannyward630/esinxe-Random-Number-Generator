@@ -8,8 +8,9 @@ version = "1.1.0"
 description = "Versioned deterministic random fields for procedural generation"
 readme = "README.md"
 requires-python = ">=3.9"
+dependencies = []
 license = "MIT"
-license-files = ["License.md"]
+license-files = ["LICENSE"]
 authors = [{ name = "Danny Ward" }]
 keywords = [
     "deterministic",
@@ -19,17 +20,46 @@ keywords = [
     "rng",
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Games/Entertainment",
     "Topic :: Software Development :: Libraries",
 ]
 
+[project.optional-dependencies]
+dev = [
+    "build>=1.2",
+    "pip-audit>=2.9",
+    "ruff>=0.15",
+    "tomli>=2.0; python_version < '3.11'",
+    "twine>=5.1",
+]
+
 [project.urls]
-Homepage = "https://github.com/dannyward630/esinxe-Random-Number-Generator"
+Homepage = "https://dannyward630.github.io/esinxe-Random-Number-Generator/demo/"
 Repository = "https://github.com/dannyward630/esinxe-Random-Number-Generator"
 Issues = "https://github.com/dannyward630/esinxe-Random-Number-Generator/issues"
+Changelog = "https://github.com/dannyward630/esinxe-Random-Number-Generator/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/dannyward630/esinxe-Random-Number-Generator#readme"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.ruff]
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+"Python/Esinxepy1-0-0.py" = ["E402", "F403"]
+"scripts/*.py" = ["E402"]

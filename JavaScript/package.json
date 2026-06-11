@@ -5,6 +5,15 @@
   "type": "module",
   "main": "src/index.js",
   "types": "src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "import": "./src/index.js"
+    }
+  },
+  "files": [
+    "src"
+  ],
   "scripts": {
     "test": "node --test",
     "typecheck": "tsc -p tsconfig.json"
@@ -16,6 +25,19 @@
     "random-access",
     "rng"
   ],
+  "author": "Danny Ward",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dannyward630/esinxe-Random-Number-Generator.git",
+    "directory": "JavaScript"
+  },
+  "homepage": "https://github.com/dannyward630/esinxe-Random-Number-Generator#readme",
+  "bugs": {
+    "url": "https://github.com/dannyward630/esinxe-Random-Number-Generator/issues"
+  },
+  "engines": {
+    "node": ">=18"
+  },
   "license": "MIT",
   "devDependencies": {
     "typescript": "^6.0.3"

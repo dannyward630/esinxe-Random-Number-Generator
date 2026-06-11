@@ -1,6 +1,5 @@
 from setuptools import Extension, setup
 
-
 setup(
     package_dir={"": "src"},
     ext_modules=[

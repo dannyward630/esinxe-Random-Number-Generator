@@ -2,9 +2,14 @@
 name = "esinxe"
 version = "1.1.0"
 edition = "2021"
+rust-version = "1.70"
 license = "MIT"
 description = "Versioned deterministic random fields for procedural generation"
 repository = "https://github.com/dannyward630/esinxe-Random-Number-Generator"
+homepage = "https://github.com/dannyward630/esinxe-Random-Number-Generator"
+readme = "../README.md"
+keywords = ["deterministic", "procedural", "random", "random-access", "rng"]
+categories = ["algorithms", "game-development", "simulation"]
 
 [lib]
 path = "src/lib.rs"
