@@ -5,14 +5,14 @@ module Esinxe
     V1Prefix = "esinxe-v1\0".b.freeze
 
     def self.i64(value)
-        value = value.to_i
+        raise TypeError, "signed key component must be an Integer" unless value.is_a?(Integer)
         raise RangeError, "signed key components must fit in int64" unless value.between?(-(1 << 63), (1 << 63) - 1)
 
         [:i64, value].freeze
     end
 
     def self.u64(value)
-        value = value.to_i
+        raise TypeError, "unsigned key component must be an Integer" unless value.is_a?(Integer)
         raise RangeError, "unsigned key components must fit in uint64" unless value.between?(0, Mask64)
 
         [:u64, value].freeze
@@ -110,19 +110,16 @@ module Esinxe
         end
 
         def int(maxvalue, *keys)
-            maxvalue = maxvalue.to_i
-            raise RangeError, "maxvalue must be in [1, 2^64]" unless maxvalue.between?(1, 1 << 64)
-
-            return raw(*keys) if maxvalue == 1 << 64
+            raise TypeError, "maxvalue must be an Integer" unless maxvalue.is_a?(Integer)
+            raise RangeError, "maxvalue must be in [1, 2^64 - 1]" unless maxvalue.between?(1, Mask64)
 
             Bounded(raw(*keys), maxvalue)
         end
 
         def range(minvalue, maxvalue, *keys)
-            minvalue = minvalue.to_i
-            maxvalue = maxvalue.to_i
+            raise TypeError, "range endpoints must be Integers" unless minvalue.is_a?(Integer) && maxvalue.is_a?(Integer)
             width = maxvalue - minvalue
-            raise RangeError, "range width must be in [1, 2^64]" unless width.between?(1, 1 << 64)
+            raise RangeError, "range width must be in [1, 2^64 - 1]" unless width.between?(1, Mask64)
 
             minvalue + int(width, *keys)
         end
@@ -144,8 +141,9 @@ module Esinxe
         end
 
         def chanceRatio(numerator, denominator, *keys)
-            numerator = numerator.to_i
-            denominator = denominator.to_i
+            unless numerator.is_a?(Integer) && denominator.is_a?(Integer)
+                raise TypeError, "ratio values must be Integers"
+            end
             raise RangeError, "denominator must be positive" unless denominator.positive?
 
             return false unless numerator.positive?
@@ -173,7 +171,10 @@ module Esinxe
             if items.empty? || items.length != integer_weights.length
                 raise ArgumentError, "items and weights must have the same non-zero length"
             end
-            weights = integer_weights.map(&:to_i)
+            unless integer_weights.all? { |weight| weight.is_a?(Integer) }
+                raise TypeError, "weights must be Integers"
+            end
+            weights = integer_weights
             raise RangeError, "weights must be non-negative" if weights.any?(&:negative?)
 
             total = weights.sum

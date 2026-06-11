@@ -382,24 +382,26 @@ static inline size_t EsinxeWeightedChoiceIndexV1(
     return SIZE_MAX;
 }
 
-void EsinxeInit(EsinxeRandom *rng, uint64_t seed)
+static inline void EsinxeInit(EsinxeRandom *rng, uint64_t seed)
 {
     rng->seed = seed;
     rng->index = 0;
     rng->key = seed;
 }
 
-void EsinxeSetTimeSeed(EsinxeRandom *rng)
+static inline void EsinxeSetTimeSeed(EsinxeRandom *rng)
 {
     EsinxeInit(rng, (uint64_t)time(0));
 }
 
-uint64_t EsinxeNextRawAt(const EsinxeRandom *rng, uint64_t offset)
+static inline uint64_t EsinxeNextRawAt(
+    const EsinxeRandom *rng,
+    uint64_t offset)
 {
     return EsinxeMix64(rng->seed + (offset * ESINXE_GAMMA));
 }
 
-uint64_t EsinxeNextRaw(EsinxeRandom *rng)
+static inline uint64_t EsinxeNextRaw(EsinxeRandom *rng)
 {
     uint64_t value = EsinxeMix64(rng->key);
     rng->key += ESINXE_GAMMA;
@@ -407,12 +409,14 @@ uint64_t EsinxeNextRaw(EsinxeRandom *rng)
     return value;
 }
 
-uint64_t EsinxeNextAt(const EsinxeRandom *rng, uint64_t offset)
+static inline uint64_t EsinxeNextAt(
+    const EsinxeRandom *rng,
+    uint64_t offset)
 {
     return EsinxeBounded(EsinxeNextRawAt(rng, offset), ESINXE_MAX_INT_VALUE);
 }
 
-uint64_t EsinxeNext(EsinxeRandom *rng)
+static inline uint64_t EsinxeNext(EsinxeRandom *rng)
 {
     uint64_t value = EsinxeBounded(EsinxeMix64(rng->key), ESINXE_MAX_INT_VALUE);
     rng->key += ESINXE_GAMMA;
@@ -420,12 +424,17 @@ uint64_t EsinxeNext(EsinxeRandom *rng)
     return value;
 }
 
-uint64_t EsinxeNextMaxAt(const EsinxeRandom *rng, uint64_t offset, uint64_t maxvalue)
+static inline uint64_t EsinxeNextMaxAt(
+    const EsinxeRandom *rng,
+    uint64_t offset,
+    uint64_t maxvalue)
 {
     return EsinxeBounded(EsinxeNextRawAt(rng, offset), maxvalue);
 }
 
-uint64_t EsinxeNextMax(EsinxeRandom *rng, uint64_t maxvalue)
+static inline uint64_t EsinxeNextMax(
+    EsinxeRandom *rng,
+    uint64_t maxvalue)
 {
     uint64_t value = EsinxeBounded(EsinxeMix64(rng->key), maxvalue);
     rng->key += ESINXE_GAMMA;
@@ -433,7 +442,7 @@ uint64_t EsinxeNextMax(EsinxeRandom *rng, uint64_t maxvalue)
     return value;
 }
 
-uint64_t EsinxeNextMinMaxAt(
+static inline uint64_t EsinxeNextMinMaxAt(
     const EsinxeRandom *rng,
     uint64_t offset,
     uint64_t minvalue,
@@ -446,7 +455,10 @@ uint64_t EsinxeNextMinMaxAt(
     return minvalue + EsinxeNextMaxAt(rng, offset, maxvalue - minvalue);
 }
 
-uint64_t EsinxeNextMinMax(EsinxeRandom *rng, uint64_t minvalue, uint64_t maxvalue)
+static inline uint64_t EsinxeNextMinMax(
+    EsinxeRandom *rng,
+    uint64_t minvalue,
+    uint64_t maxvalue)
 {
     uint64_t value = minvalue;
     if (maxvalue > minvalue)
@@ -458,56 +470,25 @@ uint64_t EsinxeNextMinMax(EsinxeRandom *rng, uint64_t minvalue, uint64_t maxvalu
     return value;
 }
 
-static EsinxeRandom esinxe_default_rng = {0, 0, 0};
-
-void SetSeed(uint64_t seed)
-{
-    EsinxeInit(&esinxe_default_rng, seed);
-}
-
-void SetTimeSeed()
-{
-    EsinxeSetTimeSeed(&esinxe_default_rng);
-}
-
-uint64_t NextRawAt(uint64_t offset)
-{
-    return EsinxeNextRawAt(&esinxe_default_rng, offset);
-}
-
-uint64_t NextRaw()
-{
-    return EsinxeNextRaw(&esinxe_default_rng);
-}
-
-uint64_t NextAt(uint64_t offset)
-{
-    return EsinxeNextAt(&esinxe_default_rng, offset);
-}
-
-uint64_t Next()
-{
-    return EsinxeNext(&esinxe_default_rng);
-}
-
-uint64_t NextMaxAt(uint64_t offset, uint64_t maxvalue)
-{
-    return EsinxeNextMaxAt(&esinxe_default_rng, offset, maxvalue);
-}
-
-uint64_t NextMax(uint64_t maxvalue)
-{
-    return EsinxeNextMax(&esinxe_default_rng, maxvalue);
-}
-
-uint64_t NextMinMaxAt(uint64_t offset, uint64_t minvalue, uint64_t maxvalue)
-{
-    return EsinxeNextMinMaxAt(&esinxe_default_rng, offset, minvalue, maxvalue);
-}
-
-uint64_t NextMinMax(uint64_t minvalue, uint64_t maxvalue)
-{
-    return EsinxeNextMinMax(&esinxe_default_rng, minvalue, maxvalue);
-}
+/*
+ * Legacy process-wide wrappers are defined in Esinxec1-0-0.c. New code should
+ * prefer caller-owned EsinxeRandom instances, which are thread-safe when each
+ * instance is owned by one thread.
+ */
+void SetSeed(uint64_t seed);
+void SetTimeSeed(void);
+uint64_t NextRawAt(uint64_t offset);
+uint64_t NextRaw(void);
+uint64_t NextAt(uint64_t offset);
+uint64_t Next(void);
+uint64_t NextMaxAt(uint64_t offset, uint64_t maxvalue);
+uint64_t NextMax(uint64_t maxvalue);
+uint64_t NextMinMaxAt(
+    uint64_t offset,
+    uint64_t minvalue,
+    uint64_t maxvalue);
+uint64_t NextMinMax(
+    uint64_t minvalue,
+    uint64_t maxvalue);
 
 #endif

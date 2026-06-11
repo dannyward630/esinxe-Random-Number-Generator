@@ -8,8 +8,24 @@ const MAX_INT_THRESHOLD = (UINT64_SIZE - MAX_INT_VALUE) % MAX_INT_VALUE;
 const V1_PREFIX = new TextEncoder().encode("esinxe-v1\0");
 const encoder = new TextEncoder();
 
+function integer(value, name, allowString = false) {
+  if (allowString && typeof value === "string" && /^[-+]?\d+$/.test(value)) {
+    return BigInt(value);
+  }
+  if (typeof value === "number") {
+    if (!Number.isSafeInteger(value)) {
+      throw new RangeError(`${name} numbers must be safe integers; use bigint for larger values`);
+    }
+    return BigInt(value);
+  }
+  if (typeof value !== "bigint") {
+    throw new TypeError(`${name} must be a bigint or integer number`);
+  }
+  return value;
+}
+
 export function i64(value) {
-  value = BigInt(value);
+  value = integer(value, "signed key component");
   if (value < -(1n << 63n) || value >= (1n << 63n)) {
     throw new RangeError("signed key components must fit in int64");
   }
@@ -17,7 +33,7 @@ export function i64(value) {
 }
 
 export function u64(value) {
-  value = BigInt(value);
+  value = integer(value, "unsigned key component");
   if (value < 0n || value > MASK_64) {
     throw new RangeError("unsigned key components must fit in uint64");
   }
@@ -25,7 +41,7 @@ export function u64(value) {
 }
 
 export function mix64(value) {
-  value = BigInt(value) & MASK_64;
+  value = integer(value, "value", true) & MASK_64;
   value = ((value ^ (value >> 30n)) * 0xBF58476D1CE4E5B9n) & MASK_64;
   value = ((value ^ (value >> 27n)) * 0x94D049BB133111EBn) & MASK_64;
   return (value ^ (value >> 31n)) & MASK_64;
@@ -85,7 +101,7 @@ function encodeComponent(component) {
     return encoded;
   }
   if (typeof component === "bigint" || typeof component === "number") {
-    return encodeComponent(BigInt(component) < 0n ? i64(component) : u64(component));
+    return encodeComponent(integer(component, "key component") < 0n ? i64(component) : u64(component));
   }
   if (typeof component === "string") {
     return lengthPrefixed(0x03, encoder.encode(component));
@@ -120,13 +136,13 @@ function keyedRaw(seed, keys, domain = null) {
 
 export class Random {
   constructor(seed = Date.now()) {
-    this.seed = BigInt(seed) & MASK_64;
+    this.seed = integer(seed, "seed", true) & MASK_64;
     this.index = 0n;
     this.key = this.seed;
   }
 
   setSeed(seed) {
-    this.seed = BigInt(seed) & MASK_64;
+    this.seed = integer(seed, "seed", true) & MASK_64;
     this.index = 0n;
     this.key = this.seed;
   }
@@ -136,7 +152,7 @@ export class Random {
   }
 
   rawAt(offset) {
-    return mix64(this.seed + BigInt(offset) * GOLDEN_GAMMA);
+    return mix64(this.seed + integer(offset, "offset", true) * GOLDEN_GAMMA);
   }
 
   nextRawAt(offset) {
@@ -163,20 +179,19 @@ export class Random {
   }
 
   int(maxValue, ...keys) {
-    maxValue = BigInt(maxValue);
-    if (maxValue <= 0n || maxValue > UINT64_SIZE) {
-      throw new RangeError("maxValue must be in [1, 2^64]");
+    maxValue = integer(maxValue, "maxValue");
+    if (maxValue <= 0n || maxValue > MASK_64) {
+      throw new RangeError("maxValue must be in [1, 2^64 - 1]");
     }
-    if (maxValue === UINT64_SIZE) return this.raw(...keys);
     return boundedRaw(this.raw(...keys), maxValue);
   }
 
   range(minValue, maxValue, ...keys) {
-    minValue = BigInt(minValue);
-    maxValue = BigInt(maxValue);
+    minValue = integer(minValue, "minValue");
+    maxValue = integer(maxValue, "maxValue");
     const width = maxValue - minValue;
-    if (width <= 0n || width > UINT64_SIZE) {
-      throw new RangeError("range width must be in [1, 2^64]");
+    if (width <= 0n || width > MASK_64) {
+      throw new RangeError("range width must be in [1, 2^64 - 1]");
     }
     return minValue + this.int(width, ...keys);
   }
@@ -198,8 +213,8 @@ export class Random {
   }
 
   chanceRatio(numerator, denominator, ...keys) {
-    numerator = BigInt(numerator);
-    denominator = BigInt(denominator);
+    numerator = integer(numerator, "numerator");
+    denominator = integer(denominator, "denominator");
     if (denominator <= 0n) throw new RangeError("denominator must be positive");
     if (numerator <= 0n) return false;
     if (numerator >= denominator) return true;
@@ -226,7 +241,7 @@ export class Random {
     if (items.length === 0 || items.length !== integerWeights.length) {
       throw new RangeError("items and weights must have the same non-zero length");
     }
-    const weights = integerWeights.map(BigInt);
+    const weights = integerWeights.map((weight) => integer(weight, "weight"));
     if (weights.some((weight) => weight < 0n)) {
       throw new RangeError("weights must be non-negative");
     }
@@ -282,8 +297,8 @@ export class Random {
   }
 
   nextMinMaxAt(offset, minValue, maxValue) {
-    minValue = BigInt(minValue);
-    maxValue = BigInt(maxValue);
+    minValue = integer(minValue, "minValue", true);
+    maxValue = integer(maxValue, "maxValue", true);
     if (maxValue <= minValue) return null;
     return minValue + this.nextMaxAt(offset, maxValue - minValue);
   }
@@ -293,8 +308,8 @@ export class Random {
   }
 
   nextMinMax(minValue, maxValue) {
-    minValue = BigInt(minValue);
-    maxValue = BigInt(maxValue);
+    minValue = integer(minValue, "minValue", true);
+    maxValue = integer(maxValue, "maxValue", true);
     let value = null;
     if (maxValue > minValue) {
       value = minValue + boundedRaw(mix64(this.key), maxValue - minValue);

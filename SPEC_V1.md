@@ -80,7 +80,7 @@ Omitting a namespace is different from supplying an empty namespace.
 
 ## Unbiased Bounded Integers
 
-For an upper bound `m` in `[1, 2^64]`, calculate:
+For an upper bound `m` in `[1, 2^64 - 1]`, calculate:
 
 ```text
 threshold = (2^64 - m) mod m
@@ -92,11 +92,9 @@ while value < threshold:
 return value mod m
 ```
 
-For `m = 2^64`, return `raw(key...)`. Invalid bounds MUST report an error.
-
 `int(max, key...)` returns `[0, max)`. `range(min, max, key...)` returns
 `[min, max)` and supports signed endpoints provided the width does not exceed
-`2^64`.
+`2^64 - 1`. Use `raw(key...)` when the full uint64 output domain is required.
 
 `float01(key...)` is `(raw(key...) >> 11) / 2^53`. Implementations MUST use
 the upper 53 bits and return a value in `[0, 1)`.

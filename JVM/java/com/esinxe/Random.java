@@ -76,11 +76,8 @@ public final class Random {
     }
 
     private static BigInteger bounded(long value, BigInteger maxValue) {
-        if (maxValue.signum() <= 0 || maxValue.compareTo(TWO_64) > 0) {
-            throw new IllegalArgumentException("maxValue must be in [1, 2^64]");
-        }
-        if (maxValue.equals(TWO_64)) {
-            return unsigned(value);
+        if (maxValue.signum() <= 0 || maxValue.compareTo(TWO_64) >= 0) {
+            throw new IllegalArgumentException("maxValue must be in [1, 2^64 - 1]");
         }
         BigInteger threshold = TWO_64.subtract(maxValue).mod(maxValue);
         long current = value;

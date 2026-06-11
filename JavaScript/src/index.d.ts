@@ -5,8 +5,8 @@ export declare const MAX_INT_VALUE: bigint;
 export declare const FNV_OFFSET_BASIS: bigint;
 export declare const FNV_PRIME: bigint;
 
-export declare function mix64(value: bigint | number | string): bigint;
-export type IntegerInput = bigint | number | string;
+export declare function mix64(value: bigint | number): bigint;
+export type IntegerInput = bigint | number;
 export type KeyComponent =
   | IntegerInput
   | string

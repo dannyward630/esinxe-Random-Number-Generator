@@ -35,7 +35,7 @@ test("bounded and ranged values match shared vectors", () => {
 });
 
 test("keyed API matches canonical v1 vectors without advancing the stream", () => {
-  const rng = new Random(v1.seed);
+  const rng = new Random(BigInt(v1.seed));
   const key = [
     i64(-1),
     u64((1n << 64n) - 1n),
@@ -80,4 +80,8 @@ test("keyed API rejects invalid inputs", () => {
   assert.throws(() => rng.weightedChoice(["x"], [0], "invalid"), RangeError);
   assert.throws(() => i64(1n << 63n), RangeError);
   assert.throws(() => u64(1n << 64n), RangeError);
+  assert.throws(() => u64(Number.MAX_SAFE_INTEGER + 1), RangeError);
+  assert.throws(() => new Random(Number.MAX_SAFE_INTEGER + 1), RangeError);
+  assert.throws(() => rng.int(1n << 64n, "invalid"), RangeError);
+  assert.throws(() => rng.weightedChoice(["x"], [1.5], "invalid"), RangeError);
 });

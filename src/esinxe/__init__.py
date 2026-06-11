@@ -2,6 +2,7 @@
 
 import time
 from dataclasses import dataclass
+from operator import index as integer_index
 
 try:
     from . import _native
@@ -27,8 +28,10 @@ class Signed:
     value: int
 
     def __post_init__(self):
-        if not -(1 << 63) <= int(self.value) < (1 << 63):
+        value = _require_int(self.value, "signed key component")
+        if not -(1 << 63) <= value < (1 << 63):
             raise ValueError("signed key components must fit in int64")
+        object.__setattr__(self, "value", value)
 
 
 @dataclass(frozen=True)
@@ -38,16 +41,27 @@ class Unsigned:
     value: int
 
     def __post_init__(self):
-        if not 0 <= int(self.value) <= MASK_64:
+        value = _require_int(self.value, "unsigned key component")
+        if not 0 <= value <= MASK_64:
             raise ValueError("unsigned key components must fit in uint64")
+        object.__setattr__(self, "value", value)
+
+
+def _require_int(value, name):
+    if isinstance(value, bool):
+        raise TypeError(f"{name} must be an integer, not bool")
+    try:
+        return integer_index(value)
+    except TypeError as error:
+        raise TypeError(f"{name} must be an integer") from error
 
 
 def i64(value):
-    return Signed(int(value))
+    return Signed(value)
 
 
 def u64(value):
-    return Unsigned(int(value))
+    return Unsigned(value)
 
 
 def _mix64(value):
@@ -139,12 +153,13 @@ class Random:
     __slots__ = ("seed", "index", "_key")
 
     def __init__(self, seed=None):
-        self.seed = int(time.time_ns() if seed is None else seed) & MASK_64
+        value = time.time_ns() if seed is None else _require_int(seed, "seed")
+        self.seed = value & MASK_64
         self.index = 0
         self._key = self.seed
 
     def SetSeed(self, localseed):
-        self.seed = int(localseed) & MASK_64
+        self.seed = _require_int(localseed, "seed") & MASK_64
         self.index = 0
         self._key = self.seed
 
@@ -170,23 +185,21 @@ class Random:
     def int(self, maxvalue, *key):
         """Return a keyed integer in ``[0, maxvalue)``."""
 
-        maxvalue = int(maxvalue)
-        if not 0 < maxvalue <= UINT64_SIZE:
-            raise ValueError("maxvalue must be in [1, 2^64]")
-        if maxvalue == UINT64_SIZE:
-            return self.raw(*key)
+        maxvalue = _require_int(maxvalue, "maxvalue")
+        if not 0 < maxvalue <= MASK_64:
+            raise ValueError("maxvalue must be in [1, 2^64 - 1]")
         return _bounded_raw(self.raw(*key), maxvalue)
 
     def range(self, minvalue, maxvalue, *key):
         """Return a keyed integer in ``[minvalue, maxvalue)``."""
 
-        minvalue = int(minvalue)
-        maxvalue = int(maxvalue)
+        minvalue = _require_int(minvalue, "minvalue")
+        maxvalue = _require_int(maxvalue, "maxvalue")
         if maxvalue <= minvalue:
             raise ValueError("maxvalue must be greater than minvalue")
         width = maxvalue - minvalue
-        if width > UINT64_SIZE:
-            raise ValueError("range width must not exceed 2^64")
+        if width > MASK_64:
+            raise ValueError("range width must not exceed 2^64 - 1")
         return minvalue + self.int(width, *key)
 
     def float01(self, *key):
@@ -207,8 +220,8 @@ class Random:
         return _keyed_raw(self.seed, components, "at3d")
 
     def chanceRatio(self, numerator, denominator, *key):
-        numerator = int(numerator)
-        denominator = int(denominator)
+        numerator = _require_int(numerator, "numerator")
+        denominator = _require_int(denominator, "denominator")
         if denominator <= 0:
             raise ValueError("denominator must be positive")
         if numerator <= 0:
@@ -239,7 +252,10 @@ class Random:
     def weightedChoice(self, items, integerWeights, *key):
         if not items or len(items) != len(integerWeights):
             raise ValueError("items and weights must have the same non-zero length")
-        weights = [int(weight) for weight in integerWeights]
+        weights = [
+            _require_int(weight, "weight")
+            for weight in integerWeights
+        ]
         if any(weight < 0 for weight in weights):
             raise ValueError("weights must be non-negative integers")
         total = sum(weights)

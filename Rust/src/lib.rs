@@ -138,14 +138,10 @@ impl Random {
         keys: &[Key<'_>],
     ) -> Result<i64, &'static str> {
         let width = i128::from(max_value) - i128::from(min_value);
-        if width <= 0 || width > i128::from(u64::MAX) + 1 {
-            return Err("range width must be in [1, 2^64]");
+        if width <= 0 || width > i128::from(u64::MAX) {
+            return Err("range width must be in [1, 2^64 - 1]");
         }
-        let offset = if width == i128::from(u64::MAX) + 1 {
-            self.raw(keys)
-        } else {
-            bounded(self.raw(keys), width as u64)
-        };
+        let offset = bounded(self.raw(keys), width as u64);
         Ok((i128::from(min_value) + i128::from(offset)) as i64)
     }
 
@@ -235,6 +231,8 @@ impl Random {
         bounded(self.next_raw_at(offset), MAX_INT_VALUE)
     }
 
+    // Retained as the established stream API; Iterator is also implemented.
+    #[allow(clippy::should_implement_trait)]
     pub fn next(&mut self) -> u64 {
         let value = bounded(mix64(self.key), MAX_INT_VALUE);
         self.key = self.key.wrapping_add(GOLDEN_GAMMA);
@@ -269,6 +267,14 @@ impl Random {
         self.key = self.key.wrapping_add(GOLDEN_GAMMA);
         self.index = self.index.wrapping_add(1);
         value
+    }
+}
+
+impl Iterator for Random {
+    type Item = u64;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        Some(Random::next(self))
     }
 }
 

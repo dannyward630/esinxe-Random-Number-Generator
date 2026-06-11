@@ -11,7 +11,6 @@ import textwrap
 import unittest
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 V1_VECTORS = json.loads((ROOT / "tests" / "vectors-v1.json").read_text())
@@ -215,10 +214,16 @@ class PythonBehaviorTests(unittest.TestCase):
             self.module.u64(1 << 64)
         with self.assertRaises(TypeError):
             field.raw(True)
+        with self.assertRaises(TypeError):
+            field.int(10.5, "invalid")
+        with self.assertRaises(TypeError):
+            field.weightedChoice(["x"], [1.5], "invalid")
 
         self.assertFalse(field.chanceRatio(0, 7, "certain"))
         self.assertTrue(field.chanceRatio(7, 7, "certain"))
-        self.assertEqual(field.int(1 << 64, "full-width"), field.raw("full-width"))
+        self.assertGreaterEqual(field.int((1 << 64) - 1, "largest-bound"), 0)
+        with self.assertRaises(ValueError):
+            field.int(1 << 64, "full-width")
 
 
 class CrossLanguageSmokeTests(unittest.TestCase):
@@ -326,7 +331,10 @@ class CrossLanguageSmokeTests(unittest.TestCase):
             }
             """
         )
-        output = compile_and_run("c", source)
+        output = compile_and_run_sources(
+            "c",
+            [source, '#include "C/Esinxec1-0-0.c"\n'],
+        )
         pairs = parse_int_pairs(output)
         self.assertEqual([pair[0] for pair in pairs], EXPECTED_FIRST_VALUES)
         self.assertEqual([pair[1] for pair in pairs], EXPECTED_FIRST_RAW_VALUES)
@@ -390,6 +398,64 @@ class CrossLanguageSmokeTests(unittest.TestCase):
             ["common", "rare", "legendary"][int(lines[9])],
             cases["weightedChoice"],
         )
+
+    def test_c_header_is_safe_across_translation_units(self):
+        sources = [
+            textwrap.dedent(
+                """
+                #include "C/Esinxec1-0-0.h"
+                uint64_t first(void)
+                {
+                    EsinxeRandom rng;
+                    EsinxeInit(&rng, 1);
+                    return EsinxeNext(&rng);
+                }
+                """
+            ),
+            textwrap.dedent(
+                """
+                #include "C/Esinxec1-0-0.h"
+                uint64_t first(void);
+                int main(void)
+                {
+                    EsinxeRandom rng;
+                    EsinxeInit(&rng, 2);
+                    return first() == EsinxeNext(&rng);
+                }
+                """
+            ),
+        ]
+        compile_and_run_sources("c", sources)
+
+    def test_c_legacy_stream_is_shared_across_translation_units(self):
+        sources = [
+            textwrap.dedent(
+                """
+                #include "C/Esinxec1-0-0.h"
+                uint64_t first(void)
+                {
+                    SetSeed(12345);
+                    return Next();
+                }
+                """
+            ),
+            textwrap.dedent(
+                f"""
+                #include "C/Esinxec1-0-0.h"
+                uint64_t first(void);
+                int main(void)
+                {{
+                    if (first() != UINT64_C({EXPECTED_FIRST_VALUES[0]}))
+                    {{
+                        return 1;
+                    }}
+                    return Next() == UINT64_C({EXPECTED_FIRST_VALUES[1]}) ? 0 : 2;
+                }}
+                """
+            ),
+            '#include "C/Esinxec1-0-0.c"\n',
+        ]
+        compile_and_run_sources("c", sources)
 
     def test_cpp_header_compiles_and_matches_reference_values(self):
         source = textwrap.dedent(
@@ -563,7 +629,8 @@ class CrossLanguageSmokeTests(unittest.TestCase):
                             rng.SetSeed(12345);
                             for (var i = 0; i < 5; i++)
                             {
-                                Console.WriteLine($"{rng.Next()} {rng.NextRawAt((ulong)i)}");
+                                Console.WriteLine(
+                                    $"{rng.Next()} {rng.NextRawAt((ulong)i)}");
                             }
                         }
                     }
@@ -629,7 +696,8 @@ class CrossLanguageSmokeTests(unittest.TestCase):
                             Console.WriteLine(rng.Int(100, key));
                             Console.WriteLine(rng.Range(-500, 500, key));
                             Console.WriteLine(rng.At2D(-17, 42, "terrain/\\u96ea"));
-                            Console.WriteLine(rng.At3D(-17, 42, long.MinValue, "caves"));
+                            Console.WriteLine(
+                                rng.At3D(-17, 42, long.MinValue, "caves"));
                             Console.WriteLine(rng.Raw(key) >> 11);
                             Console.WriteLine(rng.ChanceRatio(7, 23, key) ? 1 : 0);
                             Console.WriteLine(rng.Choose(
@@ -688,12 +756,19 @@ class CrossLanguageSmokeTests(unittest.TestCase):
 
 
 def compile_and_run(kind, source):
+    return compile_and_run_sources(kind, [source])
+
+
+def compile_and_run_sources(kind, sources):
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp = Path(tmpdir)
         suffix = ".c" if kind == "c" else ".cpp"
-        source_path = tmp / f"main{suffix}"
+        source_paths = []
+        for index, source in enumerate(sources):
+            source_path = tmp / f"source-{index}{suffix}"
+            source_path.write_text(source)
+            source_paths.append(str(source_path))
         output_path = tmp / "esinxe-test"
-        source_path.write_text(source)
         compiler = "cc" if kind == "c" else "c++"
         standard = "-std=c11" if kind == "c" else "-std=c++17"
         command = [
@@ -703,7 +778,7 @@ def compile_and_run(kind, source):
             "-Wextra",
             "-Werror",
             f"-I{ROOT}",
-            str(source_path),
+            *source_paths,
             "-o",
             str(output_path),
         ]
