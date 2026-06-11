@@ -1,12 +1,13 @@
 {
   "name": "esinxe",
-  "version": "1.0.4",
-  "description": "Deterministic random-access number generator for procedural generation",
+  "version": "1.1.0",
+  "description": "Versioned deterministic random fields for procedural generation",
   "type": "module",
   "main": "src/index.js",
   "types": "src/index.d.ts",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test",
+    "typecheck": "tsc -p tsconfig.json"
   },
   "keywords": [
     "deterministic",
@@ -15,5 +16,8 @@
     "random-access",
     "rng"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
 }

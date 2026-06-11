@@ -2,7 +2,27 @@ export const MASK_64 = (1n << 64n) - 1n;
 export const UINT64_SIZE = 1n << 64n;
 export const GOLDEN_GAMMA = 0x9E3779B97F4A7C15n;
 export const MAX_INT_VALUE = 1_000_000_000_000_000_000n;
+export const FNV_OFFSET_BASIS = 0xCBF29CE484222325n;
+export const FNV_PRIME = 0x100000001B3n;
 const MAX_INT_THRESHOLD = (UINT64_SIZE - MAX_INT_VALUE) % MAX_INT_VALUE;
+const V1_PREFIX = new TextEncoder().encode("esinxe-v1\0");
+const encoder = new TextEncoder();
+
+export function i64(value) {
+  value = BigInt(value);
+  if (value < -(1n << 63n) || value >= (1n << 63n)) {
+    throw new RangeError("signed key components must fit in int64");
+  }
+  return Object.freeze({ esinxeType: "i64", value });
+}
+
+export function u64(value) {
+  value = BigInt(value);
+  if (value < 0n || value > MASK_64) {
+    throw new RangeError("unsigned key components must fit in uint64");
+  }
+  return Object.freeze({ esinxeType: "u64", value });
+}
 
 export function mix64(value) {
   value = BigInt(value) & MASK_64;
@@ -31,6 +51,71 @@ function boundedMaxInt(value) {
     value = mix64(value + nonce * GOLDEN_GAMMA);
   }
   return value % MAX_INT_VALUE;
+}
+
+function le64(value) {
+  value = BigInt(value) & MASK_64;
+  const bytes = new Uint8Array(8);
+  for (let i = 0; i < 8; i++) {
+    bytes[i] = Number(value & 0xffn);
+    value >>= 8n;
+  }
+  return bytes;
+}
+
+function lengthPrefixed(tag, data) {
+  const encoded = new Uint8Array(9 + data.length);
+  encoded[0] = tag;
+  encoded.set(le64(data.length), 1);
+  encoded.set(data, 9);
+  return encoded;
+}
+
+function encodeComponent(component) {
+  if (component?.esinxeType === "i64") {
+    const encoded = new Uint8Array(9);
+    encoded[0] = 0x01;
+    encoded.set(le64(component.value), 1);
+    return encoded;
+  }
+  if (component?.esinxeType === "u64") {
+    const encoded = new Uint8Array(9);
+    encoded[0] = 0x02;
+    encoded.set(le64(component.value), 1);
+    return encoded;
+  }
+  if (typeof component === "bigint" || typeof component === "number") {
+    return encodeComponent(BigInt(component) < 0n ? i64(component) : u64(component));
+  }
+  if (typeof component === "string") {
+    return lengthPrefixed(0x03, encoder.encode(component));
+  }
+  if (component instanceof Uint8Array) {
+    return lengthPrefixed(0x04, component);
+  }
+  if (component instanceof ArrayBuffer) {
+    return lengthPrefixed(0x04, new Uint8Array(component));
+  }
+  throw new TypeError("v1 keys must be signed/unsigned integers, UTF-8 strings, or bytes");
+}
+
+function fnvUpdate(hash, bytes) {
+  for (const byte of bytes) {
+    hash = ((hash ^ BigInt(byte)) * FNV_PRIME) & MASK_64;
+  }
+  return hash;
+}
+
+function domainBytes(name) {
+  return lengthPrefixed(0xf0, encoder.encode(name));
+}
+
+function keyedRaw(seed, keys, domain = null) {
+  let hash = fnvUpdate(FNV_OFFSET_BASIS, V1_PREFIX);
+  hash = fnvUpdate(hash, le64(seed));
+  if (domain !== null) hash = fnvUpdate(hash, domainBytes(domain));
+  for (const key of keys) hash = fnvUpdate(hash, encodeComponent(key));
+  return mix64(hash);
 }
 
 export class Random {
@@ -71,6 +156,91 @@ export class Random {
 
   NextRaw() {
     return this.nextRaw();
+  }
+
+  raw(...keys) {
+    return keyedRaw(this.seed, keys);
+  }
+
+  int(maxValue, ...keys) {
+    maxValue = BigInt(maxValue);
+    if (maxValue <= 0n || maxValue > UINT64_SIZE) {
+      throw new RangeError("maxValue must be in [1, 2^64]");
+    }
+    if (maxValue === UINT64_SIZE) return this.raw(...keys);
+    return boundedRaw(this.raw(...keys), maxValue);
+  }
+
+  range(minValue, maxValue, ...keys) {
+    minValue = BigInt(minValue);
+    maxValue = BigInt(maxValue);
+    const width = maxValue - minValue;
+    if (width <= 0n || width > UINT64_SIZE) {
+      throw new RangeError("range width must be in [1, 2^64]");
+    }
+    return minValue + this.int(width, ...keys);
+  }
+
+  float01(...keys) {
+    return Number(this.raw(...keys) >> 11n) / 2 ** 53;
+  }
+
+  at2D(x, y, namespace) {
+    const keys = [i64(x), i64(y)];
+    if (namespace !== undefined && namespace !== null) keys.push(String(namespace));
+    return keyedRaw(this.seed, keys, "at2d");
+  }
+
+  at3D(x, y, z, namespace) {
+    const keys = [i64(x), i64(y), i64(z)];
+    if (namespace !== undefined && namespace !== null) keys.push(String(namespace));
+    return keyedRaw(this.seed, keys, "at3d");
+  }
+
+  chanceRatio(numerator, denominator, ...keys) {
+    numerator = BigInt(numerator);
+    denominator = BigInt(denominator);
+    if (denominator <= 0n) throw new RangeError("denominator must be positive");
+    if (numerator <= 0n) return false;
+    if (numerator >= denominator) return true;
+    return this.int(denominator, ...keys) < numerator;
+  }
+
+  choose(items, ...keys) {
+    if (items.length === 0) throw new RangeError("items must not be empty");
+    return items[Number(this.int(items.length, ...keys))];
+  }
+
+  shuffle(items, ...keys) {
+    const values = Array.from(items);
+    for (let index = values.length - 1; index > 0; index--) {
+      const picked = Number(
+        boundedRaw(keyedRaw(this.seed, [...keys, u64(index)], "shuffle"), BigInt(index + 1))
+      );
+      [values[index], values[picked]] = [values[picked], values[index]];
+    }
+    return values;
+  }
+
+  weightedChoice(items, integerWeights, ...keys) {
+    if (items.length === 0 || items.length !== integerWeights.length) {
+      throw new RangeError("items and weights must have the same non-zero length");
+    }
+    const weights = integerWeights.map(BigInt);
+    if (weights.some((weight) => weight < 0n)) {
+      throw new RangeError("weights must be non-negative");
+    }
+    const total = weights.reduce((sum, weight) => sum + weight, 0n);
+    if (total <= 0n || total > MASK_64) {
+      throw new RangeError("total weight must be in [1, 2^64 - 1]");
+    }
+    const target = this.int(total, ...keys);
+    let running = 0n;
+    for (let index = 0; index < items.length; index++) {
+      running += weights[index];
+      if (target < running) return items[index];
+    }
+    throw new Error("unreachable weighted choice");
   }
 
   nextAt(offset) {

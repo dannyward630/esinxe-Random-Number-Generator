@@ -2,8 +2,19 @@ export declare const MASK_64: bigint;
 export declare const UINT64_SIZE: bigint;
 export declare const GOLDEN_GAMMA: bigint;
 export declare const MAX_INT_VALUE: bigint;
+export declare const FNV_OFFSET_BASIS: bigint;
+export declare const FNV_PRIME: bigint;
 
 export declare function mix64(value: bigint | number | string): bigint;
+export type IntegerInput = bigint | number | string;
+export type KeyComponent =
+  | IntegerInput
+  | string
+  | Uint8Array
+  | ArrayBuffer
+  | { readonly esinxeType: "i64" | "u64"; readonly value: bigint };
+export declare function i64(value: IntegerInput): KeyComponent;
+export declare function u64(value: IntegerInput): KeyComponent;
 
 export declare class Random {
   seed: bigint;
@@ -18,6 +29,24 @@ export declare class Random {
   NextRawAt(offset: bigint | number | string): bigint;
   nextRaw(): bigint;
   NextRaw(): bigint;
+  raw(...keys: KeyComponent[]): bigint;
+  int(maxValue: IntegerInput, ...keys: KeyComponent[]): bigint;
+  range(minValue: IntegerInput, maxValue: IntegerInput, ...keys: KeyComponent[]): bigint;
+  float01(...keys: KeyComponent[]): number;
+  at2D(x: IntegerInput, y: IntegerInput, namespace?: string): bigint;
+  at3D(x: IntegerInput, y: IntegerInput, z: IntegerInput, namespace?: string): bigint;
+  chanceRatio(
+    numerator: IntegerInput,
+    denominator: IntegerInput,
+    ...keys: KeyComponent[]
+  ): boolean;
+  choose<T>(items: readonly T[], ...keys: KeyComponent[]): T;
+  shuffle<T>(items: readonly T[], ...keys: KeyComponent[]): T[];
+  weightedChoice<T>(
+    items: readonly T[],
+    integerWeights: readonly IntegerInput[],
+    ...keys: KeyComponent[]
+  ): T;
   nextAt(offset: bigint | number | string): bigint;
   NextAt(offset: bigint | number | string): bigint;
   next(): bigint;

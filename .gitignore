@@ -5,3 +5,4 @@ __pycache__/
 *.py[cod]
 *.so
 target/
+node_modules/

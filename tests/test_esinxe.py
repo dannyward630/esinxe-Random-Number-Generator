@@ -1,4 +1,5 @@
 import collections
+import json
 import math
 import os
 import shutil
@@ -13,6 +14,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
+V1_VECTORS = json.loads((ROOT / "tests" / "vectors-v1.json").read_text())
 EXPECTED_FIRST_VALUES = [
     540659726606785873,
     454886589211414944,
@@ -133,6 +135,91 @@ class PythonBehaviorTests(unittest.TestCase):
         self.assertEqual(native.raw_list(12345, 5), EXPECTED_FIRST_RAW_VALUES)
         self.assertEqual(rng.NextList(5), EXPECTED_FIRST_VALUES)
 
+    def test_v1_keyed_api_matches_canonical_vectors(self):
+        field = self.module.Random(int(V1_VECTORS["seed"]))
+        key = (
+            self.module.i64(-1),
+            self.module.u64((1 << 64) - 1),
+            "snowman \u2603",
+            bytes.fromhex("0001ff"),
+        )
+        cases = V1_VECTORS["cases"]
+
+        self.assertEqual(str(field.raw()), cases["rawEmpty"])
+        self.assertEqual(str(field.raw(self.module.i64(1))), cases["rawSignedPositive"])
+        self.assertEqual(
+            str(field.raw(self.module.u64(1))),
+            cases["rawUnsignedPositive"],
+        )
+        self.assertNotEqual(cases["rawSignedPositive"], cases["rawUnsignedPositive"])
+        self.assertEqual(str(field.raw(*key)), cases["rawMixed"])
+        self.assertEqual(str(field.raw("")), cases["rawEmptyString"])
+        self.assertEqual(str(field.raw(b"")), cases["rawEmptyBytes"])
+        self.assertEqual(str(field.int(100, *key)), cases["int100"])
+        self.assertEqual(str(field.range(-500, 500, *key)), cases["rangeSigned"])
+        self.assertEqual(str(field.raw(*key) >> 11), cases["floatUpper53"])
+        self.assertEqual(
+            str(field.at2D(-17, 42, "terrain/\u96ea")),
+            cases["at2D"],
+        )
+        self.assertEqual(str(field.at2D(-17, 42)), cases["at2DNoNamespace"])
+        self.assertEqual(
+            str(field.at3D(-17, 42, -(1 << 63), "caves")),
+            cases["at3D"],
+        )
+        self.assertEqual(field.chanceRatio(7, 23, *key), cases["chanceRatio"])
+        self.assertEqual(
+            field.choose(["forest", "desert", "tundra", "ocean"], *key),
+            cases["choose"],
+        )
+        self.assertEqual(
+            field.shuffle(["forest", "desert", "tundra", "ocean"], *key),
+            cases["shuffle"],
+        )
+        self.assertEqual(
+            field.weightedChoice(
+                ["common", "rare", "legendary"],
+                [80, 18, 2],
+                *key,
+            ),
+            cases["weightedChoice"],
+        )
+
+    def test_keyed_calls_do_not_advance_stream(self):
+        expected = self.module.Random(12345)
+        actual = self.module.Random(12345)
+        actual.raw("chunk", self.module.i64(-2))
+        actual.int(37, "loot")
+        actual.at2D(-1, 2, "terrain")
+        actual.shuffle([1, 2, 3, 4], "encounter")
+        self.assertEqual(actual.index, 0)
+        self.assertEqual(actual.NextRaw(), expected.NextRaw())
+
+    def test_v1_key_validation_and_edge_cases(self):
+        field = self.module.Random(0)
+        with self.assertRaises(ValueError):
+            field.int(0, "invalid")
+        with self.assertRaises(ValueError):
+            field.range(5, 5, "invalid")
+        with self.assertRaises(ValueError):
+            field.chanceRatio(1, 0, "invalid")
+        with self.assertRaises(ValueError):
+            field.choose([], "invalid")
+        with self.assertRaises(ValueError):
+            field.weightedChoice(["x"], [-1], "invalid")
+        with self.assertRaises(ValueError):
+            field.weightedChoice(["x"], [0], "invalid")
+        with self.assertRaises(ValueError):
+            self.module.i64(1 << 63)
+        with self.assertRaises(ValueError):
+            self.module.u64(1 << 64)
+        with self.assertRaises(TypeError):
+            field.raw(True)
+
+        self.assertFalse(field.chanceRatio(0, 7, "certain"))
+        self.assertTrue(field.chanceRatio(7, 7, "certain"))
+        self.assertEqual(field.int(1 << 64, "full-width"), field.raw("full-width"))
+
 
 class CrossLanguageSmokeTests(unittest.TestCase):
     def test_javascript_matches_reference_values(self):
@@ -244,6 +331,66 @@ class CrossLanguageSmokeTests(unittest.TestCase):
         self.assertEqual([pair[0] for pair in pairs], EXPECTED_FIRST_VALUES)
         self.assertEqual([pair[1] for pair in pairs], EXPECTED_FIRST_RAW_VALUES)
 
+    def test_c_header_matches_v1_keyed_vectors(self):
+        source = textwrap.dedent(
+            r"""
+            #include <inttypes.h>
+            #include <stdio.h>
+            #include "C/Esinxec1-0-0.h"
+
+            int main(void)
+            {
+                const unsigned char bytes[] = {0, 1, 255};
+                EsinxeKey keys[] = {
+                    EsinxeI64(-1),
+                    EsinxeU64(UINT64_MAX),
+                    EsinxeString("snowman \xE2\x98\x83"),
+                    EsinxeBytes(bytes, 3)
+                };
+                const char *items[] = {"forest", "desert", "tundra", "ocean"};
+                uint64_t weights[] = {80, 18, 2};
+                uint64_t integer;
+                int64_t ranged;
+
+                EsinxeIntV1(12345, 100, keys, 4, &integer);
+                EsinxeRangeV1(12345, -500, 500, keys, 4, &ranged);
+                EsinxeShuffleV1(12345, items, 4, sizeof(items[0]), keys, 4);
+                printf("%" PRIu64 "\n", EsinxeRawV1(12345, keys, 4));
+                printf("%" PRIu64 "\n", integer);
+                printf("%" PRId64 "\n", ranged);
+                printf("%" PRIu64 "\n",
+                    EsinxeAt2DV1(12345, -17, 42, "terrain/\xE9\x9B\xAA"));
+                printf("%" PRIu64 "\n",
+                    EsinxeAt3DV1(12345, -17, 42, INT64_MIN, "caves"));
+                printf("%" PRIu64 "\n", EsinxeRawV1(12345, keys, 4) >> 11);
+                printf("%d\n", EsinxeChanceRatioV1(12345, 7, 23, keys, 4));
+                printf("%zu\n", EsinxeChooseIndexV1(12345, 4, keys, 4));
+                printf("%s,%s,%s,%s\n", items[0], items[1], items[2], items[3]);
+                printf("%zu\n",
+                    EsinxeWeightedChoiceIndexV1(12345, weights, 3, keys, 4));
+                return 0;
+            }
+            """
+        )
+        lines = compile_and_run("c", source).splitlines()
+        cases = V1_VECTORS["cases"]
+        self.assertEqual(lines[0], cases["rawMixed"])
+        self.assertEqual(lines[1], cases["int100"])
+        self.assertEqual(lines[2], cases["rangeSigned"])
+        self.assertEqual(lines[3], cases["at2D"])
+        self.assertEqual(lines[4], cases["at3D"])
+        self.assertEqual(lines[5], cases["floatUpper53"])
+        self.assertEqual(lines[6], "1" if cases["chanceRatio"] else "0")
+        self.assertEqual(
+            ["forest", "desert", "tundra", "ocean"][int(lines[7])],
+            cases["choose"],
+        )
+        self.assertEqual(lines[8].split(","), cases["shuffle"])
+        self.assertEqual(
+            ["common", "rare", "legendary"][int(lines[9])],
+            cases["weightedChoice"],
+        )
+
     def test_cpp_header_compiles_and_matches_reference_values(self):
         source = textwrap.dedent(
             """
@@ -267,6 +414,67 @@ class CrossLanguageSmokeTests(unittest.TestCase):
         self.assertEqual([pair[0] for pair in pairs], EXPECTED_FIRST_VALUES)
         self.assertEqual([pair[1] for pair in pairs], EXPECTED_FIRST_RAW_VALUES)
 
+    def test_cpp_header_matches_v1_keyed_vectors(self):
+        source = textwrap.dedent(
+            r"""
+            #include <cstdint>
+            #include <iostream>
+            #include <string>
+            #include <vector>
+            #include "C++/Esinxecpp1-0-0.h"
+
+            int main()
+            {
+                using namespace Esinxecpp;
+                Random rng(12345);
+                std::vector<Key> keys = {
+                    Key::Signed(-1),
+                    Key::Unsigned(UINT64_MAX),
+                    Key::Utf8("snowman \xE2\x98\x83"),
+                    Key::Bytes({0, 1, 255})
+                };
+                std::cout << rng.Raw(keys) << "\n";
+                std::cout << rng.Int(100, keys) << "\n";
+                std::cout << rng.Range(-500, 500, keys) << "\n";
+                std::cout << rng.At2D(-17, 42, "terrain/\xE9\x9B\xAA") << "\n";
+                std::cout << rng.At3D(-17, 42, INT64_MIN, "caves") << "\n";
+                std::cout << (rng.Raw(keys) >> 11) << "\n";
+                std::cout << rng.ChanceRatio(7, 23, keys) << "\n";
+                std::cout << rng.Choose(
+                    std::vector<std::string>{"forest", "desert", "tundra", "ocean"},
+                    keys) << "\n";
+                auto shuffled = rng.Shuffle(
+                    std::vector<std::string>{"forest", "desert", "tundra", "ocean"},
+                    keys);
+                for (std::size_t i = 0; i < shuffled.size(); i++)
+                {
+                    if (i > 0) std::cout << ",";
+                    std::cout << shuffled[i];
+                }
+                std::cout << "\n";
+                std::cout << rng.WeightedChoice(
+                    std::vector<std::string>{"common", "rare", "legendary"},
+                    std::vector<std::uint64_t>{80, 18, 2},
+                    keys) << "\n";
+                return 0;
+            }
+            """
+        )
+        lines = compile_and_run("cpp", source).splitlines()
+        cases = V1_VECTORS["cases"]
+        self.assertEqual(lines[:5], [
+            cases["rawMixed"],
+            cases["int100"],
+            cases["rangeSigned"],
+            cases["at2D"],
+            cases["at3D"],
+        ])
+        self.assertEqual(lines[5], cases["floatUpper53"])
+        self.assertEqual(lines[6], "1" if cases["chanceRatio"] else "0")
+        self.assertEqual(lines[7], cases["choose"])
+        self.assertEqual(lines[8].split(","), cases["shuffle"])
+        self.assertEqual(lines[9], cases["weightedChoice"])
+
     def test_ruby_matches_reference_values(self):
         script = textwrap.dedent(
             """
@@ -286,6 +494,51 @@ class CrossLanguageSmokeTests(unittest.TestCase):
         pairs = parse_int_pairs(result.stdout)
         self.assertEqual([pair[0] for pair in pairs], EXPECTED_FIRST_VALUES)
         self.assertEqual([pair[1] for pair in pairs], EXPECTED_FIRST_RAW_VALUES)
+
+    def test_ruby_matches_v1_keyed_vectors(self):
+        script = textwrap.dedent(
+            """
+            load 'Ruby/Esinxeruby1-0-0.rb'
+            rng = Esinxe::Generator.new(12345)
+            key = [
+              Esinxe.i64(-1),
+              Esinxe.u64((1 << 64) - 1),
+              "snowman \\u2603",
+              Esinxe.bytes("\\x00\\x01\\xff")
+            ]
+            puts rng.raw(*key)
+            puts rng.int(100, *key)
+            puts rng.range(-500, 500, *key)
+            puts rng.at2D(-17, 42, "terrain/\\u96ea")
+            puts rng.at3D(-17, 42, -(1 << 63), "caves")
+            puts rng.raw(*key) >> 11
+            puts rng.chanceRatio(7, 23, *key) ? 1 : 0
+            puts rng.choose(%w[forest desert tundra ocean], *key)
+            puts rng.shuffle(%w[forest desert tundra ocean], *key).join(",")
+            puts rng.weightedChoice(%w[common rare legendary], [80, 18, 2], *key)
+            """
+        )
+        result = subprocess.run(
+            ["ruby", "-e", script],
+            cwd=ROOT,
+            check=True,
+            text=True,
+            capture_output=True,
+        )
+        lines = result.stdout.splitlines()
+        cases = V1_VECTORS["cases"]
+        self.assertEqual(lines[:5], [
+            cases["rawMixed"],
+            cases["int100"],
+            cases["rangeSigned"],
+            cases["at2D"],
+            cases["at3D"],
+        ])
+        self.assertEqual(lines[5], cases["floatUpper53"])
+        self.assertEqual(lines[6], "1" if cases["chanceRatio"] else "0")
+        self.assertEqual(lines[7], cases["choose"])
+        self.assertEqual(lines[8].split(","), cases["shuffle"])
+        self.assertEqual(lines[9], cases["weightedChoice"])
 
     def test_csharp_matches_reference_values_when_dotnet_is_available(self):
         dotnet = shutil.which("dotnet") or str(Path.home() / ".dotnet" / "dotnet")
@@ -344,6 +597,94 @@ class CrossLanguageSmokeTests(unittest.TestCase):
             pairs = parse_int_pairs(result.stdout)
             self.assertEqual([pair[0] for pair in pairs], EXPECTED_FIRST_VALUES)
             self.assertEqual([pair[1] for pair in pairs], EXPECTED_FIRST_RAW_VALUES)
+
+    def test_csharp_matches_v1_keyed_vectors_when_dotnet_is_available(self):
+        dotnet = shutil.which("dotnet") or str(Path.home() / ".dotnet" / "dotnet")
+        if not Path(dotnet).exists():
+            self.skipTest("dotnet is not installed")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tmp = Path(tmpdir)
+            (tmp / "Esinxecs1-0-0.cs").write_text(
+                (ROOT / "C#" / "Esinxecs1-0-0.cs").read_text()
+            )
+            (tmp / "Program.cs").write_text(
+                textwrap.dedent(
+                    """
+                    using System;
+                    using E = Esinxecs.Random;
+
+                    class Program
+                    {
+                        static void Main()
+                        {
+                            var rng = new E(12345);
+                            var key = new[] {
+                                E.Key.I64(-1),
+                                E.Key.U64(ulong.MaxValue),
+                                E.Key.String("snowman \\u2603"),
+                                E.Key.Bytes(new byte[] {0, 1, 255})
+                            };
+                            Console.WriteLine(rng.Raw(key));
+                            Console.WriteLine(rng.Int(100, key));
+                            Console.WriteLine(rng.Range(-500, 500, key));
+                            Console.WriteLine(rng.At2D(-17, 42, "terrain/\\u96ea"));
+                            Console.WriteLine(rng.At3D(-17, 42, long.MinValue, "caves"));
+                            Console.WriteLine(rng.Raw(key) >> 11);
+                            Console.WriteLine(rng.ChanceRatio(7, 23, key) ? 1 : 0);
+                            Console.WriteLine(rng.Choose(
+                                new[] {"forest", "desert", "tundra", "ocean"},
+                                key));
+                            Console.WriteLine(string.Join(",", rng.Shuffle(
+                                new[] {"forest", "desert", "tundra", "ocean"},
+                                key)));
+                            Console.WriteLine(rng.WeightedChoice(
+                                new[] {"common", "rare", "legendary"},
+                                new ulong[] {80, 18, 2},
+                                key));
+                        }
+                    }
+                    """
+                )
+            )
+            (tmp / "EsinxeV1.csproj").write_text(
+                textwrap.dedent(
+                    """
+                    <Project Sdk="Microsoft.NET.Sdk">
+                      <PropertyGroup>
+                        <OutputType>Exe</OutputType>
+                        <TargetFramework>net8.0</TargetFramework>
+                        <Nullable>enable</Nullable>
+                        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+                      </PropertyGroup>
+                    </Project>
+                    """
+                ).strip()
+            )
+            env = os.environ.copy()
+            env["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1"
+            result = subprocess.run(
+                [dotnet, "run", "--project", str(tmp / "EsinxeV1.csproj")],
+                cwd=ROOT,
+                check=True,
+                text=True,
+                capture_output=True,
+                env=env,
+            )
+            lines = result.stdout.splitlines()
+            cases = V1_VECTORS["cases"]
+            self.assertEqual(lines[:5], [
+                cases["rawMixed"],
+                cases["int100"],
+                cases["rangeSigned"],
+                cases["at2D"],
+                cases["at3D"],
+            ])
+            self.assertEqual(lines[5], cases["floatUpper53"])
+            self.assertEqual(lines[6], "1" if cases["chanceRatio"] else "0")
+            self.assertEqual(lines[7], cases["choose"])
+            self.assertEqual(lines[8].split(","), cases["shuffle"])
+            self.assertEqual(lines[9], cases["weightedChoice"])
 
 
 def compile_and_run(kind, source):
