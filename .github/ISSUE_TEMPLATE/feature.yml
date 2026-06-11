@@ -1,0 +1,43 @@
+name: Feature request
+description: Propose a portable API, new integration, example, or project improvement.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: What developer problem would this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the API or project change and which language ports it affects.
+    validations:
+      required: true
+  - type: dropdown
+    id: compatibility
+    attributes:
+      label: Algorithm compatibility
+      options:
+        - Does not alter algorithm v1 output
+        - Would require a new algorithm version
+        - Unsure
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Include existing libraries or workarounds where relevant.
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I understand esinxe is non-cryptographic.
+          required: true
+        - label: I searched existing issues for a similar proposal.
+          required: true

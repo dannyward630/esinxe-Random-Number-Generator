@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Usage and design questions
+    url: https://github.com/dannyward630/esinxe-Random-Number-Generator/discussions
+    about: Ask how to model stable keys or use esinxe in a project.
+  - name: Security policy
+    url: https://github.com/dannyward630/esinxe-Random-Number-Generator/security/policy
+    about: Read the private vulnerability reporting instructions.
