@@ -25,3 +25,6 @@ updates:
     schedule:
       interval: monthly
     labels: ["dependencies", "ci"]
+    groups:
+      github-actions:
+        patterns: ["*"]

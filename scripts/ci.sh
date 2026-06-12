@@ -67,10 +67,11 @@ else
   echo "Skipping Java tests: javac/java not found"
 fi
 if command -v kotlinc >/dev/null 2>&1; then
-  tmp_kotlin_jar="$(mktemp -t esinxe-kotlin-test).jar"
+  tmp_kotlin_dir="$(mktemp -d)"
+  tmp_kotlin_jar="$tmp_kotlin_dir/esinxe-kotlin-test.jar"
   kotlinc JVM/kotlin/Esinxe.kt JVM/kotlin/EsinxeSmokeTest.kt -include-runtime -d "$tmp_kotlin_jar"
   java -jar "$tmp_kotlin_jar"
-  rm -f "$tmp_kotlin_jar"
+  rm -rf "$tmp_kotlin_dir"
 else
   echo "Skipping Kotlin tests: kotlinc not found"
 fi
