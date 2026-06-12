@@ -40,6 +40,7 @@ dev = [
     "build>=1.2",
     "pip-audit>=2.9",
     "ruff>=0.15",
+    "setuptools>=77",
     "tomli>=2.0; python_version < '3.11'",
     "twine>=5.1",
 ]
