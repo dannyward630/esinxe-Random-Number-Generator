@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-root="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+root="$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)"
 output="${1:-$root/_site}"
 
 rm -rf "$output"
