@@ -303,7 +303,11 @@ static inline int EsinxeShuffleV1(
     {
         return 1;
     }
-    if (items == NULL || item_size == 0)
+    /* Check all size arithmetic before allocation, copying, or pointer math. */
+    if (items == NULL || item_size == 0 ||
+        item_count > SIZE_MAX / item_size ||
+        key_count >= SIZE_MAX / sizeof(EsinxeKey) ||
+        (key_count > 0 && keys == NULL))
     {
         return 0;
     }
@@ -330,12 +334,15 @@ static inline int EsinxeShuffleV1(
                 key_count + 1,
                 "shuffle"),
             (uint64_t)position + 1);
-        memcpy(temporary, values + position * item_size, item_size);
-        memcpy(
-            values + position * item_size,
-            values + picked * item_size,
-            item_size);
-        memcpy(values + picked * item_size, temporary, item_size);
+        if (picked != position)
+        {
+            memcpy(temporary, values + position * item_size, item_size);
+            memcpy(
+                values + position * item_size,
+                values + picked * item_size,
+                item_size);
+            memcpy(values + picked * item_size, temporary, item_size);
+        }
     }
     free(temporary);
     free(iteration_keys);
