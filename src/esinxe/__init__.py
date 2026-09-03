@@ -76,6 +76,8 @@ def _mix64_masked(value):
 
 
 def _bounded_raw(value, maxvalue):
+    if maxvalue > UINT64_SIZE:
+        raise ValueError("stream bound must not exceed 2^64")
     if maxvalue <= 0:
         return 0
     threshold = (UINT64_SIZE - maxvalue) % maxvalue
@@ -341,8 +343,14 @@ class Random:
     def NextListMax(self, length, maxvalue):
         length = max(0, int(length))
         maxvalue = int(maxvalue)
+        if maxvalue > UINT64_SIZE:
+            raise ValueError("stream bound must not exceed 2^64")
         if _native is not None:
-            values = _native.bounded_list(self._key, length, maxvalue)
+            # The native uint64 argument cannot represent the full-width bound.
+            if maxvalue == UINT64_SIZE:
+                values = _native.raw_list(self._key, length)
+            else:
+                values = _native.bounded_list(self._key, length, max(0, maxvalue))
             self._key = (self._key + (GOLDEN_GAMMA * length)) & MASK_64
             self.index += length
             return values
@@ -370,8 +378,13 @@ class Random:
             self.index += length
             return values
         width = maxvalue - minvalue
+        if width > UINT64_SIZE:
+            raise ValueError("stream range width must not exceed 2^64")
         if _native is not None:
-            values = _native.bounded_list(self._key, length, width)
+            if width == UINT64_SIZE:
+                values = _native.raw_list(self._key, length)
+            else:
+                values = _native.bounded_list(self._key, length, width)
             self._key = (self._key + (GOLDEN_GAMMA * length)) & MASK_64
             self.index += length
             return [minvalue + value for value in values]

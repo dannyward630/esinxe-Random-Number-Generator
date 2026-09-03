@@ -107,7 +107,14 @@ static PyObject *py_bounded_list(PyObject *self, PyObject *args)
     Py_ssize_t length;
     uint64_t key;
     uint64_t maxvalue;
-    if (!PyArg_ParseTuple(args, "OnK", &key_obj, &length, &maxvalue))
+    PyObject *maxvalue_obj;
+    if (!PyArg_ParseTuple(args, "OnO", &key_obj, &length, &maxvalue_obj))
+    {
+        return NULL;
+    }
+    /* Unlike the K format, this rejects negative and overflowing bounds. */
+    maxvalue = PyLong_AsUnsignedLongLong(maxvalue_obj);
+    if (PyErr_Occurred())
     {
         return NULL;
     }
