@@ -156,4 +156,7 @@ func TestKeyedAPIRejectsInvalidInputs(t *testing.T) {
 	if _, err := WeightedChoice(rng, []string{"x"}, []uint64{0}); err == nil {
 		t.Fatal("WeightedChoice accepted zero total")
 	}
+	if _, err := WeightedChoice(rng, []string{"x", "y"}, []uint64{^uint64(0), 1}); err == nil {
+		t.Fatal("WeightedChoice accepted an overflowing total")
+	}
 }

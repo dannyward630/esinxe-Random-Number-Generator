@@ -377,5 +377,9 @@ mod tests {
         assert!(rng.choose::<u8>(&[], &[]).is_none());
         assert!(rng.weighted_choice(&["x"], &[0], &[]).is_none());
         assert!(rng.weighted_choice(&["x"], &[u64::MAX, 1], &[]).is_none());
+        // Matching lengths are essential: otherwise only the length guard runs.
+        assert!(rng
+            .weighted_choice(&["x", "y"], &[u64::MAX, 1], &[])
+            .is_none());
     }
 }
