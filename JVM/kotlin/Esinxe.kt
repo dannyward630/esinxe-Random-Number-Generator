@@ -64,7 +64,7 @@ private fun hashKey(initial: ULong, key: Key): ULong {
         is Key.I64 -> fnvULong(fnvByte(initial, 0x01), key.value.toULong())
         is Key.U64 -> fnvULong(fnvByte(initial, 0x02), key.value)
         is Key.StringValue -> {
-            val data = key.value.encodeToByteArray()
+            val data = key.value.encodeToByteArray(throwOnInvalidSequence = true)
             fnvUpdate(fnvULong(fnvByte(initial, 0x03), data.size.toULong()), data)
         }
         is Key.BytesValue ->

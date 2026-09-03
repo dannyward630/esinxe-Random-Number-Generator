@@ -85,3 +85,32 @@ test("keyed API rejects invalid inputs", () => {
   assert.throws(() => rng.int(1n << 64n, "invalid"), RangeError);
   assert.throws(() => rng.weightedChoice(["x"], [1.5], "invalid"), RangeError);
 });
+
+test("legacy bounds reject overflow and unsafe numbers without advancing", () => {
+  for (const maximum of [(1n << 64n) + 1n, Number.MAX_SAFE_INTEGER + 1]) {
+    const rng = new Random(12345);
+    assert.throws(() => rng.NextMax(maximum), RangeError);
+    assert.throws(() => rng.NextListMax(2, maximum), RangeError);
+    assert.equal(rng.index, 0n);
+  }
+  const rng = new Random(12345);
+  assert.throws(() => rng.NextMinMax(-(1n << 63n), (1n << 63n) + 1n), RangeError);
+  assert.equal(rng.index, 0n);
+  assert.equal(rng.NextMax(1n << 64n), rng.NextRawAt(0));
+  assert.equal(rng.NextMax(-1), 0n);
+});
+
+test("rejects malformed Unicode and forged typed keys instead of hashing aliases", () => {
+  const rng = new Random(12345);
+  for (const text of ["\ud800", "\udc00", "x\ud800y", "\ud800\ud800"]) {
+    assert.throws(() => rng.raw(text), TypeError);
+    assert.throws(() => rng.at2D(0, 0, text), TypeError);
+  }
+  for (const key of [
+    { esinxeType: "i64", value: 1n << 63n },
+    { esinxeType: "u64", value: -1n },
+    { esinxeType: "u64", value: 1n << 64n },
+  ]) assert.throws(() => rng.raw(key), RangeError);
+  assert.equal(rng.raw("\ud83c\udf0d"), rng.raw("🌍"));
+  assert.equal(rng.index, 0n);
+});

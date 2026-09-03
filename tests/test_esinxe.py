@@ -686,6 +686,21 @@ class CrossLanguageSmokeTests(unittest.TestCase):
                         static void Main()
                         {
                             var rng = new E(12345);
+                            foreach (string invalid in
+                                new[] {"\\ud800", "\\udc00", "x\\ud800y"})
+                            {
+                                try
+                                {
+                                    E.Key.String(invalid);
+                                    throw new Exception("malformed Unicode accepted");
+                                }
+                                catch (System.Text.EncoderFallbackException) { }
+                            }
+                            if (rng.Raw(E.Key.String("🌍")) != 15694140828174711031UL)
+                                throw new Exception("non-BMP vector changed");
+                            if (rng.Raw(E.Key.String("a\\0b")) !=
+                                13581488430406810937UL)
+                                throw new Exception("NUL vector changed");
                             var key = new[] {
                                 E.Key.I64(-1),
                                 E.Key.U64(ulong.MaxValue),
@@ -724,6 +739,7 @@ class CrossLanguageSmokeTests(unittest.TestCase):
                         <TargetFramework>net8.0</TargetFramework>
                         <Nullable>enable</Nullable>
                         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+                        <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
                       </PropertyGroup>
                     </Project>
                     """
@@ -782,6 +798,9 @@ def compile_and_run_sources(kind, sources):
             "-o",
             str(output_path),
         ]
+        if os.environ.get("ESINXE_SANITIZERS") == "1":
+            command[1:1] = ["-fsanitize=address,undefined",
+                            "-fno-omit-frame-pointer", "-O1", "-g"]
         subprocess.run(command, cwd=ROOT, check=True, capture_output=True, text=True)
         result = subprocess.run(
             [str(output_path)],

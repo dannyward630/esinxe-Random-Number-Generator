@@ -2,6 +2,33 @@ package esinxe
 
 import "testing"
 
+func TestRejectsInvalidKeyEncodings(t *testing.T) {
+	for _, text := range []string{"\xff", "\xc0\x80", "\xed\xa0\x80", "\xf4\x90\x80\x80", "\xe2\x82"} {
+		t.Run(text, func(t *testing.T) {
+			defer func() {
+				if recover() == nil {
+					t.Fatal("invalid UTF-8 accepted")
+				}
+			}()
+			New(1).Raw(String(text))
+		})
+	}
+	t.Run("zero key", func(t *testing.T) {
+		defer func() {
+			if recover() == nil {
+				t.Fatal("zero-value key accepted")
+			}
+		}()
+		New(1).Raw(Key{})
+	})
+	if New(12345).Raw(String("🌍")) != 15694140828174711031 {
+		t.Fatal("non-BMP UTF-8 vector changed")
+	}
+	if New(12345).Raw(String("a\x00b")) != 13581488430406810937 {
+		t.Fatal("embedded NUL vector changed")
+	}
+}
+
 func TestMatchesSharedVectors(t *testing.T) {
 	first := []uint64{
 		540659726606785873,

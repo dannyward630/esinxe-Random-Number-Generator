@@ -11,6 +11,7 @@ namespace Esinxecs
         private const ulong FnvOffsetBasis = 0xCBF29CE484222325UL;
         private const ulong FnvPrime = 0x100000001B3UL;
         private static readonly byte[] V1Prefix = Encoding.ASCII.GetBytes("esinxe-v1\0");
+        private static readonly Encoding StrictUtf8 = new UTF8Encoding(false, true);
 
         public sealed class Key
         {
@@ -27,7 +28,7 @@ namespace Esinxecs
 
             public static Key I64(long value) => new(0x01, unchecked((ulong)value), null);
             public static Key U64(ulong value) => new(0x02, value, null);
-            public static Key String(string value) => new(0x03, 0, Encoding.UTF8.GetBytes(value));
+            public static Key String(string value) => new(0x03, 0, StrictUtf8.GetBytes(value));
             public static Key Bytes(byte[] value) => new(0x04, 0, (byte[])value.Clone());
         }
 
@@ -92,7 +93,7 @@ namespace Esinxecs
         {
             for (int shift = 0; shift < 64; shift += 8)
             {
-                hash = FnvByte(hash, (byte)(value >> shift));
+                hash = FnvByte(hash, unchecked((byte)(value >> shift)));
             }
             return hash;
         }

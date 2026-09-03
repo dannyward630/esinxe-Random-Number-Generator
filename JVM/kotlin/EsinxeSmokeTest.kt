@@ -69,4 +69,14 @@ fun main() {
         ) == "common",
     )
     check(rng.nextRaw() == expectedNext) { "keyed calls advanced the stream" }
+    for (invalid in listOf("\ud800", "\udc00", "x\ud800y")) {
+        try {
+            rng.raw(Key.string(invalid))
+            error("malformed Unicode was accepted")
+        } catch (expected: java.nio.charset.CharacterCodingException) {
+            // No replacement characters are allowed in canonical encoding.
+        }
+    }
+    check(rng.raw(Key.string("🌍")) == 15694140828174711031UL)
+    check(rng.raw(Key.string("a\u0000b")) == 13581488430406810937UL)
 }

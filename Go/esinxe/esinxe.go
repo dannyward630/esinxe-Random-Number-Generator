@@ -2,7 +2,10 @@
 // compatible random-access stream for non-cryptographic procedural software.
 package esinxe
 
-import "errors"
+import (
+	"errors"
+	"unicode/utf8"
+)
 
 const (
 	GoldenGamma    = uint64(0x9E3779B97F4A7C15)
@@ -37,6 +40,9 @@ func U64(value uint64) Key {
 }
 
 func String(value string) Key {
+	if !utf8.ValidString(value) {
+		panic("esinxe: string keys must be valid UTF-8; use Bytes for arbitrary bytes")
+	}
 	return Key{kind: StringKey, data: []byte(value)}
 }
 
@@ -91,6 +97,9 @@ func hashLength(hash uint64, length int) uint64 {
 }
 
 func hashKey(hash uint64, key Key) uint64 {
+	if key.kind < SignedKey || key.kind > BytesKey {
+		panic("esinxe: invalid key kind; construct keys with I64, U64, String, or Bytes")
+	}
 	hash = fnvUpdate(hash, []byte{byte(key.kind)})
 	if key.kind == SignedKey || key.kind == UnsignedKey {
 		encoded := littleEndian64(key.value)

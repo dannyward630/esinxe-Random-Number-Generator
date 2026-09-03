@@ -52,6 +52,7 @@ module Esinxe
 
         def Bounded(value, maxvalue)
             maxvalue = maxvalue.to_i
+            raise RangeError, "stream bound must not exceed 2^64" if maxvalue > (1 << 64)
             return 0 if maxvalue <= 0
 
             threshold = ((1 << 64) - maxvalue) % maxvalue
@@ -77,8 +78,8 @@ module Esinxe
         def EncodeKey(component)
             if component.is_a?(Array) && component.length == 2
                 type, value = component
-                return "\x01".b + LittleEndian64(value) if type == :i64
-                return "\x02".b + LittleEndian64(value) if type == :u64
+                return "\x01".b + LittleEndian64(Esinxe.i64(value)[1]) if type == :i64
+                return "\x02".b + LittleEndian64(Esinxe.u64(value)[1]) if type == :u64
                 if type == :bytes
                     data = value.to_s.b
                     return "\x04".b + LittleEndian64(data.bytesize) + data
@@ -88,7 +89,9 @@ module Esinxe
                 return EncodeKey(component.negative? ? Esinxe.i64(component) : Esinxe.u64(component))
             end
             if component.is_a?(String)
-                data = component.encode(Encoding::UTF_8).b
+                data = component.encode(Encoding::UTF_8)
+                raise EncodingError, "string keys must be valid UTF-8" unless data.valid_encoding?
+                data = data.b
                 return "\x03".b + LittleEndian64(data.bytesize) + data
             end
             raise TypeError, "v1 keys must be signed/unsigned integers, UTF-8 strings, or bytes"
