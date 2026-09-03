@@ -323,9 +323,8 @@ mod tests {
 
     #[test]
     fn keyed_api_matches_v1_vectors_without_advancing() {
-        let vectors = include_str!("../../tests/vectors-v1.json");
-        assert!(vectors.contains("\"algorithm\": \"esinxe-v1\""));
-
+        // Frozen v1 values below are self-contained so packaged crates can test
+        // without reaching outside the crate into the monorepo's tests folder.
         let mut rng = Random::new(12345);
         let key = [
             Key::I64(-1),
