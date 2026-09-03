@@ -38,6 +38,10 @@ class SiteBuildTests(unittest.TestCase):
             builder.build(output)
             self.assertEqual(extra.read_text(), "keep")
             self.assertEqual(
+                (output / "docs/RNG_ANALYSIS.md").read_bytes(),
+                (ROOT / "docs/RNG_ANALYSIS.md").read_bytes(),
+            )
+            self.assertEqual(
                 (output / "demo/app.js").read_bytes(),
                 (ROOT / "demo/app.js").read_bytes(),
             )

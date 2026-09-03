@@ -78,7 +78,7 @@ domains are `at2d`, `at3d`, and `shuffle`.
 optional namespace string. `at3D` does the same with signed `x`, `y`, and `z`.
 Omitting a namespace is different from supplying an empty namespace.
 
-## Unbiased Bounded Integers
+## Bounded Integers
 
 For an upper bound `m` in `[1, 2^64 - 1]`, calculate:
 
@@ -98,6 +98,13 @@ return value mod m
 
 `float01(key...)` is `(raw(key...) >> 11) / 2^53`. Implementations MUST use
 the upper 53 bits and return a value in `[0, 1)`.
+
+Terminology correction (2026-09-03): the procedure above remains frozen, but
+the previous unconditional "unbiased" description was too strong. Retries
+deterministically remix the rejected word; they are not new independent uniform
+draws. Exact uniformity over all possible initial 64-bit words is impossible
+when `m` does not divide `2^64`. This is a clarification of the guarantee, not
+an algorithm change. See [the analysis](docs/RNG_ANALYSIS.md#bounded-output-limitations).
 
 ## Deterministic Helpers
 
@@ -127,7 +134,7 @@ stream seed, position, or next output.
 ## Guarantees and Non-Goals
 
 v1 guarantees deterministic cross-language parity, random access, stable
-partitioning, unbiased bounded integers, and no dependence on prior calls. It
+partitioning, deterministic bounded integers, and no dependence on prior calls. It
 does not guarantee secrecy, nondeterminism, a configurable period, Gaussian or
 other scientific distributions, or spatial smoothness. Noise belongs in a
 separate future module built on this keyed core.

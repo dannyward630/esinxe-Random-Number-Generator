@@ -32,12 +32,12 @@ Returns the full v1 uint64 value.
 
 `int(max, key...)`
 
-Returns an unbiased integer in `[0, max)`. `max` must be in
+Returns a deterministic bounded integer in `[0, max)`. `max` must be in
 `[1, 2^64 - 1]`. Use `raw` for the complete uint64 domain.
 
 `range(min, max, key...)`
 
-Returns an unbiased integer in `[min, max)`. The interval must be non-empty and
+Returns a deterministic bounded integer in `[min, max)`. The interval must be non-empty and
 its width must not exceed `2^64 - 1`.
 
 `float01(key...)`
@@ -62,7 +62,8 @@ Selects one item. Empty collections are invalid.
 `shuffle(items, key...)`
 
 Returns a shuffled copy using deterministic Fisher-Yates. The input remains
-unchanged.
+unchanged in the collection APIs. The low-level C `EsinxeShuffleV1` instead
+shuffles the caller-provided buffer in place and returns a success flag.
 
 `weightedChoice(items, integerWeights, key...)`
 
@@ -83,6 +84,13 @@ Invalid-range behavior in historical stream APIs is retained for compatibility
 and differs by port. New code should prefer the keyed APIs, whose invalid input
 behavior is explicit.
 
+Python, JavaScript, and Ruby stream bounds may reach `2^64` (raw-word output),
+but larger bounds or range widths are rejected. Python's optional native batch
+backend has the same results and state advancement as the scalar/fallback path,
+including historical non-positive bounds. Fixed-width ports retain their
+documented native argument ranges; Java signed ranges may cross zero even when
+their width exceeds `Long.MAX_VALUE`.
+
 ## State Isolation
 
 Keyed methods never advance or otherwise mutate the compatibility stream.
@@ -97,5 +105,16 @@ Ports use their idiomatic failure mechanism:
 - Rust returns `Result` or `Option`.
 - Go returns `(value, error)` where validation can fail.
 - C returns a success flag or `SIZE_MAX` for index helpers.
+
+Go's key constructors and `Raw` cannot return errors: malformed UTF-8 strings
+and an uninitialized `Key{}` panic. Use `Bytes` for arbitrary binary data.
+For the low-level C API, valid readable pointers, accurate lengths, canonical
+key tags, and strictly valid UTF-8 string bytes remain caller preconditions.
+`EsinxeString` uses a NUL-terminated C string; embedded NUL string keys require
+an explicitly length-bearing `EsinxeKey` with `ESINXE_KEY_STRING`, not a bytes
+key (which has a different tag).
+
+Exact-uniformity and statistical-independence guarantees are not part of v1;
+see [the bounded-output limitations](RNG_ANALYSIS.md#bounded-output-limitations).
 
 See [SPEC_V1.md](../SPEC_V1.md) for the byte-level compatibility contract.

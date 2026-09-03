@@ -33,8 +33,8 @@ raw uint64
 ```
 
 Coordinate and shuffle helpers add reserved domain components before hashing.
-This prevents helper-internal keys from colliding with ordinary public key
-sequences.
+This prevents helper-internal byte encodings from aliasing ordinary public key
+sequences. It does not eliminate collisions in the final 64-bit hash.
 
 ## Reference and Ports
 
