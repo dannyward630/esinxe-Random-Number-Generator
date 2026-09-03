@@ -35,6 +35,16 @@ public final class Random {
         }
 
         public static Key string(String value) {
+            for (int i = 0; i < value.length(); i++) {
+                char unit = value.charAt(i);
+                if (Character.isHighSurrogate(unit)) {
+                    if (++i == value.length() || !Character.isLowSurrogate(value.charAt(i))) {
+                        throw new IllegalArgumentException("string keys must be valid Unicode");
+                    }
+                } else if (Character.isLowSurrogate(unit)) {
+                    throw new IllegalArgumentException("string keys must be valid Unicode");
+                }
+            }
             return new Key(0x03, 0, value.getBytes(StandardCharsets.UTF_8));
         }
 
@@ -302,7 +312,9 @@ public final class Random {
         if (maxValue <= minValue) {
             return minValue;
         }
-        return minValue + nextMaxAt(offset, maxValue - minValue);
+        BigInteger min = BigInteger.valueOf(minValue);
+        BigInteger width = BigInteger.valueOf(maxValue).subtract(min);
+        return min.add(bounded(nextRawAt(offset), width)).longValueExact();
     }
 
     public long NextMinMaxAt(long offset, long minValue, long maxValue) {
@@ -312,7 +324,9 @@ public final class Random {
     public long nextMinMax(long minValue, long maxValue) {
         long value = minValue;
         if (maxValue > minValue) {
-            value = minValue + bounded(mix64(key), maxValue - minValue);
+            BigInteger min = BigInteger.valueOf(minValue);
+            BigInteger width = BigInteger.valueOf(maxValue).subtract(min);
+            value = min.add(bounded(mix64(key), width)).longValueExact();
         }
         key += GOLDEN_GAMMA;
         index++;

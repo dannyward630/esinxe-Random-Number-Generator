@@ -57,8 +57,8 @@ Never use it for secrets, tokens, gambling, lotteries, or security decisions.
 - Add or remove unrelated generated features without shifting existing results.
 - Reproduce a failure from the exact seed and structured key that produced it.
 
-esinxe is not a noise library: adjacent coordinates are independent, not
-smooth. It is also not a replacement for a scientifically validated Monte
+esinxe is not a noise library: adjacent coordinates are separately addressed,
+not spatially smoothed. It is also not a replacement for a scientifically validated Monte
 Carlo generator. A future noise module can build spatial interpolation on top
 of this keyed core without changing algorithm v1.
 
@@ -67,8 +67,8 @@ of this keyed core without changing algorithm v1.
 Each seeded field provides:
 
 - `raw(key...)`: full unsigned 64-bit value.
-- `int(max, key...)`: unbiased `[0, max)` integer.
-- `range(min, max, key...)`: unbiased `[min, max)` integer.
+- `int(max, key...)`: deterministic bounded `[0, max)` integer.
+- `range(min, max, key...)`: deterministic bounded `[min, max)` integer.
 - `float01(key...)`: upper 53 bits mapped to `[0, 1)`.
 - `at2D(x, y, namespace?)` and `at3D(x, y, z, namespace?)`.
 - `chanceRatio(numerator, denominator, key...)`.
@@ -80,6 +80,10 @@ Structured keys support signed int64, unsigned uint64, UTF-8 strings, and
 bytes. Use explicit signed/unsigned constructors in compatibility-sensitive
 code. Integer weights and rational probabilities are the portable conformance
 surface; floating wrappers are deliberately excluded.
+
+The frozen reducer uses deterministic rejection/remixing, not fresh independent
+random draws. Exact uniformity and statistical independence are not guaranteed;
+see the [statistical limitations](docs/RNG_ANALYSIS.md#bounded-output-limitations).
 
 The formal byte encoding, FNV-1a pass, rejection sampling, mixer, domains, and
 error rules are frozen in [SPEC_V1.md](SPEC_V1.md). Golden outputs live in

@@ -36,8 +36,7 @@ if command -v cargo >/dev/null 2>&1; then
   cargo fmt --manifest-path Rust/Cargo.toml --check
   cargo test --manifest-path Rust/Cargo.toml --quiet
   cargo clippy --manifest-path Rust/Cargo.toml --all-targets -- -D warnings
-  cargo package --manifest-path Rust/Cargo.toml --allow-dirty --no-verify --list \
-    >/dev/null
+  python3 scripts/check_rust_package.py
 else
   echo "Skipping Rust tests: cargo not found"
 fi

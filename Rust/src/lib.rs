@@ -323,9 +323,8 @@ mod tests {
 
     #[test]
     fn keyed_api_matches_v1_vectors_without_advancing() {
-        let vectors = include_str!("../../tests/vectors-v1.json");
-        assert!(vectors.contains("\"algorithm\": \"esinxe-v1\""));
-
+        // Frozen v1 values below are self-contained so packaged crates can test
+        // without reaching outside the crate into the monorepo's tests folder.
         let mut rng = Random::new(12345);
         let key = [
             Key::I64(-1),
@@ -378,5 +377,9 @@ mod tests {
         assert!(rng.choose::<u8>(&[], &[]).is_none());
         assert!(rng.weighted_choice(&["x"], &[0], &[]).is_none());
         assert!(rng.weighted_choice(&["x"], &[u64::MAX, 1], &[]).is_none());
+        // Matching lengths are essential: otherwise only the length guard runs.
+        assert!(rng
+            .weighted_choice(&["x", "y"], &[u64::MAX, 1], &[])
+            .is_none());
     }
 }

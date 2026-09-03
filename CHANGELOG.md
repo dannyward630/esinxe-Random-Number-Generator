@@ -8,6 +8,14 @@ compatibility version is independent and is named explicitly.
 
 ### Fixed
 
+- Preserved Python scalar/native batch parity for non-positive and full-width
+  bounds, and rejected oversized legacy bounds before they can hang or truncate.
+- Guarded C shuffle allocation/offset arithmetic and self-swaps.
+- Rejected malformed Unicode and forged typed keys in higher-level ports;
+  corrected Java wide signed ranges and C# checked-build encoding.
+- Replaced destructive site-output deletion with guarded writes and corrected
+  demo literals for normalized seeds and Rust string escapes.
+- Made Rust package tests self-contained and verified extracted packages in CI.
 - Made C instance APIs safe across translation units and moved the legacy
   process-wide stream state into one implementation file.
 - Aligned bounded keyed APIs to the largest portable upper bound,
@@ -16,6 +24,10 @@ compatibility version is independent and is named explicitly.
 
 ### Changed
 
+- Corrected overbroad uniformity/independence claims without changing algorithm
+  v1 or its existing golden vectors; expanded keyed, grid, and retry diagnostics.
+- Added native/fallback, sanitizer, Unicode, overflow, packaging, and site-output
+  regression coverage. See the [engineering evaluation](docs/EVALUATION_2026-09-03.md).
 - Added repository automation, project policies, metadata validation, and
   complete per-language documentation.
 
@@ -40,7 +52,7 @@ compatibility version is independent and is named explicitly.
 ### Added
 
 - Python package metadata and optional native batch acceleration.
-- Raw uint64 access, unbiased bounded ranges, and statistical regression tests.
+- Raw uint64 access, bounded ranges, and statistical regression tests.
 - Revived C, C++, C#, Python, and Ruby implementations.
 
 ## Historical prototype - 2022-12

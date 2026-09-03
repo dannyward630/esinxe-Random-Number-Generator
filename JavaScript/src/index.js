@@ -48,7 +48,8 @@ export function mix64(value) {
 }
 
 function boundedRaw(value, maxValue) {
-  maxValue = BigInt(maxValue);
+  maxValue = integer(maxValue, "maxValue", true);
+  if (maxValue > UINT64_SIZE) throw new RangeError("stream bound must not exceed 2^64");
   if (maxValue <= 0n) return 0n;
 
   const threshold = (UINT64_SIZE - maxValue) % maxValue;
@@ -89,21 +90,35 @@ function lengthPrefixed(tag, data) {
 
 function encodeComponent(component) {
   if (component?.esinxeType === "i64") {
+    const validated = i64(component.value);
     const encoded = new Uint8Array(9);
     encoded[0] = 0x01;
-    encoded.set(le64(component.value), 1);
+    encoded.set(le64(validated.value), 1);
     return encoded;
   }
   if (component?.esinxeType === "u64") {
+    const validated = u64(component.value);
     const encoded = new Uint8Array(9);
     encoded[0] = 0x02;
-    encoded.set(le64(component.value), 1);
+    encoded.set(le64(validated.value), 1);
     return encoded;
   }
   if (typeof component === "bigint" || typeof component === "number") {
     return encodeComponent(integer(component, "key component") < 0n ? i64(component) : u64(component));
   }
   if (typeof component === "string") {
+    // TextEncoder otherwise replaces unpaired UTF-16 surrogates with U+FFFD.
+    for (let i = 0; i < component.length; i++) {
+      const unit = component.charCodeAt(i);
+      if (unit >= 0xd800 && unit <= 0xdbff) {
+        const next = component.charCodeAt(++i);
+        if (!(next >= 0xdc00 && next <= 0xdfff)) {
+          throw new TypeError("string keys must contain valid Unicode scalar values");
+        }
+      } else if (unit >= 0xdc00 && unit <= 0xdfff) {
+        throw new TypeError("string keys must contain valid Unicode scalar values");
+      }
+    }
     return lengthPrefixed(0x03, encoder.encode(component));
   }
   if (component instanceof Uint8Array) {

@@ -93,6 +93,26 @@ public final class EsinxeSmokeTest {
                 key),
             "weighted");
         assertEquals(expectedNext, rng.nextRaw(), "keyed calls do not advance");
+        for (String invalid : new String[] {"\ud800", "\udc00", "x\ud800y"}) {
+            try {
+                rng.raw(Random.Key.string(invalid));
+                throw new AssertionError("malformed Unicode was accepted");
+            } catch (IllegalArgumentException expected) {
+                // Invalid strings must not alias '?' or U+FFFD.
+            }
+        }
+        assertEquals("15694140828174711031",
+            Long.toUnsignedString(rng.raw(Random.Key.string("🌍"))), "non-BMP string");
+        assertEquals("13581488430406810937",
+            Long.toUnsignedString(rng.raw(Random.Key.string("a\0b"))), "embedded NUL");
+        rng.setSeed(12345L);
+        for (int i = 0; i < RAW.length; i++) {
+            long expected = Long.MIN_VALUE + Long.parseUnsignedLong(RAW[i]);
+            assertEquals(expected, rng.nextMinMaxAt(i, Long.MIN_VALUE, Long.MAX_VALUE),
+                "wide signed stream range at " + i);
+            assertEquals(expected, rng.nextMinMax(Long.MIN_VALUE, Long.MAX_VALUE),
+                "wide signed stream range " + i);
+        }
     }
 
     private static void assertEquals(long expected, long actual, String label) {

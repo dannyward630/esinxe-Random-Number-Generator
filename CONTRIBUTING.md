@@ -27,12 +27,22 @@ noise behavior to the v1 core.
 ```sh
 python3 -m venv .venv
 . .venv/bin/activate
+python -m pip install --upgrade pip
 python -m pip install -r requirements-dev.txt
 cd JavaScript && npm ci && cd ..
 ```
 
 The full suite also uses C/C++ compilers, Ruby, Node.js, Rust, Go, Java,
 Kotlin, and .NET when available. Missing toolchains are reported explicitly.
+
+## Static Site Output
+
+`./scripts/build_site.sh` writes to `_site/`. An optional output path must be
+new/empty or contain this builder's `.esinxe-site` ownership marker. Repository
+roots, ancestors, symlink destinations, and unrelated non-empty directories are
+refused. Rebuilds update only known generated files and retain unrelated files.
+An old unmarked output directory must be moved aside deliberately before the
+first build with the guarded builder; the script will not erase it for you.
 
 ## Verification
 

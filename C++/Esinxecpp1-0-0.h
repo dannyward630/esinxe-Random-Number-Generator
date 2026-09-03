@@ -47,6 +47,36 @@ namespace Esinxecpp
         {
             return {Type::Bytes, 0, value};
         }
+
+        static void ValidateUtf8(const std::vector<std::uint8_t> &bytes)
+        {
+            for (std::size_t i = 0; i < bytes.size();)
+            {
+                std::uint32_t point = bytes[i++];
+                if (point < 0x80) continue;
+                unsigned int extra;
+                std::uint32_t minimum;
+                if (point >= 0xc2 && point <= 0xdf)
+                { extra = 1; minimum = 0x80; point &= 0x1f; }
+                else if (point >= 0xe0 && point <= 0xef)
+                { extra = 2; minimum = 0x800; point &= 0x0f; }
+                else if (point >= 0xf0 && point <= 0xf4)
+                { extra = 3; minimum = 0x10000; point &= 0x07; }
+                else throw std::invalid_argument("string keys must be valid UTF-8");
+                if (extra > bytes.size() - i)
+                    throw std::invalid_argument("truncated UTF-8 string key");
+                for (unsigned int j = 0; j < extra; j++)
+                {
+                    const auto byte = bytes[i++];
+                    if ((byte & 0xc0) != 0x80)
+                        throw std::invalid_argument("invalid UTF-8 continuation");
+                    point = (point << 6) | (byte & 0x3f);
+                }
+                if (point < minimum || point > 0x10ffff ||
+                    (point >= 0xd800 && point <= 0xdfff))
+                    throw std::invalid_argument("invalid Unicode scalar value");
+            }
+        }
     };
 
     class Random
@@ -119,6 +149,11 @@ namespace Esinxecpp
 
         static std::uint64_t HashKey(std::uint64_t hash, const Key &component)
         {
+            if (component.type == Key::Type::String)
+                Key::ValidateUtf8(component.data);
+            else if (component.type != Key::Type::Bytes &&
+                     component.type != Key::Type::I64 && component.type != Key::Type::U64)
+                throw std::invalid_argument("invalid key type");
             hash = FnvByte(hash, static_cast<std::uint8_t>(component.type));
             if (component.type == Key::Type::I64 ||
                 component.type == Key::Type::U64)
