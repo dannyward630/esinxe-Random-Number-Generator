@@ -322,6 +322,33 @@ namespace Esinxecpp
         }
 
         template <typename T>
+        typename std::vector<T>::const_reference StableChoice(
+            const std::vector<T> &items, const std::vector<std::string> &ids,
+            const std::vector<Key> &components = {}) const
+        {
+            if (items.empty() || items.size() != ids.size())
+                throw std::invalid_argument("items and IDs must have equal nonzero lengths");
+            std::vector<std::vector<std::uint8_t>> seen;
+            std::size_t winner = 0;
+            std::uint64_t best = 0;
+            for (std::size_t i = 0; i < ids.size(); ++i) {
+                auto id = Key::Utf8(ids[i]);
+                Key::ValidateUtf8(id.data);
+                if (std::find(seen.begin(), seen.end(), id.data) != seen.end())
+                    throw std::invalid_argument("IDs must be unique");
+                auto candidate = components;
+                candidate.push_back(id);
+                const auto score = KeyedRaw(candidate, "stable-choice-v1");
+                if (i == 0 || score > best || (score == best && id.data < seen[winner])) {
+                    winner = i;
+                    best = score;
+                }
+                seen.push_back(std::move(id.data));
+            }
+            return items[winner];
+        }
+
+        template <typename T>
         std::vector<T> Shuffle(
             const std::vector<T> &items,
             const std::vector<Key> &components = {}) const

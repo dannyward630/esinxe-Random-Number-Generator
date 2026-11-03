@@ -66,9 +66,31 @@ def key_expr(key, language):
     return f"{api}.{kind.upper() if language == 'csharp' else kind}({value})"
 
 
+STABLE = {
+    row["id"]: row
+    for row in json.loads(
+        (ROOT / "tests/stable-choice-v1.json").read_text(encoding="utf-8")
+    )["cases"]
+}
+
+
 def corpus_source(language):
     lines, expected = [], []
     for case in CORPUS["cases"]:
+        stable = STABLE[case["id"]]
+        ids = ",".join(quoted(value, language) for value in stable["ids"])
+        indexes = ",".join(map(str, range(len(stable["ids"]))))
+        stable_call = {
+            "csharp": f"r.StableChoice(new[]{{{indexes}}},new[]{{{ids}}},k)",
+            "java": f"r.stableChoice(Arrays.asList({indexes}),Arrays.asList({ids}),k)",
+            "kotlin": f"r.stableChoice(listOf({indexes}),listOf({ids}),*k)",
+            "ruby": f"r.stable_choice([{indexes}],[{ids}],*k)",
+        }[language]
+        reversed_ids = ",".join(quoted(value, language) for value in stable["ids"][::-1])
+        reversed_indexes = ",".join(map(str, reversed(range(len(stable["ids"])))))
+        reversed_call = stable_call.replace(ids, reversed_ids).replace(
+            indexes, reversed_indexes
+        )
         seed = case["seed"]
         prefix = ",".join(key_expr(k, language) for k in case["prefix"])
         keys = ",".join(key_expr(k, language) for k in case["keys"])
@@ -93,6 +115,7 @@ def corpus_source(language):
                 "r.WeightedChoice(new[]{0,1,2,3},new ulong[]{0,80,18,2},k)",
                 "r.PrepareWeightedChoice(new[]{0,1,2,3},new ulong[]{0,80,18,2}).Choose(k)",
             ]
+            calls.extend([stable_call, reversed_call])
             lines += [f"Console.WriteLine({call});" for call in calls] + ["}"]
         elif language == "java":
             lines += [
@@ -122,6 +145,7 @@ def corpus_source(language):
                 )
                 for c in calls
             ]
+            calls.extend([stable_call, reversed_call])
             lines += [f"System.out.println({call});" for call in calls] + ["}"]
         elif language == "kotlin":
             lines += [
@@ -143,6 +167,7 @@ def corpus_source(language):
                 "r.weightedChoice(listOf(0,1,2,3),listOf(0UL,80UL,18UL,2UL),*k)",
                 "r.prepareWeightedChoice(listOf(0,1,2,3),listOf(0UL,80UL,18UL,2UL)).choose(*k)",
             ]
+            calls.extend([stable_call, reversed_call])
             lines += [f"println({call})" for call in calls] + ["}"]
         else:
             lines += [
@@ -163,6 +188,7 @@ def corpus_source(language):
                 "r.weightedChoice([0,1,2,3],[0,80,18,2],*k)",
                 "r.prepare_weighted_choice([0,1,2,3],[0,80,18,2]).choose(*k)",
             ]
+            calls.extend([stable_call, reversed_call])
             lines += [f"puts({call})" for call in calls]
         for name in (
             "raw",
@@ -186,6 +212,8 @@ def corpus_source(language):
                 if isinstance(value, bool)
                 else str(value)
             )
+        expected.append(str(stable["ids"].index(stable["expectedId"])))
+        expected.append(str(stable["ids"].index(stable["expectedId"])))
     return "\n".join(lines), expected
 
 

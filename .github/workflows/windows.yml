@@ -66,6 +66,7 @@ jobs:
         run: |
           npm run typecheck --prefix JavaScript
           python scripts/check_python_package.py
+          python scripts/check_javascript_package.py
           python scripts/check_rust_package.py
           python scripts/check_repo.py
 

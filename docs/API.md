@@ -108,6 +108,16 @@ item/weight sequence structure once. Its `choose(key...)` matches the existing
 weighted helper with O(log n) cumulative-table search. Item objects retain their
 normal reference semantics. C exposes an owned index-based table.
 
+`stableChoice(items, ids, key...)` ranks each unique UTF-8 string ID independently
+under domain `stable-choice-v1`. Reordering candidates preserves the winning ID;
+adding one changes only assignments it wins. Item/ID lists must have equal nonzero
+lengths. Individual empty IDs are allowed. This unweighted operation is useful
+for evolving content catalogs and does not replace `choose`.
+
+Python's `rawBatch(rows)` returns repeated `raw(*row)` results with one prefix
+encoding and optional native acceleration. It eagerly validates/copies input
+rows and preserves stream position. Bound the batch size to limit memory use.
+
 Exact semantics are in [the additive helper specification](../SPEC_HELPERS_V1.md).
 Idiomatic names, accepted ranges, and C ownership rules are in the
 [capability matrix](CAPABILITIES.md) and individual language manuals.

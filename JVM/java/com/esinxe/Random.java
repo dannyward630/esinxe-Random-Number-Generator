@@ -214,6 +214,28 @@ public final class Random {
         return intValue(denominator, keys) < numerator;
     }
 
+    public <T> T stableChoice(List<T> items, List<String> ids, Key... keys) {
+        if (items.isEmpty() || items.size() != ids.size())
+            throw new IllegalArgumentException("items and IDs must have the same non-zero length");
+        java.util.HashSet<String> seen = new java.util.HashSet<>();
+        int winner = 0;
+        long best = 0;
+        byte[] bestBytes = null;
+        for (int i = 0; i < ids.size(); i++) {
+            String id = ids.get(i);
+            if (!seen.add(id)) throw new IllegalArgumentException("candidate IDs must be unique");
+            Key candidate = Key.string(id);
+            Key[] address = Arrays.copyOf(keys, keys.length + 1);
+            address[keys.length] = candidate;
+            long score = keyedRaw("stable-choice-v1", address);
+            if (i == 0 || Long.compareUnsigned(score, best) > 0 ||
+                (score == best && Arrays.compareUnsigned(candidate.data, bestBytes) < 0)) {
+                winner = i; best = score; bestBytes = candidate.data;
+            }
+        }
+        return items.get(winner);
+    }
+
     public <T> T choose(List<T> items, Key... keys) {
         if (items.isEmpty()) {
             throw new IllegalArgumentException("items must not be empty");

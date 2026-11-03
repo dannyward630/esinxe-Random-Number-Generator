@@ -82,6 +82,48 @@ Initialize its owning handle to zero, prepare/free according to the C manual,
 and do not shallow-copy an owning handle. Lengths and tags in low-level C remain
 caller preconditions; index helpers return `SIZE_MAX` on errors.
 
+## Stable-ID choice
+
+`stableChoice(items, ids, key...)` implements unweighted rendezvous selection.
+Item and ID lists must have equal nonzero lengths. IDs are unique strict UTF-8
+strings; an individual empty string is valid. Strings are compared and encoded
+without Unicode normalization. Equal item values may have distinct IDs.
+
+For each ID, compute the existing v1 hash/mix with this message:
+
+```text
+reserved domain "stable-choice-v1"
+scope prefix components
+caller key components
+candidate ID as a string component
+```
+
+The greatest unsigned uint64 score wins. Exact score ties choose the smallest
+ID by lexicographic UTF-8 byte order. Validate every ID and key, including for a
+singleton list. Calls do not advance the stream. The shared independent oracle
+and fixtures are `scripts/generate_stable_choice_vectors.py` and
+`tests/stable-choice-v1.json`.
+
+Reordering candidates preserves the winning ID. Adding a candidate changes only
+assignments won by that new ID. Removing a nonwinner has no effect; removing the
+winner promotes the highest-ranked remaining ID. Changing a candidate's ID is a
+removal plus addition. Ordinary `choose` and `weightedChoice` keep their existing
+semantics. No weighting or exact uniformity guarantee is introduced here.
+
+Selection hashes every candidate (linear ranking work); C and C++ use quadratic
+duplicate validation. For very large candidate sets, consider an application
+index or a dedicated placement system rather than repeatedly scanning them.
+
+## Python keyed batches
+
+Python's `rawBatch(rows)` is an optional acceleration convenience. Each row is an
+iterable of key components; text or bytes alone is not a row. It eagerly encodes
+all rows and returns the corresponding `raw(*row)` values in order. Mutable byte
+components are copied before advancing the input iterator. The scope prefix is
+encoded once; native and fallback paths return identical v1 values and leave the
+stream position unchanged. The complete encoded input and output occupy memory,
+so callers should bound batch size. Other ports do not promise a batch API.
+
 ## Encoding and conformance
 
 Strings are strict Unicode encoded as UTF-8. Valid embedded NUL characters are

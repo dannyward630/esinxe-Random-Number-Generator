@@ -22,9 +22,9 @@ benchmark tooling with explicitly optional research dependencies.
 
 ## Tasks
 
-- [ ] Build browser world and executable order/worker/feature-isolation proofs.
-- [ ] Build independent stable-hash/Philox research harness and record comparisons.
-- [ ] Add/test Python native keyed batches and measure the end-to-end effect.
-- [ ] Specify/implement/test stable-ID choice across ports and shared fixtures.
-- [ ] Verify installable Python/npm artifacts and document a working integration.
+- [x] Build browser world and executable order/worker/feature-isolation proofs.
+- [x] Build independent stable-hash/Philox research harness and record comparisons.
+- [x] Add/test Python native keyed batches and measure the end-to-end effect.
+- [x] Specify/implement/test stable-ID choice across ports and shared fixtures.
+- [x] Verify installable Python/npm artifacts and document a working integration.
 - [ ] Review, run full checks, preserve old vectors, and publish evidence/deliverables.

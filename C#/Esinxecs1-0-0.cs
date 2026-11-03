@@ -212,6 +212,28 @@ namespace Esinxecs
             return Int((ulong)denominator, components) < (ulong)numerator;
         }
 
+        public T StableChoice<T>(IReadOnlyList<T> items, IReadOnlyList<string> ids, params Key[] components)
+        {
+            if (items.Count == 0 || items.Count != ids.Count)
+                throw new ArgumentException("items and IDs must have the same non-zero length");
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            int winner = 0;
+            ulong best = 0;
+            byte[] bestBytes = Array.Empty<byte>();
+            for (int i = 0; i < ids.Count; i++)
+            {
+                if (!seen.Add(ids[i])) throw new ArgumentException("candidate IDs must be unique");
+                var candidate = Key.String(ids[i]);
+                var address = new Key[components.Length + 1];
+                Array.Copy(components, address, components.Length);
+                address[^1] = candidate;
+                ulong score = KeyedRaw("stable-choice-v1", address);
+                if (i == 0 || score > best || (score == best && candidate.Data.AsSpan().SequenceCompareTo(bestBytes) < 0))
+                { winner = i; best = score; bestBytes = candidate.Data; }
+            }
+            return items[winner];
+        }
+
         public T Choose<T>(IReadOnlyList<T> items, params Key[] components)
         {
             if (items.Count == 0)

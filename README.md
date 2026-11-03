@@ -41,6 +41,9 @@ Never use it for secrets, tokens, gambling, lotteries, or security decisions.
 
 | Need | Start here |
 | --- | --- |
+| Explore a streamed procedural world | [Play Verdant](https://dannyward630.github.io/esinxe-Random-Number-Generator/examples/world/) / [run locally](examples/world/README.md) |
+| Install and verify a package | [Installation guide](docs/INSTALLATION.md) |
+| Compare measured alternatives | [Practical workload evidence](research/PRACTICAL_VALUE_BENCHMARK.md) |
 | Copy a language example | [Language quick starts](docs/QUICK_STARTS.md) |
 | Understand every operation | [API reference](docs/API.md) |
 | Compare language boundaries | [Port capability matrix](docs/CAPABILITIES.md) |
@@ -75,6 +78,8 @@ Each seeded field provides:
 - `at2D(x, y, namespace?)` and `at3D(x, y, z, namespace?)`.
 - `chanceRatio(numerator, denominator, key...)`.
 - `choose(items, key...)`.
+- `stableChoice(items, ids, key...)`: preserve selections when candidates reorder;
+  additions change only assignments won by the new stable ID.
 - `shuffle(items, key...)`: deterministic Fisher-Yates copy.
 - `weightedChoice(items, integerWeights, key...)`.
 

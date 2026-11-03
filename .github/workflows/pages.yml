@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - demo/**
+      - examples/world/**
       - JavaScript/src/index.js
       - SPEC_V1.md
       - SPEC_HELPERS_V1.md

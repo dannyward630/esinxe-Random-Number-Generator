@@ -60,3 +60,17 @@ python3 -m unittest discover -s tests
 ```
 
 This generator is deterministic and non-cryptographic.
+
+## Stable-ID choice
+
+For keyed bulk work, `field.rawBatch(rows)` returns a list equal to
+`[field.raw(*row) for row in rows]`, preserving scope and stream position. Each
+row is an iterable of typed components. Inputs are eagerly encoded, mutable
+bytes copied, and prefix work reused. Bound batch sizes to limit memory. The
+optional native extension and Python fallback return identical results.
+
+`field.stableChoice(items, ids, *keys)` ranks unique UTF-8 string IDs independently.
+Items and IDs must have equal nonzero lengths; an empty individual ID is valid.
+Reordering preserves the winning ID. Adding an ID changes only assignments it
+wins; removing a nonwinner has no effect. No stream state changes. See the
+[portable helper contract](../SPEC_HELPERS_V1.md) for score and tie rules.

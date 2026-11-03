@@ -229,6 +229,30 @@ func Choose[T any](r *Random, items []T, keys ...Key) (T, error) {
 	return items[index], nil
 }
 
+// StableChoice ranks unique UTF-8 IDs independently, preserving choices when
+// items are reordered or a losing candidate is removed.
+func StableChoice[T any](r *Random, items []T, ids []string, keys ...Key) (T, error) {
+	var zero T
+	if len(items) == 0 || len(items) != len(ids) {
+		return zero, errors.New("items and IDs must have equal nonzero lengths")
+	}
+	seen := make(map[string]bool, len(ids))
+	winner := 0
+	var best uint64
+	for i, id := range ids {
+		if !utf8.ValidString(id) || seen[id] {
+			return zero, errors.New("IDs must be unique valid UTF-8 strings")
+		}
+		seen[id] = true
+		candidate := append(append([]Key(nil), keys...), String(id))
+		score := r.fieldRaw(candidate, "stable-choice-v1")
+		if i == 0 || score > best || (score == best && id < ids[winner]) {
+			winner, best = i, score
+		}
+	}
+	return items[winner], nil
+}
+
 func Shuffle[T any](r *Random, items []T, keys ...Key) []T {
 	values := append([]T(nil), items...)
 	for index := len(values) - 1; index > 0; index-- {

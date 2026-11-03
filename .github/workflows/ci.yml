@@ -54,6 +54,16 @@ jobs:
           npm ci --prefix JavaScript
       - name: Run complete suite
         run: ./scripts/ci.sh
+      - name: Build downloadable consumer artifacts
+        run: |
+          python -m build --outdir artifacts
+          npm pack ./JavaScript --pack-destination artifacts
+          (cd artifacts && sha256sum * > SHA256SUMS)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: esinxe-packages
+          path: artifacts/
+          if-no-files-found: error
 
   python-compatibility:
     name: Python ${{ matrix.python-version }}

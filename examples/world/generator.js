@@ -7,7 +7,7 @@ export const ROOM_CELL_SIZE = 36;
 export const TERRAIN_TYPES = Object.freeze([
   "water", "shallows", "sand", "meadow", "forest", "marsh", "hill", "mountain",
 ]);
-export const ENTITY_TYPES = Object.freeze(["tree", "rock", "berry", "cache", "ruin"]);
+export const ENTITY_TYPES = Object.freeze(["tree", "rock", "berry", "cache", "ruin", "sentinel"]);
 
 const ENTITY_TYPE_SET = new Set(ENTITY_TYPES);
 const TERRAIN_TYPE_SET = new Set(TERRAIN_TYPES);
@@ -171,7 +171,7 @@ function makeEntity(type, x, y, extra = {}) {
     type,
     x,
     y,
-    blocking: type === "tree" || type === "rock",
+    blocking: type === "tree" || type === "rock" || type === "sentinel",
     ...extra,
   };
 }
@@ -197,8 +197,19 @@ function addTileEntity(field, tile, entities, allowedTypes) {
     type = "rock";
   }
   if (type && allowedTypes.has(type)) {
+    const treasures = ["old-coin", "jade-shard", "amber-charm"];
     entities.push(makeEntity(type, x, y, {
-      loot: type === "berry" ? "wild-berries" : type === "cache" ? "old-coin" : undefined,
+      loot: type === "berry" ? "wild-berries" : type === "cache"
+        ? field.random.stableChoice(treasures, treasures, "world.cache.loot", x, y) : undefined,
+    }));
+  }
+  // Encounters have their own address; toggling decor or other entity types
+  // cannot move an enemy or change its loot.
+  if (!type && allowedTypes.has("sentinel") && ["forest", "hill", "meadow"].includes(terrain)
+      && field.random.float01("world.enemy.exists", x, y) < 0.006) {
+    const drops = ["iron-token", "quartz-token", "copper-token"];
+    entities.push(makeEntity("sentinel", x, y, {
+      loot: field.random.stableChoice(drops, drops, "world.enemy.loot", x, y),
     }));
   }
 }
@@ -280,8 +291,8 @@ export function generateChunk({ seed = 1, cx, cy, entityTypes = ENTITY_TYPES, in
   }
   const { rooms, entities: roomEntities } = makeRooms(field, cx, cy, allowedTypes);
   entities.push(...roomEntities);
-  entities.sort((a, b) => a.id.localeCompare(b.id));
-  rooms.sort((a, b) => a.id.localeCompare(b.id));
+  entities.sort(compareId);
+  rooms.sort(compareId);
 
   const chunk = {
     contentVersion: CONTENT_VERSION,
@@ -317,6 +328,9 @@ export function generateWorld({
   }));
 }
 
+// IDs are ASCII; use code-unit ordering rather than host locale collation.
+function compareId(a, b) { return a.id < b.id ? -1 : a.id > b.id ? 1 : 0; }
+
 export function canonicalizeCore(chunk) {
   const tiles = chunk.tiles
     .slice()
@@ -324,11 +338,11 @@ export function canonicalizeCore(chunk) {
     .map(({ id, x, y, terrain, elevation, moisture, texture }) => [id, x, y, terrain, elevation, moisture, texture]);
   const entities = chunk.entities
     .slice()
-    .sort((a, b) => a.id.localeCompare(b.id))
+    .sort(compareId)
     .map(({ id, type, x, y, blocking, loot, roomId }) => [id, type, x, y, blocking, loot ?? null, roomId ?? null]);
   const rooms = chunk.rooms
     .slice()
-    .sort((a, b) => a.id.localeCompare(b.id))
+    .sort(compareId)
     .map(({ id, type, x, y, width, height, entrance }) => [id, type, x, y, width, height, entrance.x, entrance.y]);
   return JSON.stringify({
     contentVersion: chunk.contentVersion,

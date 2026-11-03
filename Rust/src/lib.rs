@@ -213,6 +213,42 @@ impl Random {
         items.get(bounded(self.raw(keys), items.len() as u64) as usize)
     }
 
+    /// Rendezvous choice by unique stable UTF-8 IDs; independent of item order.
+    pub fn stable_choice<'a, T>(
+        &self,
+        items: &'a [T],
+        ids: &[&str],
+        keys: &[Key<'_>],
+    ) -> Result<&'a T, &'static str> {
+        if items.is_empty() || items.len() != ids.len() {
+            return Err("items and IDs must have equal nonzero lengths");
+        }
+        let mut seen = std::collections::HashSet::new();
+        let mut winner = 0;
+        let mut best = 0;
+        for (index, id) in ids.iter().enumerate() {
+            if !seen.insert(*id) {
+                return Err("IDs must be unique");
+            }
+            let mut candidate = keys.to_vec();
+            candidate.push(Key::Str(id));
+            let score = keyed_raw(
+                self.seed,
+                &self.prefix,
+                &candidate,
+                Some("stable-choice-v1"),
+            );
+            if index == 0
+                || score > best
+                || (score == best && id.as_bytes() < ids[winner].as_bytes())
+            {
+                winner = index;
+                best = score;
+            }
+        }
+        Ok(&items[winner])
+    }
+
     pub fn shuffle<T: Clone>(&self, items: &[T], keys: &[Key<'_>]) -> Vec<T> {
         let mut values = items.to_vec();
         for index in (1..values.len()).rev() {

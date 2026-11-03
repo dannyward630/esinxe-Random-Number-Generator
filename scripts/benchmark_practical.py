@@ -18,12 +18,10 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 import esinxe
-
 
 MASK32 = (1 << 32) - 1
 MASK64 = (1 << 64) - 1
@@ -443,15 +441,22 @@ def _candidate_records(seed, scope, rows, encoded, repeats, warmups):
         "per_object_setup": {
             "esinxe_v1": {
                 "status": "not_applicable",
-                "reason": "v1 keyed draws are stateless; there is no per-key generator to initialize",
+                "reason": (
+                    "v1 keyed draws are stateless; there is no per-key "
+                    "generator to initialize"
+                ),
             },
             "blake2b_64": {
                 "status": "not_applicable",
-                "reason": "the hash wrapper consumes canonical bytes directly per output",
+                "reason": (
+                    "the hash wrapper consumes canonical bytes directly per output"
+                ),
             },
             "sha256_64": {
                 "status": "not_applicable",
-                "reason": "the hash wrapper consumes canonical bytes directly per output",
+                "reason": (
+                    "the hash wrapper consumes canonical bytes directly per output"
+                ),
             },
             "philox4x32_10": _measure(
                 lambda: [philox_setup_from_encoded(item) for item in encoded],
@@ -521,7 +526,10 @@ def run_benchmark(
             "description": spec["description"],
             "sample_count": samples,
             "scope_prefix": list(scope),
-            "key_shape": "typed key components; terrain uses i64/i64/string, entities use string/string/string/u64",
+            "key_shape": (
+                "typed key components; terrain uses i64/i64/string, "
+                "entities use string/string/string/u64"
+            ),
             **outputs,
         }
 
@@ -537,7 +545,9 @@ def run_benchmark(
             "warmup_repeats": warmups,
             "timing_clock": "time.perf_counter_ns",
             "numpy_runtime_dependency": False,
-            "optional_numpy_philox_measurement": "omitted; this run does not compare NumPy's variant4x64 to Philox4x32",
+            "optional_numpy_philox_measurement": (
+                "omitted; this run does not compare NumPy's variant4x64 to Philox4x32"
+            ),
         },
         "provenance": {
             "candidate_sources": [

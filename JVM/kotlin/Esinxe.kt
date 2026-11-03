@@ -140,6 +140,22 @@ class EsinxeRandom(seed: ULong) {
         return int(denominator.toULong(), *keys) < numerator.toULong()
     }
 
+    fun <T> stableChoice(items: List<T>, ids: List<String>, vararg keys: Key): T {
+        require(items.isNotEmpty() && items.size == ids.size) { "items and IDs must have the same non-zero length" }
+        require(ids.toSet().size == ids.size) { "candidate IDs must be unique" }
+        var winner = 0
+        var best = 0UL
+        var bestBytes = byteArrayOf()
+        for (i in ids.indices) {
+            val score = keyedRaw(arrayOf(*keys, Key.string(ids[i])), "stable-choice-v1")
+            val bytes = ids[i].encodeToByteArray(throwOnInvalidSequence = true)
+            if (i == 0 || score > best || (score == best && java.util.Arrays.compareUnsigned(bytes, bestBytes) < 0)) {
+                winner = i; best = score; bestBytes = bytes
+            }
+        }
+        return items[winner]
+    }
+
     fun <T> choose(items: List<T>, vararg keys: Key): T {
         require(items.isNotEmpty()) { "items must not be empty" }
         return items[int(items.size.toULong(), *keys).toInt()]

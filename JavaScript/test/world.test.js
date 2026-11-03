@@ -1,4 +1,6 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { once } from "node:events";
 import { Worker } from "node:worker_threads";
 import test from "node:test";
@@ -6,6 +8,7 @@ import {
   CHUNK_SIZE,
   ENTITY_TYPES,
   canonicalizeCore,
+  canonicalizeWorld,
   generateChunk,
   generateWorld,
   getChunkKey,
@@ -19,6 +22,15 @@ const coordinates = [
   { x: -1, y: 0 },
   { x: 0, y: 0 },
 ];
+
+test("committed browser proof matches current generator content", () => {
+  const proof = JSON.parse(readFileSync(new URL("../../research/results/verdant-browser-evidence.json", import.meta.url)));
+  const chunks = generateWorld({seed: proof.seed, chunks: proof.coordinates});
+  const digest = createHash("sha256").update(canonicalizeWorld(chunks)).digest("hex");
+  assert.equal(proof.passed, true);
+  assert.equal(proof.results.length, 18);
+  assert.ok(proof.results.every((row) => row.sha256 === digest));
+});
 
 test("starting land extends beyond the clearing into explorable chunks", () => {
   const chunk = generateChunk({seed: "20261102", cx: 0, cy: 0});
@@ -108,6 +120,16 @@ test("grass is independently addressed decor and never changes core content", ()
   assert.ok(Array.isArray(grassy.grass));
   assert.ok(grassy.grass.length > 0);
   assert.deepEqual(canonicalizeCore(grassy), canonicalizeCore(bare));
+});
+
+test("enemy IDs and loot survive decor and unrelated entity toggles", () => {
+  const options = {seed: 41, chunks: [{x: 0,y: 0}, {x: 1,y: 0}, {x: -1,y: 0}]};
+  const enemies = (chunks) => chunks.flatMap((chunk) => chunk.entities)
+    .filter((entity) => entity.type === "sentinel");
+  const expected = enemies(generateWorld(options));
+  assert.ok(expected.length > 0);
+  assert.deepEqual(enemies(generateWorld({...options, includeGrass: true, entityTypes: ["sentinel"]})), expected);
+  assert.ok(expected.every((enemy) => enemy.blocking && enemy.loot.endsWith("-token")));
 });
 
 test("worker message protocol returns chunks and serializes validation errors", async () => {

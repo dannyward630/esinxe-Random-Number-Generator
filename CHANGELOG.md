@@ -8,6 +8,13 @@ compatibility version is independent and is named explicitly.
 
 ### Added
 
+- Playable streamed-world integration with actual browser/Node workers and
+  exportable loading-order, worker-count, and optional-decor invariance evidence.
+- Unweighted stable-ID rendezvous choice across all ten ports and a shared
+  independently generated corpus; existing v1 choices and vectors are unchanged.
+- Python `rawBatch` native acceleration with fallback parity, plus reproducible
+  stable-hash and experimental Philox benchmarks with retained raw measurements.
+- Installed npm tarball runtime/type checks and downloadable CI package artifacts.
 - Scoped typed key prefixes, deterministic sampling without replacement, and
   prepared cumulative-weight choices across all ten ports, with copied snapshots
   and a separate additive helper specification.

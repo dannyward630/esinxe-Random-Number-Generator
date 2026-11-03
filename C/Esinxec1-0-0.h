@@ -607,6 +607,40 @@ static inline size_t EsinxeFieldChooseIndexV1(
         ? (size_t)value : SIZE_MAX;
 }
 
+/* IDs are string keys (explicit lengths permit embedded NUL). Error: SIZE_MAX. */
+static inline size_t EsinxeFieldStableChoiceIndexV1(
+    const EsinxeFieldV1 *field, const EsinxeKey *ids, size_t count,
+    const EsinxeKey *keys, size_t key_count)
+{
+    size_t i, j, winner = 0;
+    uint64_t best = 0;
+    if (!count || !EsinxeValidFieldV1(field) ||
+        !EsinxeValidKeysV1(keys, key_count) || !EsinxeValidKeysV1(ids, count)) return SIZE_MAX;
+    for (i = 0; i < count; ++i) {
+        uint64_t score;
+        int order = 0;
+        size_t common;
+        if (ids[i].type != ESINXE_KEY_STRING) return SIZE_MAX;
+        for (j = 0; j < i; ++j)
+            if (ids[i].length == ids[j].length &&
+                (!ids[i].length || memcmp(ids[i].data, ids[j].data, ids[i].length) == 0)) return SIZE_MAX;
+        score = EsinxeFieldHashV1(field, keys, key_count, "stable-choice-v1", &ids[i]);
+        common = ids[i].length < ids[winner].length ? ids[i].length : ids[winner].length;
+        if (common) order = memcmp(ids[i].data, ids[winner].data, common);
+        if (!order) order = (ids[i].length > ids[winner].length) - (ids[i].length < ids[winner].length);
+        if (i == 0 || score > best || (score == best && order < 0)) { winner = i; best = score; }
+    }
+    return winner;
+}
+
+static inline size_t EsinxeStableChoiceIndexV1(
+    uint64_t seed, const EsinxeKey *ids, size_t count,
+    const EsinxeKey *keys, size_t key_count)
+{
+    EsinxeFieldV1 field = {seed, NULL, 0};
+    return EsinxeFieldStableChoiceIndexV1(&field, ids, count, keys, key_count);
+}
+
 static inline int EsinxeFieldPermuteV1(
     const EsinxeFieldV1 *field, void *items, size_t count, size_t size,
     const EsinxeKey *keys, size_t key_count, const char *domain)
