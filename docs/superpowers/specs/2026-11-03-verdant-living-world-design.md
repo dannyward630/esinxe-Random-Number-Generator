@@ -1,6 +1,6 @@
 # Verdant: the drowned signal
 
-Status: proposed design, awaiting user approval. This is a substantial playable
+Status: approved by the user on 2026-11-03. This is a substantial playable
 expansion of the existing browser game, rather than a commercial-scale survival
 game. The user wants both expedition and survival/crafting: freedom to do their
 own thing, mysterious paths, interesting places, discoveries, and exotic stories.

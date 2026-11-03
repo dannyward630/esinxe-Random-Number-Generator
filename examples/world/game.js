@@ -482,6 +482,7 @@ export function canPlace(state, kind, x, y, world) {
     return { ok: false, message: "The expedition is not ready to build." };
   }
   if (!PLACEABLE_TYPES.includes(kind)) return { ok: false, message: "That item cannot be placed." };
+  if (state.structures.length >= MAX_STRUCTURES) return { ok: false, message: "Your expedition has reached its building limit (1024 structures)." };
   if (!Number.isSafeInteger(x) || !Number.isSafeInteger(y)
       || Math.abs(x) > MAX_COORDINATE || Math.abs(y) > MAX_COORDINATE) {
     return { ok: false, message: "Choose a valid tile." };

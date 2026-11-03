@@ -1,19 +1,163 @@
 <!doctype html>
 <html lang="en">
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Verdant — an esinxe world</title>
-<link rel="stylesheet" href="style.css">
-<main>
-<header><span>ESINXE / FIELD NOTES 01</span><h1>Verdant</h1><p>A small world that remembers its places.</p></header>
-<section class="controls" aria-label="World settings">
-<label>World seed<input id="seed" value="42" inputmode="numeric"></label>
-<label>Workers<select id="workers"><option value="0">Main thread</option><option value="1">1 worker</option><option value="4" selected>4 workers</option></select></label>
-<label>Chunk loading<select id="order"><option>normal</option><option>reverse</option><option>shuffled</option></select></label>
-<label class="check"><input id="grass" type="checkbox" checked> Grass layer</label>
-<button id="apply">Regenerate</button>
-</section>
-<div class="layout"><section class="viewport"><canvas id="world" width="960" height="640" tabindex="0" aria-label="Explorable procedural world. Move with arrow keys or WASD; E gathers nearby items."></canvas><p class="caption">WASD / arrows to explore · E to gather · changing loading order preserves content</p><nav aria-label="Movement"><button data-move="0,-1">↑</button><button data-move="-1,0">←</button><button data-move="0,1">↓</button><button data-move="1,0">→</button><button id="gather">Gather</button></nav></section>
-<aside><h2>Expedition log</h2><p id="status" role="status" aria-live="polite">Preparing the world…</p><dl><dt>Position</dt><dd id="position">0, 0</dd><dt>Inventory</dt><dd id="inventory">Empty</dd><dt>Core SHA-256</dt><dd id="fingerprint">—</dd></dl><button id="prove">Verify reproducibility</button><button id="export" disabled>Export evidence</button><p id="proof" role="status"></p><h2>What stays fixed?</h2><p>Terrain, rooms, entities and loot are addressed by location. Grass uses its own keys. Worker scheduling changes how the world arrives, not what belongs there.</p><p>This example smooths keyed values into terrain. Smoothing is application code; esinxe itself supplies separately addressed values.</p><a href="../../SPEC_HELPERS_V1.md">Read the helper contract</a></aside></div>
-<footer>E / Gather also disarms nearby red sentinels. Content rules: verdant-world-1. Changing those rules or the loot table may intentionally change content, even with the same seed.</footer>
-</main><script type="module" src="app.js"></script>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>Verdant · The Drowned Signal</title>
+        <link rel="stylesheet" href="style.css" />
+        <link rel="icon" href="data:," />
+    </head>
+    <body>
+        <main>
+            <header>
+                <div>
+                    <span class="eyebrow">AN ESINXE EXPEDITION</span>
+                    <h1>Verdant <em>The Drowned Signal</em></h1>
+                </div>
+                <div class="toolbar">
+                    <button id="map">Map · M</button
+                    ><button id="sound" aria-pressed="false">Sound off</button
+                    ><button id="pause">Pause</button>
+                </div>
+            </header>
+            <section class="game" aria-label="Expedition">
+                <canvas
+                    id="world"
+                    width="1120"
+                    height="680"
+                    tabindex="0"
+                    aria-label="Verdant world. WASD or arrows move, Space dashes, J attacks or harvests, E interacts, F eats."
+                ></canvas>
+                <div class="hud">
+                    <span
+                        >HEALTH <b id="health">100</b
+                        ><meter
+                            id="hp"
+                            min="0"
+                            max="100"
+                            value="100"
+                        ></meter></span
+                    ><span
+                        >ENERGY <b id="energy">100</b
+                        ><meter
+                            id="stamina"
+                            min="0"
+                            max="100"
+                            value="100"
+                        ></meter></span
+                    ><span id="clock">Dawn · Day 1</span
+                    ><span id="coordinates">0, 0</span>
+                </div>
+                <div class="quest">
+                    <span class="eyebrow">THE SIGNAL IS STILL ALIVE</span>
+                    <p id="objective">
+                        Make camp. Follow the old trails. Find what the island
+                        remembers.
+                    </p>
+                    <span id="compass"></span>
+                </div>
+                <div id="toast" role="status" aria-live="polite">
+                    Preparing your expedition…
+                </div>
+                <div id="context">
+                    WASD move · Space dash · J harvest/strike · E inspect · F
+                    eat
+                </div>
+                <div id="paused" hidden>
+                    <h2>Take a breath.</h2>
+                    <p>The island will wait.</p>
+                    <button id="resume">Resume expedition</button>
+                </div>
+            </section>
+            <nav class="touch" aria-label="Touch controls">
+                <div>
+                    <button data-direction="0,-1" aria-label="Move up">↑</button
+                    ><button data-direction="-1,0" aria-label="Move left">
+                        ←</button
+                    ><button data-direction="0,1" aria-label="Move down">
+                        ↓</button
+                    ><button data-direction="1,0" aria-label="Move right">
+                        →
+                    </button>
+                </div>
+                <div>
+                    <button data-action="dash">Dash</button
+                    ><button data-action="attack">Harvest / Strike</button
+                    ><button data-action="interact">Inspect</button
+                    ><button data-action="eat">Eat</button>
+                </div>
+            </nav>
+            <section class="panels">
+                <article>
+                    <h2>Your satchel</h2>
+                    <p id="inventory">Wood 0 · Stone 0 · Berries 0</p>
+                    <p id="equipment">No tools yet</p>
+                    <p class="hint">
+                        Strike trees for wood and rocks for stone. Inspect berry
+                        bushes for food. Campfires restore you.
+                    </p>
+                    <button id="save">Save expedition</button
+                    ><span id="save-status"></span>
+                </article>
+                <article>
+                    <h2>Make something useful</h2>
+                    <div id="recipes"></div>
+                    <button id="cancel-place" hidden>Cancel placement</button>
+                    <p id="placement" hidden>
+                        Choose a nearby spot on the map. Esc cancels.
+                    </p>
+                </article>
+                <article>
+                    <h2>Island journal <span id="sigils">0 / 3</span></h2>
+                    <p class="hint">
+                        The trails lead to three places the sea could not erase.
+                        Follow them in any order, or build your own life here.
+                    </p>
+                    <div id="journal"></div>
+                </article>
+            </section>
+            <details class="lab">
+                <summary>Field lab · settings and reproducibility</summary>
+                <div class="settings">
+                    <label
+                        >Seed<input
+                            id="seed"
+                            value="42"
+                            inputmode="numeric" /></label
+                    ><label
+                        >Workers<select id="workers">
+                            <option value="0">Main thread</option>
+                            <option value="1">1 worker</option>
+                            <option value="4" selected>4 workers</option>
+                        </select></label
+                    ><label
+                        >Loading order<select id="order">
+                            <option>normal</option>
+                            <option>reverse</option>
+                            <option>shuffled</option>
+                        </select></label
+                    ><label
+                        ><input id="grass" type="checkbox" checked />
+                        Grass</label
+                    ><button id="apply">Apply loading settings</button
+                    ><button id="new">New expedition</button>
+                </div>
+                <p>
+                    New expedition resets this seed's saved progress. Loading
+                    settings preserve the expedition. The proof checks the
+                    frozen v1 base terrain; the survival overlay has separate
+                    automated tests.
+                </p>
+                <button id="prove">Verify base reproducibility</button
+                ><button id="export" disabled>Export evidence</button>
+                <p id="proof" role="status"></p>
+            </details>
+            <footer>
+                Progress saves locally on this device.
+                <a href="README.md">Controls and field notes</a> · Content:
+                verdant-expedition-2
+            </footer>
+        </main>
+        <script type="module" src="app.js"></script>
+    </body>
 </html>

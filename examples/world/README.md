@@ -1,30 +1,41 @@
-# Verdant: a practical esinxe integration
+# Verdant: The Drowned Signal
 
-From the repository root, run `python -m http.server 8778 --bind 127.0.0.1`, then
-open `http://127.0.0.1:8778/examples/world/`. It uses the public JS library without
-an engine installation, build step, external assets, or runtime dependencies.
+A dependency-free survival expedition built on esinxe. Run `python -m http.server
+8778 --bind 127.0.0.1` from the repository root and open
+`http://127.0.0.1:8778/examples/world/`.
 
-Explore using arrows/WASD or the on-screen movement buttons. Use E/Gather near
-berries or caches; E also disarms nearby red sentinels and takes their tokens.
-Chunks stream around your position; water, mountains, trees
-and rocks restrict movement. Collected entities retain stable IDs through chunk
-reloads during the session. A changed seed starts a fresh expedition.
+Move with WASD/arrows or hold the on-screen arrows. Space dashes, J strikes or
+harvests, E gathers/inspects/rests, F eats berries, M opens the survey map and P
+pauses. Facing matters when striking. Harvest by hand to get started; an axe
+increases the yield. Craft buttons show exact costs and missing materials.
+Campfire/bridge kits must be placed on nearby valid ground; click the map to
+place or use Cancel placement. A bridge extends a crossing one water tile at a
+time. A lantern helps after dusk, and trail boots improve movement.
 
-Change worker count, loading order, or grass. Verify reproducibility runs all
-18 combinations of three loading orders, three worker counts and two grass
-settings against the same chunk coordinates. Export evidence saves the exact
-seed, coordinates, content version, configuration results and core SHA-256 hashes.
-Grass is excluded from the core fingerprint deliberately; it is optional decor.
-Enemies and cache loot use independent addresses. Loot uses stable-ID choice, so
-reordering a loot table preserves its results and adding an item only changes
-locations won by that item. This tiny exploration example has static encounters,
-not a combat simulation or persistent save system.
+Health and energy make excursions matter. Sentinels patrol and telegraph their
+strikes; evade with a dash or fight with a pulse. The beacon camp is safe. A
+campfire provides another recovery point. Defeat returns you to the beacon,
+preserves discoveries, and leaves lost supplies in a recoverable cache.
 
-`generator.js` is the reusable integration boundary; `worker.js` implements the
-same message protocol in browser workers and Node worker_threads. Tests use real
-workers, not a mocked scheduler. Run `node --test JavaScript/test/world.test.js`.
+Three independently placed ruins have connected trails, original journal entries
+and sigils. Visit them in any order, or ignore them and gather/build. Bring all
+three sigils to the beacon and inspect it to resolve the signal's mystery.
+Free exploration continues after the ending.
 
-Terrain interpolation and the entry-region land floor are application rules.
-They do not change esinxe. Content version `verdant-world-1` identifies these
-rules. Changing a rule or its own loot table can intentionally change results;
-algorithm compatibility does not freeze arbitrary application content forever.
+Progress saves locally every five active seconds and on hiding the tab; Save
+expedition saves immediately. Storage errors do not prevent play. New expedition
+asks before replacing progress for the chosen seed. Saves are local to the
+browser/origin and content version, not cloud saves. Sound is optional and starts
+only on a user gesture; reduced-motion preferences limit animation/particles.
+
+`generator.js` remains the frozen `verdant-world-1` integration. `expedition.js`
+overlays seeded trails, landmarks and guaranteed starter supplies under content
+version `verdant-expedition-2`. `game.js` separates mutable simulation and saved
+progress from generated content. `stream.js` reuses workers and caches at most
+49 chunks; `render.js` caches terrain and draws moving entities and effects.
+
+The optional field lab retains seed/loading controls and an exportable 18-case
+proof of the frozen base generator. It does not claim identical mutable combat
+state for different player inputs. Tests separately verify expedition trails,
+grass isolation, resource/crafting accounting, movement, combat, saves and the
+complete story route. Run `npm test --prefix JavaScript`.

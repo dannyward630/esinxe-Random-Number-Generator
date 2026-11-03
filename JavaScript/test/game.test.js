@@ -1,5 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+
+test("placement stops at the save format building limit without spending a kit", () => {
+  const state = createGame("42");
+  state.inventory.campfires = 1;
+  state.structures = Array.from({ length: 1024 }, (_, i) => ({
+    id: `campfire:${i}:9`,
+    kind: "campfire",
+    x: i,
+    y: 9,
+  }));
+  const result = place(state, "campfire", 1, 0, makeWorld());
+  assert.equal(result.ok, false);
+  assert.equal(state.inventory.campfires, 1);
+  assert.ok(restoreGame(serializeGame(state), "42"));
+});
 import {
   RECIPES,
   createGame,
@@ -15,14 +30,20 @@ import {
 } from "../../examples/world/game.js";
 import { generateChunk } from "../../examples/world/generator.js";
 
-function makeWorld({ terrain = () => "meadow", entities = [], landmarks = [] } = {}) {
+function makeWorld({
+  terrain = () => "meadow",
+  entities = [],
+  landmarks = [],
+} = {}) {
   return {
     loaded: true,
     tileAt(x, y) {
       return terrain(Math.floor(x), Math.floor(y));
     },
     entitiesNear(x, y, radius) {
-      return entities.filter((entity) => Math.hypot(entity.x - x, entity.y - y) <= radius);
+      return entities.filter(
+        (entity) => Math.hypot(entity.x - x, entity.y - y) <= radius,
+      );
     },
     landmarks,
   };
@@ -36,13 +57,17 @@ test("movement keeps diagonal speed equal to straight-line speed", () => {
   stepGame(straight, { x: 1, y: 0 }, 0.1, world);
   stepGame(diagonal, { x: 1, y: 1 }, 0.1, world);
 
-  assert.ok(Math.abs(Math.hypot(diagonal.player.x, diagonal.player.y) - straight.player.x) < 0.001);
+  assert.ok(
+    Math.abs(
+      Math.hypot(diagonal.player.x, diagonal.player.y) - straight.player.x,
+    ) < 0.001,
+  );
 });
 
 test("movement collides with water and unharvested blocking resources", () => {
   const state = createGame("42");
   const world = makeWorld({
-    terrain: (x) => x === 1 ? "water" : "meadow",
+    terrain: (x) => (x === 1 ? "water" : "meadow"),
     entities: [{ id: "tree:1:0", type: "tree", x: 1, y: 0, blocking: true }],
   });
 
@@ -55,7 +80,7 @@ test("a buffered dash starts when its cooldown expires and cannot cross blocked 
   const state = createGame("42");
   state.player.facing = { x: 1, y: 0 };
   state.player.dashCooldown = 0.3;
-  const world = makeWorld({ terrain: (x) => x >= 1 ? "water" : "meadow" });
+  const world = makeWorld({ terrain: (x) => (x >= 1 ? "water" : "meadow") });
 
   stepGame(state, { dash: true }, 0.1, world);
   stepGame(state, {}, 0.25, world);
@@ -81,7 +106,13 @@ test("crafting charges exact materials and produces a usable axe", () => {
 
   assert.deepEqual(RECIPES.axe.cost, { wood: 3, stone: 2, berries: 0 });
   assert.equal(craft(state, "axe").ok, true);
-  assert.deepEqual(state.inventory, { wood: 0, stone: 0, berries: 0, campfires: 0, bridges: 0 });
+  assert.deepEqual(state.inventory, {
+    wood: 0,
+    stone: 0,
+    berries: 0,
+    campfires: 0,
+    bridges: 0,
+  });
   assert.equal(state.tools.axe, true);
 });
 
@@ -92,7 +123,13 @@ test("an uncrafted tool or unaffordable recipe leaves resources unchanged", () =
   const result = craft(state, "axe");
 
   assert.equal(result.ok, false);
-  assert.deepEqual(state.inventory, { wood: 2, stone: 0, berries: 0, campfires: 0, bridges: 0 });
+  assert.deepEqual(state.inventory, {
+    wood: 2,
+    stone: 0,
+    berries: 0,
+    campfires: 0,
+    bridges: 0,
+  });
 });
 
 test("attacking with an axe harvests a tree after a short windup", () => {
@@ -114,10 +151,12 @@ test("a held attack does not start another pulse before its cooldown expires", (
   const state = createGame("42");
   state.tools.axe = true;
   state.player.facing = { x: 0, y: 1 };
-  const world = makeWorld({ entities: [
-    { id: "tree:0:1", type: "tree", x: 0, y: 0.7, blocking: true },
-    { id: "tree:0:2", type: "tree", x: 0, y: 1.2, blocking: true },
-  ] });
+  const world = makeWorld({
+    entities: [
+      { id: "tree:0:1", type: "tree", x: 0, y: 0.7, blocking: true },
+      { id: "tree:0:2", type: "tree", x: 0, y: 1.2, blocking: true },
+    ],
+  });
 
   stepGame(state, { attack: true }, 0.12, world);
   stepGame(state, { attack: true }, 0.12, world);
@@ -130,18 +169,32 @@ test("a held attack does not start another pulse before its cooldown expires", (
 
 test("a new expedition can hand-harvest generated resources and craft its first axe", () => {
   const chunk = generateChunk({ seed: "2", cx: 0, cy: 0 });
-  const terrain = new Map(chunk.tiles.map((tile) => [`${tile.x},${tile.y}`, tile.terrain]));
-  const resources = chunk.entities.filter((entity) => entity.type === "tree" || entity.type === "rock");
+  const terrain = new Map(
+    chunk.tiles.map((tile) => [`${tile.x},${tile.y}`, tile.terrain]),
+  );
+  const resources = chunk.entities.filter(
+    (entity) => entity.type === "tree" || entity.type === "rock",
+  );
   const world = {
     loaded: true,
-    tileAt(x, y) { return terrain.get(`${x},${y}`); },
+    tileAt(x, y) {
+      return terrain.get(`${x},${y}`);
+    },
     entitiesNear(x, y, radius) {
-      return resources.filter((entity) => Math.hypot(entity.x - x, entity.y - y) <= radius);
+      return resources.filter(
+        (entity) => Math.hypot(entity.x - x, entity.y - y) <= radius,
+      );
     },
     landmarks: [],
   };
   const state = createGame("2");
-  const starterNodes = ["rock:10:4", "rock:10:5", "tree:10:12", "tree:14:10", "tree:15:11"];
+  const starterNodes = [
+    "rock:10:4",
+    "rock:10:5",
+    "tree:10:12",
+    "tree:14:10",
+    "tree:15:11",
+  ];
 
   for (const id of starterNodes) {
     const node = resources.find((entity) => entity.id === id);
@@ -151,17 +204,29 @@ test("a new expedition can hand-harvest generated resources and craft its first 
     state.player.facing = { x: 1, y: 0 };
     stepGame(state, { attack: true }, 0.2, world);
     stepGame(state, {}, 0.5, world);
-    assert.ok(state.harvested.includes(id), `${id} can be gathered without an axe`);
+    assert.ok(
+      state.harvested.includes(id),
+      `${id} can be gathered without an axe`,
+    );
   }
 
-  assert.deepEqual({ wood: state.inventory.wood, stone: state.inventory.stone }, { wood: 3, stone: 2 });
+  assert.deepEqual(
+    { wood: state.inventory.wood, stone: state.inventory.stone },
+    { wood: 3, stone: 2 },
+  );
   assert.equal(craft(state, "axe").ok, true);
   assert.equal(state.tools.axe, true);
 });
 
 test("interacting gathers a berry once and reports when out of range", () => {
   const state = createGame("42");
-  const berry = { id: "berry:1:0", type: "berry", x: 1, y: 0, loot: "wild-berries" };
+  const berry = {
+    id: "berry:1:0",
+    type: "berry",
+    x: 1,
+    y: 0,
+    loot: "wild-berries",
+  };
   const world = makeWorld({ entities: [berry] });
 
   state.player.x = -3;
@@ -176,12 +241,25 @@ test("interacting gathers a berry once and reports when out of range", () => {
 
 test("interacting opens a cache once and campfires restore health and energy", () => {
   const state = createGame("42");
-  const world = makeWorld({ entities: [{ id: "cache:1:0", type: "cache", x: 1, y: 0, loot: "old-coin" }] });
+  const world = makeWorld({
+    entities: [
+      { id: "cache:1:0", type: "cache", x: 1, y: 0, loot: "old-coin" },
+    ],
+  });
 
   assert.equal(interact(state, world).ok, true);
-  assert.deepEqual({ wood: state.inventory.wood, stone: state.inventory.stone, berries: state.inventory.berries }, {
-    wood: 1, stone: 1, berries: 1,
-  });
+  assert.deepEqual(
+    {
+      wood: state.inventory.wood,
+      stone: state.inventory.stone,
+      berries: state.inventory.berries,
+    },
+    {
+      wood: 1,
+      stone: 1,
+      berries: 1,
+    },
+  );
   assert.deepEqual(state.discoveries, []);
   state.player.x = -3;
   assert.equal(interact(state, world).ok, false);
@@ -210,9 +288,27 @@ test("eating restores energy once per press", () => {
 test("three distinct landmarks unlock the optional beacon ending", () => {
   const state = createGame("42");
   const landmarks = [
-    { id: "observatory", x: 10, y: 0, title: "Drowned Observatory", text: "A cracked lens points inland." },
-    { id: "glass-grove", x: 20, y: 0, title: "Glass Grove", text: "The glass hums beneath your hand." },
-    { id: "ash-archive", x: 30, y: 0, title: "Ash Archive", text: "The ash remembers rain." },
+    {
+      id: "observatory",
+      x: 10,
+      y: 0,
+      title: "Drowned Observatory",
+      text: "A cracked lens points inland.",
+    },
+    {
+      id: "glass-grove",
+      x: 20,
+      y: 0,
+      title: "Glass Grove",
+      text: "The glass hums beneath your hand.",
+    },
+    {
+      id: "ash-archive",
+      x: 30,
+      y: 0,
+      title: "Ash Archive",
+      text: "The ash remembers rain.",
+    },
   ];
   const world = makeWorld({ landmarks });
 
@@ -251,8 +347,18 @@ test("the broken home beacon is a real recovery point before the sigils are foun
 test("an undiscovered landmark takes interaction priority over nearby resources", () => {
   const state = createGame("42");
   const world = makeWorld({
-    entities: [{ id: "berry:0:0", type: "berry", x: 0, y: 0, loot: "wild-berries" }],
-    landmarks: [{ id: "observatory", x: 0, y: 0, title: "Drowned Observatory", text: "A cracked lens points inland." }],
+    entities: [
+      { id: "berry:0:0", type: "berry", x: 0, y: 0, loot: "wild-berries" },
+    ],
+    landmarks: [
+      {
+        id: "observatory",
+        x: 0,
+        y: 0,
+        title: "Drowned Observatory",
+        text: "A cracked lens points inland.",
+      },
+    ],
   });
 
   assert.equal(interact(state, world).ok, true);
@@ -265,7 +371,11 @@ test("an undiscovered landmark takes interaction priority over nearby resources"
 test("sentinel telegraphs, damages the player, and respects invulnerability", () => {
   const state = createGame("42");
   state.player.x = 10;
-  const world = makeWorld({ entities: [{ id: "sentinel:11:0", type: "sentinel", x: 10.8, y: 0, blocking: true }] });
+  const world = makeWorld({
+    entities: [
+      { id: "sentinel:11:0", type: "sentinel", x: 10.8, y: 0, blocking: true },
+    ],
+  });
 
   for (let index = 0; index < 12; index += 1) stepGame(state, {}, 0.1, world);
   const healthAfterHit = state.player.hp;
@@ -279,15 +389,25 @@ test("dead sentinel IDs stay harvested after the entity unloads and reloads", ()
   const state = createGame("42");
   state.player.x = 10;
   state.player.facing = { x: 1, y: 0 };
-  const sentinel = { id: "sentinel:11:0", type: "sentinel", x: 10.8, y: 0, blocking: true };
+  const sentinel = {
+    id: "sentinel:11:0",
+    type: "sentinel",
+    x: 10.8,
+    y: 0,
+    blocking: true,
+  };
   const loaded = makeWorld({ entities: [sentinel] });
 
-  for (let index = 0; index < 3; index += 1) stepGame(state, { attack: true }, 0.5, loaded);
+  for (let index = 0; index < 3; index += 1)
+    stepGame(state, { attack: true }, 0.5, loaded);
   assert.ok(state.harvested.includes(sentinel.id));
   stepGame(state, {}, 0.1, makeWorld());
   stepGame(state, {}, 0.1, loaded);
 
-  assert.equal(state.enemies.some((enemy) => enemy.id === sentinel.id), false);
+  assert.equal(
+    state.enemies.some((enemy) => enemy.id === sentinel.id),
+    false,
+  );
 });
 
 test("defeat returns to the beacon camp, preserves discoveries, and costs recoverable supplies", () => {
@@ -302,9 +422,15 @@ test("defeat returns to the beacon camp, preserves discoveries, and costs recove
   assert.deepEqual({ x: state.player.x, y: state.player.y }, { x: 0, y: 0 });
   assert.equal(state.player.hp, 100);
   assert.deepEqual(state.discoveries, ["observatory"]);
-  assert.ok(state.inventory.wood < 5 || state.inventory.stone < 3 || state.inventory.berries < 2);
+  assert.ok(
+    state.inventory.wood < 5 ||
+      state.inventory.stone < 3 ||
+      state.inventory.berries < 2,
+  );
   assert.match(state.events.at(-1).text, /returned|beacon/i);
-  const cache = state.structures.find((structure) => structure.kind === "recovery-cache");
+  const cache = state.structures.find(
+    (structure) => structure.kind === "recovery-cache",
+  );
   assert.ok(cache);
   const recovered = { ...cache.contents };
   state.player.x = cache.x;
@@ -318,7 +444,7 @@ test("defeat returns to the beacon camp, preserves discoveries, and costs recove
 test("campfire crafting stores a placeable kit and rejected placement costs nothing", () => {
   const state = createGame("42");
   state.inventory = { wood: 4, stone: 2, berries: 0, campfires: 0, bridges: 0 };
-  const world = makeWorld({ terrain: (x) => x === 1 ? "water" : "meadow" });
+  const world = makeWorld({ terrain: (x) => (x === 1 ? "water" : "meadow") });
 
   assert.equal(craft(state, "campfire").ok, true);
   assert.equal(state.inventory.campfires, 1);
@@ -337,7 +463,7 @@ test("a placed bridge overrides water for movement", () => {
   const state = createGame("42");
   state.inventory.bridges = 1;
   state.player.facing = { x: 1, y: 0 };
-  const world = makeWorld({ terrain: (x) => x === 1 ? "water" : "meadow" });
+  const world = makeWorld({ terrain: (x) => (x === 1 ? "water" : "meadow") });
 
   assert.equal(place(state, "bridge", 1, 0, world).ok, true);
   stepGame(state, { x: 1, y: 0 }, 0.5, world);
@@ -380,15 +506,28 @@ test("saving resumes the same seed and rejects corrupt, old, oversized, or misma
   assert.equal(restoreGame("{", "2026"), null);
   assert.equal(restoreGame(text, "other-seed"), null);
   assert.equal(restoreGame(text.repeat(50000), "2026"), null);
-  assert.equal(restoreGame(JSON.stringify({ ...JSON.parse(text), version: "verdant-expedition-1" }), "2026"), null);
-  assert.throws(() => serializeGame({ ...state, time: Number.NaN }), /invalid|finite|time/i);
+  assert.equal(
+    restoreGame(
+      JSON.stringify({ ...JSON.parse(text), version: "verdant-expedition-1" }),
+      "2026",
+    ),
+    null,
+  );
+  assert.throws(
+    () => serializeGame({ ...state, time: Number.NaN }),
+    /invalid|finite|time/i,
+  );
 });
 
 test("events stay capped while active enemies stay bounded", () => {
   const state = createGame("42");
   for (let index = 0; index < 40; index += 1) interact(state, makeWorld());
   const entities = Array.from({ length: 80 }, (_, index) => ({
-    id: `sentinel:${index}:0`, type: "sentinel", x: index / 10, y: 0, blocking: true,
+    id: `sentinel:${index}:0`,
+    type: "sentinel",
+    x: index / 10,
+    y: 0,
+    blocking: true,
   }));
 
   stepGame(state, {}, 0.1, makeWorld({ entities }));

@@ -8,6 +8,10 @@ compatibility version is independent and is named explicitly.
 
 ### Added
 
+- Verdant survival expedition: continuous movement/dash, active sentinels,
+  harvesting and crafting, placeable campfires/bridges, day/night, local saves,
+  three seeded story ruins and an optional beacon ending. Incremental chunk
+  caching and a persistent worker pool replace whole-area reloads.
 - Playable streamed-world integration with actual browser/Node workers and
   exportable loading-order, worker-count, and optional-decor invariance evidence.
 - Unweighted stable-ID rendezvous choice across all ten ports and a shared
