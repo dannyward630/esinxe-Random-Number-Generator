@@ -13,13 +13,13 @@ Preserve library v1 and existing generator evidence. New content has its own
 version. Review resource conservation, unreachable sites, stale worker results,
 save validation, frame-rate-independent movement, and bounded caches.
 
-- [ ] Pure simulation: failing tests, implement movement/dash/collision, resources,
+- [x] Pure simulation: failing tests, implement movement/dash/collision, resources,
   recipes/placement, enemies, day/night, story and versioned save round trips.
-- [ ] Expedition content: seeded landmarks, connected trails, distinctive story
+- [x] Expedition content: seeded landmarks, connected trails, distinctive story
   sites and independent resources; tests of IDs and reachable corridors.
-- [ ] Browser integration: held input, cached incremental chunks, HUD/crafting/
+- [x] Browser integration: held input, cached incremental chunks, HUD/crafting/
   journal/save controls, rendered sprites, weather/light/audio/feedback.
-- [ ] Play-test complete loop, mobile controls, blur/pause, persistence and proof.
+- [x] Play-test complete loop, mobile controls, blur/pause, persistence and proof.
 - [ ] Review whole branch, run checks, push PR, wait CI, merge and verify Pages.
 
 Ruling: the previous generator remains a frozen reproducibility example; new
