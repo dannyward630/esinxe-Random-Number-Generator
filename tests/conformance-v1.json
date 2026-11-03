@@ -1,0 +1,346 @@
+{
+  "schema": "esinxe-conformance-v1",
+  "parameters": {
+    "bound": "9223372036854775809",
+    "min": "-9223372036854775808",
+    "max": "9223372036854775807",
+    "x": "-17",
+    "y": "42",
+    "z": "-9223372036854775808",
+    "numerator": "7",
+    "denominator": "23",
+    "weights": [
+      "0",
+      "80",
+      "18",
+      "2"
+    ],
+    "sampleCount": 3
+  },
+  "cases": [
+    {
+      "id": "empty-zero",
+      "seed": "0",
+      "prefix": [],
+      "keys": [],
+      "namespace": null,
+      "expected": {
+        "raw": "8189895670202049190",
+        "int": "9211991004970938177",
+        "range": "-1033476366652726618",
+        "floatUpper53": "3998972495215844",
+        "at2D": "16375890928805754267",
+        "at3D": "12168566513092328926",
+        "chanceRatio": true,
+        "choose": 2,
+        "shuffle": [
+          1,
+          0,
+          2,
+          3
+        ],
+        "sample": [
+          4,
+          1,
+          2
+        ],
+        "weightedChoice": 2
+      }
+    },
+    {
+      "id": "empty-one",
+      "seed": "1",
+      "prefix": [],
+      "keys": [],
+      "namespace": "",
+      "expected": {
+        "raw": "14471626981391660511",
+        "int": "5248254944536884702",
+        "range": "5248254944536884703",
+        "floatUpper53": "7066224112007646",
+        "at2D": "7515236258436289660",
+        "at3D": "1837175986170284267",
+        "chanceRatio": false,
+        "choose": 3,
+        "shuffle": [
+          3,
+          1,
+          0,
+          2
+        ],
+        "sample": [
+          3,
+          1,
+          4
+        ],
+        "weightedChoice": 1
+      }
+    },
+    {
+      "id": "signed-positive",
+      "seed": "12345",
+      "prefix": [],
+      "keys": [
+        {
+          "type": "i64",
+          "value": "1"
+        }
+      ],
+      "namespace": "terrain",
+      "expected": {
+        "raw": "8375777008512348728",
+        "int": "1655303853561976233",
+        "range": "-847595028342427080",
+        "floatUpper53": "4089734867437670",
+        "at2D": "7407667935746215469",
+        "at3D": "4726957201195354030",
+        "chanceRatio": false,
+        "choose": 0,
+        "shuffle": [
+          0,
+          3,
+          2,
+          1
+        ],
+        "sample": [
+          3,
+          0,
+          1
+        ],
+        "weightedChoice": 1
+      }
+    },
+    {
+      "id": "unsigned-positive",
+      "seed": "12345",
+      "prefix": [],
+      "keys": [
+        {
+          "type": "u64",
+          "value": "1"
+        }
+      ],
+      "namespace": "terrain",
+      "expected": {
+        "raw": "3036097878260785046",
+        "int": "4934641847621633044",
+        "range": "-6187274158593990762",
+        "floatUpper53": "1482469667119523",
+        "at2D": "7407667935746215469",
+        "at3D": "4726957201195354030",
+        "chanceRatio": false,
+        "choose": 2,
+        "shuffle": [
+          3,
+          1,
+          0,
+          2
+        ],
+        "sample": [
+          3,
+          2,
+          4
+        ],
+        "weightedChoice": 1
+      }
+    },
+    {
+      "id": "limits-nul",
+      "seed": "18446744073709551615",
+      "prefix": [],
+      "keys": [
+        {
+          "type": "i64",
+          "value": "-9223372036854775808"
+        },
+        {
+          "type": "u64",
+          "value": "18446744073709551615"
+        },
+        {
+          "type": "string",
+          "value": "a\u0000b"
+        },
+        {
+          "type": "bytes",
+          "value": "0001ff"
+        }
+      ],
+      "namespace": "a\u0000b",
+      "expected": {
+        "raw": "10560829719915435951",
+        "int": "1337457683060660142",
+        "range": "1337457683060660143",
+        "floatUpper53": "5156655136677458",
+        "at2D": "10576785930773578060",
+        "at3D": "807030385961115918",
+        "chanceRatio": false,
+        "choose": 3,
+        "shuffle": [
+          3,
+          1,
+          2,
+          0
+        ],
+        "sample": [
+          3,
+          0,
+          1
+        ],
+        "weightedChoice": 1
+      }
+    },
+    {
+      "id": "unicode-scope",
+      "seed": "9223372036854775808",
+      "prefix": [
+        {
+          "type": "string",
+          "value": "terrain"
+        }
+      ],
+      "keys": [
+        {
+          "type": "string",
+          "value": "\ud83c\udf0d\u96ea"
+        },
+        {
+          "type": "u64",
+          "value": "0"
+        }
+      ],
+      "namespace": "",
+      "expected": {
+        "raw": "16813667979406012663",
+        "int": "7590295942551236854",
+        "range": "7590295942551236855",
+        "floatUpper53": "8209798818069342",
+        "at2D": "8171857324793121668",
+        "at3D": "9997803024422392125",
+        "chanceRatio": false,
+        "choose": 3,
+        "shuffle": [
+          3,
+          1,
+          2,
+          0
+        ],
+        "sample": [
+          3,
+          1,
+          4
+        ],
+        "weightedChoice": 1
+      }
+    },
+    {
+      "id": "nested-scope",
+      "seed": "42",
+      "prefix": [
+        {
+          "type": "string",
+          "value": "world"
+        },
+        {
+          "type": "i64",
+          "value": "-1"
+        },
+        {
+          "type": "bytes",
+          "value": "00ff"
+        }
+      ],
+      "keys": [
+        {
+          "type": "string",
+          "value": ""
+        },
+        {
+          "type": "bytes",
+          "value": ""
+        }
+      ],
+      "namespace": null,
+      "expected": {
+        "raw": "8444981190638953432",
+        "int": "5442960001806967571",
+        "range": "-778390846215822376",
+        "floatUpper53": "4123525971991676",
+        "at2D": "16611940302015967185",
+        "at3D": "17085952849135574598",
+        "chanceRatio": false,
+        "choose": 0,
+        "shuffle": [
+          1,
+          0,
+          3,
+          2
+        ],
+        "sample": [
+          1,
+          0,
+          3
+        ],
+        "weightedChoice": 1
+      }
+    },
+    {
+      "id": "mixed-reference",
+      "seed": "12345",
+      "prefix": [],
+      "keys": [
+        {
+          "type": "i64",
+          "value": "-1"
+        },
+        {
+          "type": "u64",
+          "value": "18446744073709551615"
+        },
+        {
+          "type": "string",
+          "value": "snowman \u2603"
+        },
+        {
+          "type": "bytes",
+          "value": "0001ff"
+        }
+      ],
+      "namespace": "terrain/\u96ea",
+      "expected": {
+        "raw": "12374036822843504307",
+        "int": "3150664785988728498",
+        "range": "3150664785988728499",
+        "floatUpper53": "6042010167404054",
+        "at2D": "7642296274646480051",
+        "at3D": "15215119382447197627",
+        "chanceRatio": false,
+        "choose": 3,
+        "shuffle": [
+          0,
+          3,
+          2,
+          1
+        ],
+        "sample": [
+          0,
+          4,
+          2
+        ],
+        "weightedChoice": 1
+      }
+    }
+  ],
+  "invalidCases": [
+    "int-bound-zero",
+    "range-equal-endpoints",
+    "chance-denominator-zero",
+    "empty-choice",
+    "zero-total-weight",
+    "weight-total-overflow",
+    "sample-count-exceeds-length",
+    "sample-negative-count",
+    "malformed-unicode",
+    "typed-integer-overflow"
+  ]
+}
