@@ -1,4 +1,5 @@
-const VERSION = "verdant-expedition-2";
+const VERSION = "verdant-expedition-3";
+const LEGACY_VERSION = "verdant-expedition-2";
 const EVENT_LIMIT = 32;
 const EFFECT_LIMIT = 64;
 const ACTIVE_ENEMY_LIMIT = 24;
@@ -8,6 +9,8 @@ const MAX_RESOURCE = 1_000_000;
 const MAX_STRUCTURES = 1_024;
 const MAX_HARVESTED = 8_192;
 const MAX_DISCOVERIES = 256;
+const MAX_FINDS = 32;
+const MAX_AIR = 100;
 const DAY_CYCLE = 180;
 const PLAYER_SPEED = 3.2;
 const DASH_SPEED = 10.5;
@@ -20,7 +23,7 @@ const INTERACTION_RANGE = 1.8;
 const ATTACK_RANGE = 1.65;
 const RESOURCE_TYPES = ["wood", "stone", "berries"];
 const PLACEABLE_TYPES = ["campfire", "bridge"];
-const TOOL_TYPES = ["axe", "lantern", "boots"];
+const TOOL_TYPES = ["axe", "lantern", "boots", "fins"];
 
 const recipe = (label, wood, stone, berries, description) => Object.freeze({
   label,
@@ -34,6 +37,7 @@ export const RECIPES = Object.freeze({
   lantern: recipe("Lantern", 2, 1, 1, "Lights the nearby path after dusk."),
   bridge: recipe("Bridge kit", 6, 3, 0, "Place a short crossing over a water tile."),
   boots: recipe("Trail boots", 2, 2, 3, "Move faster and spend less energy while exploring."),
+  fins: recipe("Swim fins", 2, 2, 3, "Move faster through water and spend less energy while swimming."),
 });
 
 function finiteNumber(value) {
@@ -78,6 +82,11 @@ export function createGame(seed = "1") {
       dashQueued: false,
       dashX: 0,
       dashY: -1,
+      swimming: false,
+      diving: false,
+      air: MAX_AIR,
+      lastShore: { x: 0, y: 0 },
+      diveHeld: false,
       attackHeld: false,
       interactHeld: false,
       eatHeld: false,
@@ -87,6 +96,7 @@ export function createGame(seed = "1") {
     structures: [],
     harvested: [],
     discoveries: [],
+    finds: [],
     restored: false,
     time: 0,
     events: [],
@@ -154,12 +164,50 @@ function entitiesNear(world, x, y, radius) {
 function bridgeAt(state, x, y) {
   const tileX = Math.floor(x + 0.5);
   const tileY = Math.floor(y + 0.5);
-  return state.structures.some((structure) => structure.kind === "bridge"
+  return (Array.isArray(state?.structures) ? state.structures : []).some((structure) => structure.kind === "bridge"
     && structure.x === tileX && structure.y === tileY);
 }
 
 function isSolidTerrain(terrain) {
   return terrain === undefined || terrain === "water" || terrain === "mountain";
+}
+
+export function getTerrainStatus(state, world) {
+  const player = state?.player || {};
+  const rawTerrain = tileAt(world, finiteNumber(player.x) ? player.x : 0,
+    finiteNumber(player.y) ? player.y : 0);
+  const terrain = rawTerrain === "water" && bridgeAt(state || { structures: [] }, player.x || 0, player.y || 0)
+    ? "bridge"
+    : rawTerrain ?? "unknown";
+  const boots = Boolean(state?.tools?.boots);
+  const fins = Boolean(state?.tools?.fins);
+  const profiles = {
+    meadow: { label: "Meadow", description: "Open ground offers steady footing.", speed: 1, concealed: false },
+    path: { label: "Old trail", description: "A packed trail makes travel a little faster.", speed: 1.05, concealed: false },
+    sand: { label: "Sand", description: "Loose sand slows each step.", speed: 0.85, concealed: false },
+    forest: { label: "Forest", description: "Dense trees slow you and help hide you from sentinels.", speed: 0.9, concealed: true },
+    marsh: { label: "Marsh", description: "Soft ground slows you and drains energy while you move.", speed: boots ? 0.85 : 0.55, concealed: false },
+    hill: { label: "Rocky hillside", description: "Uneven stone makes the climb slower.", speed: boots ? 0.95 : 0.8, concealed: false },
+    mountain: { label: boots ? "Mountain slope" : "Steep mountain", description: boots
+      ? "Trail boots let you scramble up the steep slope."
+      : "Too steep to cross without trail boots.", speed: boots ? 0.55 : 0, concealed: false },
+    shallows: { label: "Shallows", description: "Shallow water slows your steps and takes a little energy.", speed: 0.65, concealed: false },
+    water: { label: "Open water", description: "Swimming takes effort; fins make the crossing easier.", speed: fins ? 0.8 : 0.52, concealed: false },
+    bridge: { label: "Bridge", description: "A dry crossing over the water.", speed: 1, concealed: false },
+    unknown: { label: "Unmapped ground", description: "The terrain ahead is not mapped yet.", speed: 1, concealed: false },
+  };
+  const profile = profiles[terrain] || profiles.unknown;
+  const swimming = terrain === "water";
+  return {
+    terrain,
+    label: profile.label,
+    description: profile.description,
+    speed: profile.speed,
+    swimming,
+    diving: swimming && Boolean(player.diving),
+    air: boundedNumber(player.air, 0, MAX_AIR) ? player.air : MAX_AIR,
+    concealed: profile.concealed,
+  };
 }
 
 function canOccupy(state, world, x, y) {
@@ -168,7 +216,9 @@ function canOccupy(state, world, x, y) {
     const px = x + offsetX;
     const py = y + offsetY;
     const terrain = tileAt(world, px, py);
-    if (isSolidTerrain(terrain) && !(terrain === "water" && bridgeAt(state, px, py))) return false;
+    if (terrain === undefined) return false;
+    if (terrain === "water" && !bridgeAt(state, px, py)) continue;
+    if (terrain === "mountain" && !state.tools?.boots) return false;
   }
   for (const entity of entitiesNear(world, x, y, 0.8)) {
     if (!entity.blocking || state.harvested.includes(entity.id)) continue;
@@ -217,7 +267,7 @@ function addUnique(list, value, cap) {
   return true;
 }
 
-function startDash(state, direction) {
+function startDash(state, direction, world) {
   const player = state.player;
   if (player.energy < DASH_COST) {
     player.dashQueued = false;
@@ -233,28 +283,148 @@ function startDash(state, direction) {
   player.dashCooldown = DASH_COOLDOWN;
   player.dashQueued = false;
   player.invulnerability = Math.max(player.invulnerability, 0.12);
-  pushEffect(state, "dash", player.x, player.y, 0.24);
-  pushEvent(state, "dash", "You dash across the trail.");
+  const swimming = getTerrainStatus(state, world).swimming;
+  pushEffect(state, swimming ? "swimstroke" : "dash", player.x, player.y, 0.24);
+  pushEvent(state, "dash", swimming ? "You push off with a swim stroke." : "You dash across the trail.");
   return true;
+}
+
+function moveDash(state, world, directionX, directionY, duration) {
+  let remaining = duration;
+  // Recheck the terrain in short slices so a land dash loses speed as soon as
+  // the player reaches water instead of carrying its full pace across a lake.
+  while (remaining > 0) {
+    const slice = Math.min(remaining, 0.02);
+    const speed = getTerrainStatus(state, world).swimming ? 6 : DASH_SPEED;
+    moveWithCollision(state, world, directionX * speed * slice, directionY * speed * slice);
+    remaining -= slice;
+  }
 }
 
 function movePlayer(state, inputX, inputY, dt, world) {
   const player = state.player;
+  const beforeX = player.x;
+  const beforeY = player.y;
   const direction = normalizeVector(inputX, inputY);
   if (direction.x || direction.y) player.facing = { x: direction.x, y: direction.y };
-  if (player.dashQueued && player.dashCooldown <= 0) startDash(state, direction);
+  if (player.dashQueued && player.dashCooldown <= 0) startDash(state, direction, world);
 
-  const speed = PLAYER_SPEED * (state.tools.boots ? 1.2 : 1) * (player.energy <= 0 ? 0.75 : 1);
+  const terrain = getTerrainStatus(state, world);
+  const speed = PLAYER_SPEED * terrain.speed * (state.tools.boots && terrain.terrain === "meadow" ? 1.2 : 1)
+    * (player.energy <= 0 ? 0.75 : 1);
   const dashTime = Math.min(dt, Math.max(0, player.dashRemaining));
   if (dashTime > 0) {
-    moveWithCollision(state, world, player.dashX * DASH_SPEED * dashTime, player.dashY * DASH_SPEED * dashTime);
+    moveDash(state, world, player.dashX, player.dashY, dashTime);
     const remainingTime = dt - dashTime;
     if (remainingTime > 0 && (direction.x || direction.y)) {
-      moveWithCollision(state, world, direction.x * speed * remainingTime, direction.y * speed * remainingTime);
+      const currentSpeed = PLAYER_SPEED * getTerrainStatus(state, world).speed
+        * (state.tools.boots && getTerrainStatus(state, world).terrain === "meadow" ? 1.2 : 1)
+        * (player.energy <= 0 ? 0.75 : 1);
+      moveWithCollision(state, world, direction.x * currentSpeed * remainingTime,
+        direction.y * currentSpeed * remainingTime);
     }
     player.dashRemaining = Math.max(0, player.dashRemaining - dt);
   } else if (direction.x || direction.y) {
     moveWithCollision(state, world, direction.x * speed * dt, direction.y * speed * dt);
+  }
+  return Math.hypot(player.x - beforeX, player.y - beforeY) > 1e-9;
+}
+
+function isDryWalkable(state, world, x, y) {
+  const terrain = tileAt(world, x, y);
+  if (terrain === undefined) return false;
+  if (terrain === "water" && !bridgeAt(state, x, y)) return false;
+  if (terrain === "mountain" && !state.tools?.boots) return false;
+  return canOccupy(state, world, x, y);
+}
+
+function rememberShore(state, world) {
+  const player = state.player;
+  if (isDryWalkable(state, world, player.x, player.y)) {
+    player.lastShore = { x: player.x, y: player.y };
+  }
+}
+
+function rescueFromWater(state, world, reason) {
+  const player = state.player;
+  const shore = player.lastShore;
+  let destination = shore && isDryWalkable(state, world, shore.x, shore.y) ? shore : null;
+  if (!destination && isDryWalkable(state, world, 0, 0)) destination = { x: 0, y: 0 };
+  // The generated starting clearing is always dry. Keep the camp fallback
+  // available even when the caller has no loaded world to inspect.
+  if (!destination) destination = { x: 0, y: 0 };
+  player.x = destination.x;
+  player.y = destination.y;
+  player.lastShore = { x: destination.x, y: destination.y };
+  player.hp = Math.max(1, player.hp - 15);
+  player.energy = Math.max(20, player.energy);
+  player.air = MAX_AIR;
+  player.swimming = false;
+  player.diving = false;
+  player.dashRemaining = 0;
+  player.dashQueued = false;
+  player.invulnerability = Math.max(player.invulnerability, 1.5);
+  pushEvent(state, "water-rescue", reason === "air"
+    ? "Out of air. You surface at the last safe shore, shaken but safe."
+    : "Exhausted in the water. You make it back to the last safe shore.", player.x, player.y);
+  pushEffect(state, "rescue", player.x, player.y, 0.65);
+}
+
+function terrainEnergyRate(state, terrainStatus) {
+  if (terrainStatus.terrain === "water") return state.tools?.fins ? 0.8 : 2;
+  if (terrainStatus.terrain === "marsh") return 0.7;
+  if (terrainStatus.terrain === "shallows") return 0.15;
+  if (terrainStatus.terrain === "mountain" && state.tools?.boots) return 1;
+  return 0;
+}
+
+function updateWaterState(state, controls, dt, world, moved) {
+  const player = state.player;
+  rememberShore(state, world);
+  const status = getTerrainStatus(state, world);
+  player.swimming = status.swimming;
+  if (!player.swimming) player.diving = false;
+
+  const diveHeld = Boolean(controls.dive);
+  const divePressed = diveHeld && !player.diveHeld;
+  if (divePressed) {
+    if (player.swimming) {
+      player.diving = !player.diving;
+      pushEvent(state, player.diving ? "dive" : "surface", player.diving
+        ? "You dive beneath the surface. Watch your air."
+        : "You return to the surface to breathe.");
+    } else {
+      pushEvent(state, "hint", "You need to be swimming before you can dive.");
+    }
+  }
+  player.diveHeld = diveHeld;
+
+  if (player.diving && player.swimming) player.air = Math.max(0, player.air - 8 * dt);
+  else player.air = Math.min(MAX_AIR, player.air + 25 * dt);
+  if (moved) {
+    const energyCost = terrainEnergyRate(state, getTerrainStatus(state, world));
+    player.energy = Math.max(0, player.energy - energyCost * dt);
+  }
+
+  if (player.swimming && player.diving && player.air <= 0) {
+    rescueFromWater(state, world, "air");
+  } else if (player.swimming && player.energy <= 0) {
+    rescueFromWater(state, world, "energy");
+  }
+}
+
+function reportTerrainTransition(state, previous, current) {
+  if (previous.terrain === current.terrain) return;
+  if (current.terrain === "water") {
+    pushEvent(state, "terrain", "The ground gives way to open water. Swim steadily; press R to dive, and watch your energy.");
+  } else if (previous.terrain === "water" && !current.swimming) {
+    pushEvent(state, "terrain", "You reach dry ground and surface to breathe.");
+  } else if (current.terrain === "marsh") {
+    pushEvent(state, "terrain", "The marsh slows your steps and drains energy while you move.");
+  } else if (current.terrain === "forest") {
+    pushEvent(state, "terrain", "The forest slows you, but its cover makes you harder for sentinels to notice.");
+  } else if (current.terrain === "shallows") {
+    pushEvent(state, "terrain", "You wade through the shallows; the water slows each step.");
   }
 }
 
@@ -335,6 +505,11 @@ function resolvePlayerAttack(state, world) {
 
 function updatePlayerAttack(state, input, dt, world) {
   const player = state.player;
+  if (player.diving) {
+    player.attackWindup = 0;
+    player.attackHeld = Boolean(input.attack);
+    return;
+  }
   if (player.attackCooldown > 0) player.attackCooldown = Math.max(0, player.attackCooldown - dt);
   if (player.attackWindup > 0) {
     player.attackWindup = Math.max(0, player.attackWindup - dt);
@@ -384,6 +559,20 @@ function interact(state, world) {
 
   const entity = nearestEntity(state, world, ["berry", "cache"], INTERACTION_RANGE);
   if (entity) {
+    if (entity.type === "cache" && entity.requiresDive
+        && (!player.swimming || !player.diving)) {
+      const message = "Dive below the surface to reach this cache.";
+      pushEvent(state, "hint", message, entity.x, entity.y);
+      return { ok: false, message };
+    }
+    if (entity.type === "cache" && entity.requiresDive
+        && (!entity.reward || typeof entity.reward !== "object"
+          || RESOURCE_TYPES.some((key) => !Number.isSafeInteger(entity.reward[key])
+            || entity.reward[key] < 0 || entity.reward[key] > MAX_RESOURCE))) {
+      const message = "The underwater cache is too damaged to read.";
+      pushEvent(state, "hint", message, entity.x, entity.y);
+      return { ok: false, message };
+    }
     if (!addUnique(state.harvested, entity.id, MAX_HARVESTED)) {
       const message = "Your field notes are full; record a discovery before gathering more.";
       pushEvent(state, "hint", message, entity.x, entity.y);
@@ -393,6 +582,15 @@ function interact(state, world) {
       const amount = Number.isSafeInteger(entity.amount) && entity.amount > 0 ? clamp(entity.amount, 1, 8) : 1;
       state.inventory.berries = Math.min(MAX_RESOURCE, state.inventory.berries + amount);
       pushEvent(state, "gather", `You gather ${amount} wild ${amount === 1 ? "berry" : "berries"}.`, entity.x, entity.y);
+    } else if (entity.requiresDive) {
+      for (const key of RESOURCE_TYPES) {
+        state.inventory[key] = Math.min(MAX_RESOURCE, state.inventory[key] + entity.reward[key]);
+      }
+      const recorded = addUnique(state.finds, entity.noteId, MAX_FINDS);
+      const note = typeof entity.note === "string" && entity.note ? ` ${entity.note}` : "";
+      pushEvent(state, "cache", recorded
+        ? `You recover the underwater cache and record its field note.${note}`
+        : `You recover the underwater cache.${note}`, entity.x, entity.y);
     } else {
       state.inventory.wood = Math.min(MAX_RESOURCE, state.inventory.wood + 1);
       state.inventory.stone = Math.min(MAX_RESOURCE, state.inventory.stone + 1);
@@ -572,7 +770,14 @@ function newEnemy(entity) {
 function syncEnemies(state, world) {
   const existing = new Map(state.enemies.map((enemy) => [enemy.id, enemy]));
   const visible = entitiesNear(world, state.player.x, state.player.y, 14)
-    .filter((entity) => entity.type === "sentinel" && !state.harvested.includes(entity.id))
+    .filter((entity) => {
+      if (entity.type !== "sentinel" || state.harvested.includes(entity.id)) return false;
+      const terrain = tileAt(world, entity.x, entity.y);
+      if (terrain === "water" && !bridgeAt(state, entity.x, entity.y)) return false;
+      if (terrain === "mountain") return false;
+      if (state.player.swimming && distance(state.player.x, state.player.y, entity.x, entity.y) < 1) return false;
+      return true;
+    })
     .map((entity) => ({ entity, distance: distance(state.player.x, state.player.y, entity.x, entity.y) }))
     .filter(({ distance: range }) => range <= 14)
     .sort((a, b) => a.distance - b.distance || a.entity.id.localeCompare(b.entity.id))
@@ -599,7 +804,7 @@ function moveEnemy(state, enemy, dx, dy, world) {
 
 function hitPlayer(state, enemy, world) {
   const player = state.player;
-  if (player.invulnerability > 0 || player.dashRemaining > 0 || playerSafe(state)) return false;
+  if (player.swimming || player.invulnerability > 0 || player.dashRemaining > 0 || playerSafe(state)) return false;
   player.hp = Math.max(0, player.hp - 18);
   player.invulnerability = 0.9;
   const away = normalizeVector(player.x - enemy.x, player.y - enemy.y);
@@ -611,11 +816,19 @@ function hitPlayer(state, enemy, world) {
 
 function updateEnemies(state, world, dt) {
   const night = isNight(state.time);
+  const terrainStatus = getTerrainStatus(state, world);
   for (const enemy of state.enemies) {
     enemy.attackCooldown = Math.max(0, enemy.attackCooldown - dt);
     enemy.hurt = Math.max(0, enemy.hurt - dt);
     const range = distance(state.player.x, state.player.y, enemy.x, enemy.y);
     const safe = playerSafe(state);
+
+    if (terrainStatus.swimming) {
+      enemy.mode = "patrol";
+      enemy.windup = 0;
+      enemy.pursuitTime = 0;
+      continue;
+    }
 
     if (enemy.mode === "windup") {
       enemy.windup = Math.max(0, enemy.windup - dt);
@@ -631,7 +844,7 @@ function updateEnemies(state, world, dt) {
       else continue;
     }
 
-    const noticeRange = night ? 8.5 : 6;
+    const noticeRange = (night ? 8.5 : 6) * (terrainStatus.concealed ? 0.6 : 1);
     if (!safe && range <= noticeRange) {
       enemy.pursuitTime = 3;
       if (range <= 1.3 && enemy.attackCooldown <= 0) {
@@ -647,7 +860,7 @@ function updateEnemies(state, world, dt) {
     }
 
     enemy.pursuitTime = Math.max(0, enemy.pursuitTime - dt);
-    if (enemy.pursuitTime > 0 && !safe) {
+    if (enemy.pursuitTime > 0 && !safe && !terrainStatus.concealed) {
       enemy.mode = "pursue";
       const toward = normalizeVector(state.player.x - enemy.x, state.player.y - enemy.y);
       moveEnemy(state, enemy, toward.x * 0.8 * dt, toward.y * 0.8 * dt, world);
@@ -739,7 +952,11 @@ export function stepGame(state, input = {}, dt = 1 / 60, world = {}) {
 
   const rawX = finiteNumber(controls.x) ? clamp(controls.x, -1, 1) : 0;
   const rawY = finiteNumber(controls.y) ? clamp(controls.y, -1, 1) : 0;
-  movePlayer(state, rawX, rawY, dt, world);
+  rememberShore(state, world);
+  const previousTerrain = getTerrainStatus(state, world);
+  const moved = movePlayer(state, rawX, rawY, dt, world);
+  reportTerrainTransition(state, previousTerrain, getTerrainStatus(state, world));
+  updateWaterState(state, controls, dt, world, moved);
   syncEnemies(state, world);
 
   const eatPressed = Boolean(controls.eat) && !player.eatHeld;
@@ -778,6 +995,15 @@ function validatePersistentState(state) {
   if (!boundedNumber(state.player.hp, 0, 100) || !boundedNumber(state.player.energy, 0, 100)) {
     throw new TypeError("player health or energy is invalid");
   }
+  if (typeof state.player.swimming !== "boolean" || typeof state.player.diving !== "boolean"
+      || (state.player.diving && !state.player.swimming)
+      || !boundedNumber(state.player.air, 0, MAX_AIR)) throw new TypeError("player water state is invalid");
+  if (!state.player.lastShore || typeof state.player.lastShore !== "object"
+      || Array.isArray(state.player.lastShore)
+      || !boundedNumber(state.player.lastShore.x, -MAX_COORDINATE, MAX_COORDINATE)
+      || !boundedNumber(state.player.lastShore.y, -MAX_COORDINATE, MAX_COORDINATE)) {
+    throw new TypeError("player last shore is invalid");
+  }
   if (!state.player.facing || !boundedNumber(state.player.facing.x, -1, 1)
       || !boundedNumber(state.player.facing.y, -1, 1)) throw new TypeError("player facing is invalid");
   if (!boundedNumber(state.player.dashCooldown, 0, 10)) throw new TypeError("dash cooldown is invalid");
@@ -804,7 +1030,7 @@ function validatePersistentState(state) {
       for (const key of RESOURCE_TYPES) requireBoundedInteger(structure.contents[key], 0, MAX_RESOURCE, `recovery cache ${key}`);
     }
   }
-  for (const [key, cap] of [["harvested", MAX_HARVESTED], ["discoveries", MAX_DISCOVERIES]]) {
+  for (const [key, cap] of [["harvested", MAX_HARVESTED], ["discoveries", MAX_DISCOVERIES], ["finds", MAX_FINDS]]) {
     const values = state[key];
     if (!Array.isArray(values) || values.length > cap) throw new TypeError(`${key} are invalid`);
     const seen = new Set();
@@ -830,6 +1056,10 @@ export function serializeGame(state) {
       energy: state.player.energy,
       facing: { x: state.player.facing.x, y: state.player.facing.y },
       dashCooldown: state.player.dashCooldown,
+      swimming: state.player.swimming,
+      diving: state.player.diving,
+      air: state.player.air,
+      lastShore: { x: state.player.lastShore.x, y: state.player.lastShore.y },
     },
     inventory: {
       wood: state.inventory.wood,
@@ -844,6 +1074,7 @@ export function serializeGame(state) {
       : { id: structure.id, kind: structure.kind, x: structure.x, y: structure.y }),
     harvested: [...state.harvested],
     discoveries: [...state.discoveries],
+    finds: [...state.finds],
     restored: state.restored,
     time: state.time,
   };
@@ -858,7 +1089,7 @@ export function restoreGame(text, seed) {
     const parsed = JSON.parse(text);
     const expectedSeed = normalizeSeed(seed);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)
-        || parsed.version !== VERSION || parsed.seed !== expectedSeed) return null;
+        || ![VERSION, LEGACY_VERSION].includes(parsed.version) || parsed.seed !== expectedSeed) return null;
     const state = createGame(expectedSeed);
     state.player.x = parsed.player?.x;
     state.player.y = parsed.player?.y;
@@ -866,6 +1097,21 @@ export function restoreGame(text, seed) {
     state.player.energy = parsed.player?.energy;
     state.player.facing = parsed.player?.facing;
     state.player.dashCooldown = parsed.player?.dashCooldown;
+    if (parsed.version === VERSION) {
+      state.player.swimming = parsed.player?.swimming;
+      state.player.diving = parsed.player?.diving;
+      state.player.air = parsed.player?.air;
+      state.player.lastShore = parsed.player?.lastShore;
+      state.finds = parsed.finds;
+    } else {
+      // Version 2 did not track swimming. Existing expeditions resume at their
+      // original position with full air and the beacon camp as a safe fallback.
+      state.player.swimming = false;
+      state.player.diving = false;
+      state.player.air = MAX_AIR;
+      state.player.lastShore = { x: 0, y: 0 };
+      state.finds = [];
+    }
     state.inventory = parsed.inventory;
     state.tools = parsed.tools;
     state.structures = parsed.structures;

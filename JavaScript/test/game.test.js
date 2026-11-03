@@ -25,6 +25,7 @@ import {
   interact,
   serializeGame,
   restoreGame,
+  getTerrainStatus,
   getWorldPhase,
   isNight,
 } from "../../examples/world/game.js";
@@ -64,23 +65,294 @@ test("movement keeps diagonal speed equal to straight-line speed", () => {
   );
 });
 
-test("movement collides with water and unharvested blocking resources", () => {
+test("water is swimmable, resources still block movement, and boots enable mountain scrambling", () => {
   const state = createGame("42");
   const world = makeWorld({
-    terrain: (x) => (x === 1 ? "water" : "meadow"),
-    entities: [{ id: "tree:1:0", type: "tree", x: 1, y: 0, blocking: true }],
+    terrain: (x) => (x >= 1 ? "water" : "meadow"),
   });
 
   stepGame(state, { x: 1, y: 0 }, 0.5, world);
+  assert.ok(state.player.x > 1);
+  assert.equal(state.player.swimming, true);
 
-  assert.ok(state.player.x < 1);
+  const blocked = createGame("42");
+  const treeWorld = makeWorld({
+    entities: [{ id: "tree:1:0", type: "tree", x: 1, y: 0, blocking: true }],
+  });
+  stepGame(blocked, { x: 1, y: 0 }, 0.5, treeWorld);
+  assert.ok(blocked.player.x < 1);
+
+  const climber = createGame("42");
+  const mountain = makeWorld({ terrain: (x) => (x >= 1 ? "mountain" : "meadow") });
+  stepGame(climber, { x: 1, y: 0 }, 0.5, mountain);
+  assert.ok(climber.player.x < 1);
+  climber.tools.boots = true;
+  stepGame(climber, { x: 1, y: 0 }, 0.5, mountain);
+  assert.ok(climber.player.x > 1);
 });
 
-test("a buffered dash starts when its cooldown expires and cannot cross blocked terrain", () => {
+test("terrain status reports movement modifiers, concealment, swimming, and bridge crossings", () => {
+  const state = createGame("42");
+  const world = makeWorld({ terrain: () => "water" });
+  assert.deepEqual(getTerrainStatus(state, world), {
+    terrain: "water",
+    label: "Open water",
+    description: "Swimming takes effort; fins make the crossing easier.",
+    speed: 0.52,
+    swimming: true,
+    diving: false,
+    air: 100,
+    concealed: false,
+  });
+
+  state.tools.fins = true;
+  assert.equal(getTerrainStatus(state, world).speed, 0.8);
+  state.player.x = 0;
+  state.player.y = 0;
+  state.structures.push({ id: "bridge:0:0", kind: "bridge", x: 0, y: 0 });
+  assert.equal(getTerrainStatus(state, world).terrain, "bridge");
+  assert.equal(getTerrainStatus(state, world).swimming, false);
+
+  state.structures.length = 0;
+  const forest = makeWorld({ terrain: () => "forest" });
+  assert.equal(getTerrainStatus(state, forest).speed, 0.9);
+  assert.equal(getTerrainStatus(state, forest).concealed, true);
+  assert.equal(getTerrainStatus(state, makeWorld({ terrain: () => "path" })).label, "Old trail");
+  assert.equal(getTerrainStatus(state, makeWorld({ terrain: () => "path" })).speed, 1.05);
+  const hill = makeWorld({ terrain: () => "hill" });
+  assert.equal(getTerrainStatus(state, hill).speed, 0.8);
+  state.tools.boots = true;
+  assert.equal(getTerrainStatus(state, hill).speed, 0.95);
+  const marsh = makeWorld({ terrain: () => "marsh" });
+  assert.equal(getTerrainStatus(state, marsh).speed, 0.85);
+  const mountain = makeWorld({ terrain: () => "mountain" });
+  assert.equal(getTerrainStatus(state, mountain).speed, 0.55);
+});
+
+test("water drains energy only while moving, and fins improve swimming pace and stamina", () => {
+  const world = makeWorld({ terrain: () => "water" });
+  const idle = createGame("42");
+  stepGame(idle, {}, 1, world);
+  assert.ok(idle.player.energy > 99.9);
+
+  const swimmer = createGame("42");
+  stepGame(swimmer, { x: 1, y: 0 }, 1, world);
+  assert.ok(swimmer.player.energy < 98.1);
+  assert.equal(swimmer.player.swimming, true);
+
+  const finned = createGame("42");
+  finned.tools.fins = true;
+  stepGame(finned, { x: 1, y: 0 }, 1, world);
+  assert.ok(finned.player.energy > swimmer.player.energy + 1);
+  assert.ok(finned.player.x > swimmer.player.x);
+  assert.deepEqual(RECIPES.fins.cost, { wood: 2, stone: 2, berries: 3 });
+});
+
+test("dive toggles only on a press, consumes air underwater, and restores it at the surface", () => {
+  const state = createGame("42");
+  const world = makeWorld({ terrain: () => "water" });
+
+  stepGame(state, { dive: true }, 0.25, world);
+  assert.equal(state.player.diving, true);
+  assert.ok(state.player.air < 99);
+  const submergedAir = state.player.air;
+  stepGame(state, { dive: true }, 0.25, world);
+  assert.equal(state.player.diving, true);
+  assert.ok(state.player.air < submergedAir);
+
+  stepGame(state, {}, 0.01, world);
+  stepGame(state, { dive: true }, 0.25, world);
+  assert.equal(state.player.diving, false);
+  assert.ok(state.player.air > submergedAir);
+
+  stepGame(state, { x: 1, y: 0 }, 1, makeWorld({ terrain: (x) => (x < 1 ? "water" : "meadow") }));
+  assert.equal(state.player.diving, false);
+});
+
+test("entering water, marsh, and forest explains their effects once per tile transition", () => {
+  const state = createGame("42");
+  const world = makeWorld({ terrain: (x) => (x >= 1 ? "water" : "meadow") });
+  state.player.x = 0.49;
+  stepGame(state, { x: 1, y: 0 }, 0.1, world);
+  const waterEvents = state.events.filter((event) => event.type === "terrain");
+  assert.equal(waterEvents.length, 1);
+  assert.match(waterEvents[0].text, /press R to dive/i);
+  stepGame(state, { x: 1, y: 0 }, 0.1, world);
+  assert.equal(state.events.filter((event) => event.type === "terrain").length, 1);
+
+  state.player.x = 0.49;
+  stepGame(state, { x: 1, y: 0 }, 0.1, makeWorld({ terrain: (x) => (x >= 1 ? "marsh" : "meadow") }));
+  assert.ok(state.events.some((event) => event.type === "terrain" && /marsh slows/i.test(event.text)));
+  state.player.x = 0.49;
+  stepGame(state, { x: 1, y: 0 }, 0.1, makeWorld({ terrain: (x) => (x >= 1 ? "forest" : "meadow") }));
+  assert.ok(state.events.some((event) => event.type === "terrain" && /harder for sentinels/i.test(event.text)));
+});
+
+test("swim strokes use the slower dash speed and a land dash slows when it enters water", () => {
+  const water = makeWorld({ terrain: () => "water" });
+  const swimmer = createGame("42");
+  swimmer.player.facing = { x: 1, y: 0 };
+  stepGame(swimmer, { x: 1, y: 0, dash: true }, 0.16, water);
+  assert.ok(swimmer.player.x > 0.8 && swimmer.player.x < 1.1);
+
+  const shoreline = createGame("42");
+  shoreline.player.facing = { x: 1, y: 0 };
+  stepGame(shoreline, { x: 1, y: 0, dash: true }, 0.16,
+    makeWorld({ terrain: (x) => (x >= 1 ? "water" : "meadow") }));
+  assert.ok(shoreline.player.x < 1.5);
+});
+
+test("underwater caches require a dive and award their exact reward and separate field note", () => {
+  const state = createGame("42");
+  const cache = {
+    id: "cache:lake:1",
+    type: "cache",
+    x: 1,
+    y: 0,
+    requiresDive: true,
+    noteId: "note:lake",
+    note: "A brass marker points beneath the reef.",
+    reward: { wood: 2, stone: 4, berries: 1 },
+  };
+  const world = makeWorld({ entities: [cache] });
+
+  state.player.swimming = true;
+  assert.equal(interact(state, world).ok, false);
+  assert.deepEqual(state.inventory, { wood: 0, stone: 0, berries: 0, campfires: 0, bridges: 0 });
+  assert.deepEqual(state.finds, []);
+
+  state.player.diving = true;
+  assert.equal(interact(state, world).ok, true);
+  assert.deepEqual(state.inventory, { wood: 2, stone: 4, berries: 1, campfires: 0, bridges: 0 });
+  assert.deepEqual(state.finds, ["note:lake"]);
+  assert.match(state.events.at(-1).text, /brass marker/i);
+  state.player.x = -3;
+  assert.equal(interact(state, world).ok, false);
+  assert.deepEqual(state.finds, ["note:lake"]);
+
+  const fullNotes = createGame("43");
+  fullNotes.player.swimming = true;
+  fullNotes.player.diving = true;
+  fullNotes.finds = Array.from({ length: 32 }, (_, index) => `note:${index}`);
+  const secondCache = { ...cache, id: "cache:lake:2", noteId: "note:extra" };
+  assert.equal(interact(fullNotes, makeWorld({ entities: [secondCache] })).ok, true);
+  assert.equal(fullNotes.finds.length, 32);
+  assert.equal(fullNotes.finds.includes("note:extra"), false);
+});
+
+test("air or swimming-energy exhaustion rescues to the last dry shore with one damage penalty", () => {
+  const shoreline = makeWorld({ terrain: (x) => (x >= 1 ? "water" : "meadow") });
+  const airState = createGame("42");
+  airState.player.x = 1;
+  airState.player.swimming = true;
+  airState.player.diving = true;
+  airState.player.air = 0.1;
+  airState.player.hp = 60;
+  airState.player.lastShore = { x: 0, y: 0 };
+  stepGame(airState, {}, 0.1, shoreline);
+  assert.deepEqual({ x: airState.player.x, y: airState.player.y }, { x: 0, y: 0 });
+  assert.equal(airState.player.hp, 45);
+  assert.ok(airState.player.invulnerability > 0);
+  for (let index = 0; index < 5; index += 1) stepGame(airState, {}, 0.1, shoreline);
+  assert.equal(airState.player.hp, 45);
+
+  const tired = createGame("42");
+  tired.player.x = 1;
+  tired.player.swimming = true;
+  tired.player.energy = 0.1;
+  tired.player.lastShore = { x: 0, y: 0 };
+  stepGame(tired, { x: 1, y: 0 }, 0.1, shoreline);
+  assert.deepEqual({ x: tired.player.x, y: tired.player.y }, { x: 0, y: 0 });
+  assert.equal(tired.player.hp, 85);
+});
+
+test("forest concealment reduces sentinel notice and enemies cannot cross or appear in water", () => {
+  const forest = createGame("42");
+  forest.player.x = 0;
+  const distant = {
+    id: "sentinel:-4:0", type: "sentinel", x: -4, y: 0, blocking: true,
+  };
+  stepGame(forest, {}, 0.1, makeWorld({ terrain: () => "forest", entities: [distant] }));
+  assert.equal(forest.enemies[0]?.mode, "patrol");
+
+  const swimmer = createGame("42");
+  swimmer.player.x = 0;
+  const waterWorld = makeWorld({
+    terrain: (x) => (x >= 0 ? "water" : "meadow"),
+    entities: [{ id: "sentinel:0:0", type: "sentinel", x: 0, y: 0, blocking: true }],
+  });
+  stepGame(swimmer, {}, 0.1, waterWorld);
+  assert.deepEqual(swimmer.enemies, []);
+
+  const shoreEnemy = { id: "sentinel:-2:0", type: "sentinel", x: -2, y: 0, blocking: true };
+  waterWorld.entitiesNear = (x, y, radius) => [shoreEnemy]
+    .filter((entity) => Math.hypot(entity.x - x, entity.y - y) <= radius);
+  for (let index = 0; index < 20; index += 1) stepGame(swimmer, {}, 0.1, waterWorld);
+  assert.ok(swimmer.enemies.every((enemy) => enemy.x < 0));
+  assert.equal(swimmer.player.hp, 100);
+});
+
+test("save format v3 persists water state and migrates a v2 save without losing progress", () => {
+  const state = createGame("2026");
+  state.player.x = 12;
+  state.player.y = -3;
+  state.player.swimming = true;
+  state.player.diving = true;
+  state.player.air = 47.5;
+  state.player.lastShore = { x: 9, y: -3 };
+  state.finds.push("note:reef");
+  state.inventory.wood = 7;
+  state.tools.fins = true;
+  state.discoveries.push("old-story-progress");
+  const text = serializeGame(state);
+  const restored = restoreGame(text, "2026");
+
+  assert.equal(JSON.parse(text).version, "verdant-expedition-3");
+  assert.equal(restored.player.swimming, true);
+  assert.equal(restored.player.diving, true);
+  assert.equal(restored.player.air, 47.5);
+  assert.deepEqual(restored.player.lastShore, { x: 9, y: -3 });
+  assert.deepEqual(restored.finds, ["note:reef"]);
+  assert.equal(restored.inventory.wood, 7);
+  assert.equal(restored.tools.fins, true);
+  assert.deepEqual(restored.discoveries, ["old-story-progress"]);
+
+  const legacy = JSON.parse(text);
+  legacy.version = "verdant-expedition-2";
+  delete legacy.player.swimming;
+  delete legacy.player.diving;
+  delete legacy.player.air;
+  delete legacy.player.lastShore;
+  delete legacy.finds;
+  const migrated = restoreGame(JSON.stringify(legacy), "2026");
+  assert.ok(migrated);
+  assert.equal(migrated.version, "verdant-expedition-3");
+  assert.equal(migrated.player.x, 12);
+  assert.equal(migrated.player.air, 100);
+  assert.equal(migrated.player.diving, false);
+  assert.deepEqual(migrated.player.lastShore, { x: 0, y: 0 });
+  assert.deepEqual(migrated.finds, []);
+  assert.equal(migrated.tools.fins, true);
+
+  const corrupted = JSON.parse(text);
+  corrupted.player.air = 101;
+  assert.equal(restoreGame(JSON.stringify(corrupted), "2026"), null);
+  corrupted.player.air = 47.5;
+  corrupted.player.lastShore.x = 1_000_001;
+  assert.equal(restoreGame(JSON.stringify(corrupted), "2026"), null);
+  corrupted.player.lastShore.x = 9;
+  corrupted.player.diving = "yes";
+  assert.equal(restoreGame(JSON.stringify(corrupted), "2026"), null);
+  corrupted.player.diving = true;
+  corrupted.finds = ["note:duplicate", "note:duplicate"];
+  assert.equal(restoreGame(JSON.stringify(corrupted), "2026"), null);
+});
+
+test("a buffered dash starts when its cooldown expires and cannot cross a mountain", () => {
   const state = createGame("42");
   state.player.facing = { x: 1, y: 0 };
   state.player.dashCooldown = 0.3;
-  const world = makeWorld({ terrain: (x) => (x >= 1 ? "water" : "meadow") });
+  const world = makeWorld({ terrain: (x) => (x >= 1 ? "mountain" : "meadow") });
 
   stepGame(state, { dash: true }, 0.1, world);
   stepGame(state, {}, 0.25, world);
