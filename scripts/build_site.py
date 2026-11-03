@@ -40,6 +40,10 @@ def build(output):
             "SPEC_HELPERS_V1.md",
             "docs/RNG_ANALYSIS.md",
             "docs/CAPABILITIES.md",
+            "docs/API.md",
+            "C/C Manual.md",
+            "tests/conformance-v1.json",
+            "scripts/generate_conformance.py",
         )
     }
     files.update(

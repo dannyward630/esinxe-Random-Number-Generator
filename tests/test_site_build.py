@@ -1,9 +1,11 @@
 """Site generation must not erase source or unrelated output directories."""
 
 import importlib.util
+import re
 import tempfile
 import unittest
 from pathlib import Path
+from urllib.parse import unquote
 
 ROOT = Path(__file__).resolve().parents[1]
 spec = importlib.util.spec_from_file_location(
@@ -14,6 +16,18 @@ spec.loader.exec_module(builder)
 
 
 class SiteBuildTests(unittest.TestCase):
+    def test_generated_documentation_links_resolve_within_site(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            output = builder.build(Path(temporary).resolve() / "site")
+            for document in output.rglob("*.md"):
+                text = document.read_text(encoding="utf-8")
+                text = re.sub(r"(?ms)^```[^\n]*\n.*?^```[ \t]*$", "", text)
+                for target in re.findall(r"\[[^\]]+\]\(([^)]+)\)", text):
+                    if target.startswith(("https://", "http://", "#")):
+                        continue
+                    resolved = document.parent / unquote(target.split("#", 1)[0])
+                    self.assertTrue(resolved.exists(), f"{document.name}: {target}")
+
     def test_refuses_repository_and_ancestors(self):
         for path in (ROOT, ROOT.parent, Path("/")):
             with self.assertRaises(ValueError):

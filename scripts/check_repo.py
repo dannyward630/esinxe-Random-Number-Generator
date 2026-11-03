@@ -38,6 +38,7 @@ GENERATED_PARTS = {
     ".pytest_cache",
     ".ruff_cache",
     ".venv",
+    "_site",
     "__pycache__",
     "build",
     "dist",
