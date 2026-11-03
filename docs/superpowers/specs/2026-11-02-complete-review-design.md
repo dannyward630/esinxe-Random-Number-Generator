@@ -1,0 +1,15 @@
+# Complete the esinxe review
+
+The user approved fixing all reviewed issues, adding the proposed capabilities, and merging the result into the public repository. Work builds on existing hardening PR #12; its frozen v1 vectors must remain byte-for-byte unchanged. Registry publication is outside this request.
+
+Preserve the ten existing ports and dependency-free runtime design. Fix Windows test discovery, compiler selection, explicit UTF-8 file generation, and Unicode subprocess source; add Windows CI. Add a language-neutral corpus consumed by every port and a capability matrix with exact numeric/error boundaries. Add explicit-length C string/coordinate namespace helpers.
+
+Scoped fields snapshot the seed and copy the caller's typed key prefix. `scope(prefix...).raw(key...)` equals the parent `raw(prefix..., key...)`; nested scopes concatenate prefixes. Helpers encode the reserved helper domain before the prefix. Scope affects only keyed calls; legacy stream generation remains seed/offset based. Rescoping/reseeding one instance cannot mutate another. Mutable byte keys are copied (C uses explicitly documented caller-owned buffers).
+
+`sample(items, count, key...)` copies and Fisher-Yates shuffles the input, descending from `length-1` to `1`, using the new reserved domain `sample-v1`, followed by scope prefix, user keys, and unsigned iteration index, with bound `index+1`. Return the first `count` items. Count must be an integer in `[0,length]`; input order is preserved and duplicate input values represent distinct positions. The full permutation is independent of requested count. Invalid key inputs must be rejected even when count is zero. New semantics are specified separately from the frozen v1 spec.
+
+Prepared weighted choices copy item and weight sequences, validate nonzero equal lengths, nonnegative integer weights, and uint64 nonzero total once, and retain cumulative totals. They snapshot the field seed/prefix. Choosing a value computes the same bounded target as `weightedChoice` and finds the first cumulative total greater than it by binary search, so all selections match the existing helper, including zero weights. C exposes an index-based owned cumulative-weight structure with explicit free/init functions; other ports use idiomatic collection objects. Callers' later sequence or generator mutations do not change the prepared choice.
+
+Python adds public generic stubs and a `py.typed` marker plus installed-wheel consumer/type checks. New convenience APIs are additive; existing algorithm constants, encoding, retry sequence, domains, stream outputs, and old vectors are unchanged. Retain the current package version until a separately requested release; record changes under Unreleased.
+
+Approach chosen by the implementer: keep the existing source-first port layout and add the same helpers to every port, rather than releasing divergent APIs or replacing v1. Tests precede fixes/features. Use parallel work on disjoint port files, then independently review and run the integrated suite. Hosted checks must pass before merge; verify public main and Pages afterward. The user already authorized public pushes and merges.

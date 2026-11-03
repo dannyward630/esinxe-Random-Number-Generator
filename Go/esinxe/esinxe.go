@@ -2,7 +2,11 @@
 // compatible random-access stream for non-cryptographic procedural software.
 package esinxe
 
-import "errors"
+import (
+	"errors"
+	"sort"
+	"unicode/utf8"
+)
 
 const (
 	GoldenGamma    = uint64(0x9E3779B97F4A7C15)
@@ -37,6 +41,9 @@ func U64(value uint64) Key {
 }
 
 func String(value string) Key {
+	if !utf8.ValidString(value) {
+		panic("esinxe: string keys must be valid UTF-8; use Bytes for arbitrary bytes")
+	}
 	return Key{kind: StringKey, data: []byte(value)}
 }
 
@@ -91,6 +98,9 @@ func hashLength(hash uint64, length int) uint64 {
 }
 
 func hashKey(hash uint64, key Key) uint64 {
+	if key.kind < SignedKey || key.kind > BytesKey {
+		panic("esinxe: invalid key kind; construct keys with I64, U64, String, or Bytes")
+	}
 	hash = fnvUpdate(hash, []byte{byte(key.kind)})
 	if key.kind == SignedKey || key.kind == UnsignedKey {
 		encoded := littleEndian64(key.value)
@@ -116,9 +126,10 @@ func keyedRaw(seed uint64, keys []Key, domain string) uint64 {
 }
 
 type Random struct {
-	seed  uint64
-	index uint64
-	key   uint64
+	seed   uint64
+	index  uint64
+	key    uint64
+	prefix []Key
 }
 
 func New(seed uint64) *Random {
@@ -143,7 +154,24 @@ func (r *Random) NextRaw() uint64 {
 }
 
 func (r *Random) Raw(keys ...Key) uint64 {
-	return keyedRaw(r.seed, keys, "")
+	return r.fieldRaw(keys, "")
+}
+
+// Scope snapshots the seed and owns copies of the concatenated typed prefix.
+// Its stream starts independently at offset zero.
+func (r *Random) Scope(keys ...Key) *Random {
+	scoped := New(r.seed)
+	for _, key := range append(append([]Key(nil), r.prefix...), keys...) {
+		hashKey(FNVOffsetBasis, key) // Reject invalid keys even without a later draw.
+		key.data = append([]byte(nil), key.data...)
+		scoped.prefix = append(scoped.prefix, key)
+	}
+	return scoped
+}
+
+func (r *Random) fieldRaw(keys []Key, domain string) uint64 {
+	combined := append(append([]Key(nil), r.prefix...), keys...)
+	return keyedRaw(r.seed, combined, domain)
 }
 
 func (r *Random) Int(maxValue uint64, keys ...Key) (uint64, error) {
@@ -171,7 +199,7 @@ func (r *Random) At2D(x int64, y int64, namespace *string) uint64 {
 	if namespace != nil {
 		keys = append(keys, String(*namespace))
 	}
-	return keyedRaw(r.seed, keys, "at2d")
+	return r.fieldRaw(keys, "at2d")
 }
 
 func (r *Random) At3D(x int64, y int64, z int64, namespace *string) uint64 {
@@ -179,7 +207,7 @@ func (r *Random) At3D(x int64, y int64, z int64, namespace *string) uint64 {
 	if namespace != nil {
 		keys = append(keys, String(*namespace))
 	}
-	return keyedRaw(r.seed, keys, "at3d")
+	return r.fieldRaw(keys, "at3d")
 }
 
 func (r *Random) ChanceRatio(numerator uint64, denominator uint64, keys ...Key) (bool, error) {
@@ -206,12 +234,65 @@ func Shuffle[T any](r *Random, items []T, keys ...Key) []T {
 	for index := len(values) - 1; index > 0; index-- {
 		iterationKeys := append(append([]Key(nil), keys...), U64(uint64(index)))
 		picked := bounded(
-			keyedRaw(r.seed, iterationKeys, "shuffle"),
+			r.fieldRaw(iterationKeys, "shuffle"),
 			uint64(index+1),
 		)
 		values[index], values[picked] = values[picked], values[index]
 	}
 	return values
+}
+
+// Sample returns the first count entries of a copied, count-independent
+// Fisher-Yates permutation under the reserved sample-v1 domain.
+func Sample[T any](r *Random, items []T, count int, keys ...Key) ([]T, error) {
+	if count < 0 || count > len(items) {
+		return nil, errors.New("count must be in [0, len(items)]")
+	}
+	for _, key := range keys {
+		hashKey(FNVOffsetBasis, key)
+	}
+	values := make([]T, len(items))
+	copy(values, items)
+	for index := len(values) - 1; index > 0; index-- {
+		iterationKeys := append(append([]Key(nil), keys...), U64(uint64(index)))
+		picked := bounded(r.fieldRaw(iterationKeys, "sample-v1"), uint64(index+1))
+		values[index], values[picked] = values[picked], values[index]
+	}
+	return values[:count], nil
+}
+
+// PreparedWeightedChoice owns slice copies and a field seed/prefix snapshot.
+// Item values are copied using Go assignment; referenced objects remain shared.
+type PreparedWeightedChoice[T any] struct {
+	field      *Random
+	items      []T
+	cumulative []uint64
+	total      uint64
+}
+
+func PrepareWeightedChoice[T any](r *Random, items []T, weights []uint64) (*PreparedWeightedChoice[T], error) {
+	if len(items) == 0 || len(items) != len(weights) {
+		return nil, errors.New("items and weights must have the same non-zero length")
+	}
+	prepared := &PreparedWeightedChoice[T]{field: r.Scope(), items: append([]T(nil), items...), cumulative: make([]uint64, len(weights))}
+	for index, weight := range weights {
+		next := prepared.total + weight
+		if next < prepared.total {
+			return nil, errors.New("total weight overflows uint64")
+		}
+		prepared.total = next
+		prepared.cumulative[index] = next
+	}
+	if prepared.total == 0 {
+		return nil, errors.New("total weight must be positive")
+	}
+	return prepared, nil
+}
+
+func (p *PreparedWeightedChoice[T]) Choose(keys ...Key) T {
+	target := bounded(p.field.Raw(keys...), p.total)
+	index := sort.Search(len(p.cumulative), func(i int) bool { return p.cumulative[i] > target })
+	return p.items[index]
 }
 
 func WeightedChoice[T any](r *Random, items []T, weights []uint64, keys ...Key) (T, error) {

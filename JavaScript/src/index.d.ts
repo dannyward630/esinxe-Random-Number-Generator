@@ -30,6 +30,7 @@ export declare class Random {
   nextRaw(): bigint;
   NextRaw(): bigint;
   raw(...keys: KeyComponent[]): bigint;
+  scope(...prefix: KeyComponent[]): Random;
   int(maxValue: IntegerInput, ...keys: KeyComponent[]): bigint;
   range(minValue: IntegerInput, maxValue: IntegerInput, ...keys: KeyComponent[]): bigint;
   float01(...keys: KeyComponent[]): number;
@@ -42,6 +43,8 @@ export declare class Random {
   ): boolean;
   choose<T>(items: readonly T[], ...keys: KeyComponent[]): T;
   shuffle<T>(items: readonly T[], ...keys: KeyComponent[]): T[];
+  sample<T>(items: readonly T[], count: number, ...keys: KeyComponent[]): T[];
+  prepareWeightedChoice<T>(items: readonly T[], integerWeights: readonly IntegerInput[]): PreparedWeightedChoice<T>;
   weightedChoice<T>(
     items: readonly T[],
     integerWeights: readonly IntegerInput[],
@@ -73,4 +76,9 @@ export declare class Random {
   NextListMax(length: number, maxValue: bigint | number | string): bigint[];
   nextListMinMax(length: number, minValue: bigint | number | string, maxValue: bigint | number | string): Array<bigint | null>;
   NextListMinMax(length: number, minValue: bigint | number | string, maxValue: bigint | number | string): Array<bigint | null>;
+}
+
+export declare class PreparedWeightedChoice<T> {
+  constructor(field: Random, items: readonly T[], integerWeights: readonly IntegerInput[]);
+  choose(...keys: KeyComponent[]): T;
 }

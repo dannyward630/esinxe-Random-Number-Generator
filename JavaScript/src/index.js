@@ -48,7 +48,8 @@ export function mix64(value) {
 }
 
 function boundedRaw(value, maxValue) {
-  maxValue = BigInt(maxValue);
+  maxValue = integer(maxValue, "maxValue", true);
+  if (maxValue > UINT64_SIZE) throw new RangeError("stream bound must not exceed 2^64");
   if (maxValue <= 0n) return 0n;
 
   const threshold = (UINT64_SIZE - maxValue) % maxValue;
@@ -89,21 +90,35 @@ function lengthPrefixed(tag, data) {
 
 function encodeComponent(component) {
   if (component?.esinxeType === "i64") {
+    const validated = i64(component.value);
     const encoded = new Uint8Array(9);
     encoded[0] = 0x01;
-    encoded.set(le64(component.value), 1);
+    encoded.set(le64(validated.value), 1);
     return encoded;
   }
   if (component?.esinxeType === "u64") {
+    const validated = u64(component.value);
     const encoded = new Uint8Array(9);
     encoded[0] = 0x02;
-    encoded.set(le64(component.value), 1);
+    encoded.set(le64(validated.value), 1);
     return encoded;
   }
   if (typeof component === "bigint" || typeof component === "number") {
     return encodeComponent(integer(component, "key component") < 0n ? i64(component) : u64(component));
   }
   if (typeof component === "string") {
+    // TextEncoder otherwise replaces unpaired UTF-16 surrogates with U+FFFD.
+    for (let i = 0; i < component.length; i++) {
+      const unit = component.charCodeAt(i);
+      if (unit >= 0xd800 && unit <= 0xdbff) {
+        const next = component.charCodeAt(++i);
+        if (!(next >= 0xdc00 && next <= 0xdfff)) {
+          throw new TypeError("string keys must contain valid Unicode scalar values");
+        }
+      } else if (unit >= 0xdc00 && unit <= 0xdfff) {
+        throw new TypeError("string keys must contain valid Unicode scalar values");
+      }
+    }
     return lengthPrefixed(0x03, encoder.encode(component));
   }
   if (component instanceof Uint8Array) {
@@ -126,15 +141,18 @@ function domainBytes(name) {
   return lengthPrefixed(0xf0, encoder.encode(name));
 }
 
-function keyedRaw(seed, keys, domain = null) {
+function keyedRaw(seed, keys, domain = null, prefix = []) {
   let hash = fnvUpdate(FNV_OFFSET_BASIS, V1_PREFIX);
   hash = fnvUpdate(hash, le64(seed));
   if (domain !== null) hash = fnvUpdate(hash, domainBytes(domain));
+  for (const key of prefix) hash = fnvUpdate(hash, key);
   for (const key of keys) hash = fnvUpdate(hash, encodeComponent(key));
   return mix64(hash);
 }
 
 export class Random {
+  #prefix = [];
+
   constructor(seed = Date.now()) {
     this.seed = integer(seed, "seed", true) & MASK_64;
     this.index = 0n;
@@ -175,7 +193,15 @@ export class Random {
   }
 
   raw(...keys) {
-    return keyedRaw(this.seed, keys);
+    return keyedRaw(this.seed, keys, null, this.#prefix);
+  }
+
+  scope(...prefix) {
+    const scoped = new Random(this.seed);
+    // Retain encoded copies so byte buffers and forged mutable typed keys cannot
+    // change this field after construction. Nested scopes retain key boundaries.
+    scoped.#prefix = [...this.#prefix, ...prefix.map(encodeComponent)];
+    return scoped;
   }
 
   int(maxValue, ...keys) {
@@ -203,13 +229,13 @@ export class Random {
   at2D(x, y, namespace) {
     const keys = [i64(x), i64(y)];
     if (namespace !== undefined && namespace !== null) keys.push(String(namespace));
-    return keyedRaw(this.seed, keys, "at2d");
+    return keyedRaw(this.seed, keys, "at2d", this.#prefix);
   }
 
   at3D(x, y, z, namespace) {
     const keys = [i64(x), i64(y), i64(z)];
     if (namespace !== undefined && namespace !== null) keys.push(String(namespace));
-    return keyedRaw(this.seed, keys, "at3d");
+    return keyedRaw(this.seed, keys, "at3d", this.#prefix);
   }
 
   chanceRatio(numerator, denominator, ...keys) {
@@ -230,11 +256,30 @@ export class Random {
     const values = Array.from(items);
     for (let index = values.length - 1; index > 0; index--) {
       const picked = Number(
-        boundedRaw(keyedRaw(this.seed, [...keys, u64(index)], "shuffle"), BigInt(index + 1))
+        boundedRaw(keyedRaw(this.seed, [...keys, u64(index)], "shuffle", this.#prefix), BigInt(index + 1))
       );
       [values[index], values[picked]] = [values[picked], values[index]];
     }
     return values;
+  }
+
+  sample(items, count, ...keys) {
+    if (!Number.isInteger(count) || count < 0 || count > items.length) {
+      throw new RangeError("count must be an integer in [0, items.length]");
+    }
+    keys.forEach(encodeComponent);
+    const values = Array.from(items);
+    for (let index = values.length - 1; index > 0; index--) {
+      const picked = Number(boundedRaw(
+        keyedRaw(this.seed, [...keys, u64(index)], "sample-v1", this.#prefix), BigInt(index + 1)
+      ));
+      [values[index], values[picked]] = [values[picked], values[index]];
+    }
+    return values.slice(0, count);
+  }
+
+  prepareWeightedChoice(items, integerWeights) {
+    return new PreparedWeightedChoice(this, items, integerWeights);
   }
 
   weightedChoice(items, integerWeights, ...keys) {
@@ -354,5 +399,41 @@ export class Random {
 
   NextListMinMax(length, minValue, maxValue) {
     return this.nextListMinMax(length, minValue, maxValue);
+  }
+}
+
+export class PreparedWeightedChoice {
+  #field;
+  #items;
+  #cumulative;
+  #total;
+
+  constructor(field, items, integerWeights) {
+    if (items.length === 0 || items.length !== integerWeights.length) {
+      throw new RangeError("items and weights must have the same non-zero length");
+    }
+    let total = 0n;
+    this.#cumulative = Array.from(integerWeights, (input) => {
+      const weight = integer(input, "weight");
+      if (weight < 0n) throw new RangeError("weights must be non-negative");
+      total += weight;
+      if (total > MASK_64) throw new RangeError("total weight overflows uint64");
+      return total;
+    });
+    if (total === 0n) throw new RangeError("total weight must be positive");
+    this.#total = total;
+    this.#items = Array.from(items);
+    this.#field = field.scope();
+  }
+
+  choose(...keys) {
+    const target = this.#field.int(this.#total, ...keys);
+    let low = 0, high = this.#cumulative.length;
+    while (low < high) {
+      const middle = low + Math.floor((high - low) / 2);
+      if (this.#cumulative[middle] <= target) low = middle + 1;
+      else high = middle;
+    }
+    return this.#items[low];
   }
 }

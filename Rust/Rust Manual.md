@@ -25,6 +25,37 @@ The keyed API also includes `float01`, `at_3d`, `choose`, and
 See [the shared API reference](../docs/API.md) and
 [the frozen algorithm specification](../SPEC_V1.md).
 
+## Scoped fields, sampling, and prepared weights
+
+```rust
+let terrain = field.scope(&[Key::Str("world"), Key::Bytes(&[1, 2])]);
+let locations = terrain.sample(&["hill", "lake", "wood"], 2, &[Key::Str("region")]).unwrap();
+let encounters = terrain.prepare_weighted_choice(&["common", "rare"], &[80, 20]).unwrap();
+let encounter = encounters.choose(&[Key::Str("tile"), Key::I64(-4)]);
+```
+
+`scope(&prefix)` snapshots the seed and owns the encoded typed prefix, so it
+does not borrow caller buffers. Nested scopes concatenate prefixes. Raw calls
+equal the parent raw call with keys prepended; helper domains precede prefixes.
+Scopes have independent streams starting at offset zero, and reseeding either
+field cannot change the other. Prefixes affect only keyed calls.
+
+`sample<T: Clone>(&items, count: usize, &keys)` returns `Result<Vec<T>, &str>`
+and copies the items before a descending Fisher-Yates permutation using
+`sample-v1`. A count above the length is an error; negative counts are excluded
+by `usize`. The first `count` positions are returned, and count does not affect
+the permutation. Duplicate values occupy distinct positions.
+
+`prepare_weighted_choice<T: Clone>(&items, &weights)` returns
+`Result<PreparedWeightedChoice<T>, &str>`. It clones the items, retains owned
+cumulative weights and the field snapshot, and validates equal nonzero lengths
+and a nonzero uint64 total with checked addition. `choose(&keys) -> &T` uses
+binary search and exactly matches `weighted_choice`, including zero weights.
+Item ownership follows `T::clone` (for example, cloning `Rc` retains sharing).
+These keyed operations never advance any stream. All tests inside the crate
+remain self-contained for packaged use; root tests generate additional checks
+directly from the shared conformance JSON without library dependencies.
+
 ## Test
 
 ```sh

@@ -23,6 +23,35 @@ The historical `Next*` methods remain available as stream conveniences. See
 [the shared API reference](../docs/API.md) and
 [the frozen algorithm specification](../SPEC_V1.md).
 
+## Scopes, sampling, and prepared choices
+
+```csharp
+var terrain = field.Scope(Esinxecs.Random.Key.String("terrain"));
+var selected = terrain.Sample(new[] { "oak", "pine", "birch" }, 2,
+    Esinxecs.Random.Key.U64(7));
+var species = terrain.PrepareWeightedChoice(
+    new[] { "oak", "pine", "birch" }, new ulong[] { 80, 18, 2 });
+string tree = species.Choose(Esinxecs.Random.Key.U64(7));
+```
+
+`Scope(params Key[])` snapshots the seed and typed prefix; nested scopes append
+keys. Key byte arrays and prefix arrays are copied. Helpers place their reserved
+domain before the prefix. Scoped streams start independently at the captured
+seed and keyed calls never advance them; reseeding one field leaves others alone.
+
+`Sample(items, int count, params Key[])` copies the input, runs the full descending
+Fisher-Yates permutation with domain `sample-v1`, then returns its first `count`
+positions. Count must be in `[0, items.Count]`; invalid keys are rejected even at
+zero. Duplicate values represent separate positions and changing count preserves
+the permutation's prefix.
+
+`PrepareWeightedChoice` returns `Random.PreparedWeightedChoice<T>`. It copies the
+item sequence and cumulative weights, validates equal nonzero lengths and a
+nonzero uint64 total, and snapshots the field. `Choose` uses binary search and
+matches `WeightedChoice`, including zero weights. Weights are `ulong`; overflow
+raises `OverflowException`, including in projects with checked arithmetic.
+Item objects themselves are shared; collection copying is shallow.
+
 ## Test
 
 ```sh

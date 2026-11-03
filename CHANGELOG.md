@@ -6,8 +6,31 @@ compatibility version is independent and is named explicitly.
 
 ## Unreleased
 
+### Added
+
+- Scoped typed key prefixes, deterministic sampling without replacement, and
+  prepared cumulative-weight choices across all ten ports, with copied snapshots
+  and a separate additive helper specification.
+- Independent shared conformance corpus covering numeric limits, multiple
+  rejection retries, UTF-8/NULs, namespaces, and the new helpers across ports.
+- Length-bearing C string/coordinate helpers and a documented capability matrix.
+- Generic Python stubs, `py.typed`, and installed-wheel runtime/type consumer tests.
+- Windows cross-language CI and Node 18 / Rust 1.70 / Go 1.22 minimum-runtime checks.
+
 ### Fixed
 
+- Windows compiler/launcher discovery, Unicode subprocess source, and explicit
+  source-file encoding; honored quoted `CC`/`CXX` compiler overrides.
+- Rust lockfile compatibility with the documented 1.70 compiler floor.
+
+- Preserved Python scalar/native batch parity for non-positive and full-width
+  bounds, and rejected oversized legacy bounds before they can hang or truncate.
+- Guarded C shuffle allocation/offset arithmetic and self-swaps.
+- Rejected malformed Unicode and forged typed keys in higher-level ports;
+  corrected Java wide signed ranges and C# checked-build encoding.
+- Replaced destructive site-output deletion with guarded writes and corrected
+  demo literals for normalized seeds and Rust string escapes.
+- Made Rust package tests self-contained and verified extracted packages in CI.
 - Made C instance APIs safe across translation units and moved the legacy
   process-wide stream state into one implementation file.
 - Aligned bounded keyed APIs to the largest portable upper bound,
@@ -16,6 +39,10 @@ compatibility version is independent and is named explicitly.
 
 ### Changed
 
+- Corrected overbroad uniformity/independence claims without changing algorithm
+  v1 or its existing golden vectors; expanded keyed, grid, and retry diagnostics.
+- Added native/fallback, sanitizer, Unicode, overflow, packaging, and site-output
+  regression coverage. See the [engineering evaluation](docs/EVALUATION_2026-09-03.md).
 - Added repository automation, project policies, metadata validation, and
   complete per-language documentation.
 
@@ -40,7 +67,7 @@ compatibility version is independent and is named explicitly.
 ### Added
 
 - Python package metadata and optional native batch acceleration.
-- Raw uint64 access, unbiased bounded ranges, and statistical regression tests.
+- Raw uint64 access, bounded ranges, and statistical regression tests.
 - Revived C, C++, C#, Python, and Ruby implementations.
 
 ## Historical prototype - 2022-12

@@ -64,7 +64,7 @@ private fun hashKey(initial: ULong, key: Key): ULong {
         is Key.I64 -> fnvULong(fnvByte(initial, 0x01), key.value.toULong())
         is Key.U64 -> fnvULong(fnvByte(initial, 0x02), key.value)
         is Key.StringValue -> {
-            val data = key.value.encodeToByteArray()
+            val data = key.value.encodeToByteArray(throwOnInvalidSequence = true)
             fnvUpdate(fnvULong(fnvByte(initial, 0x03), data.size.toULong()), data)
         }
         is Key.BytesValue ->
@@ -79,6 +79,15 @@ class EsinxeRandom(seed: ULong) {
     private var seed: ULong = seed
     private var index: ULong = 0UL
     private var key: ULong = seed
+    private var prefix: List<Key> = emptyList()
+
+    fun scope(vararg keys: Key): EsinxeRandom {
+        val copied = keys.map {
+            hashKey(FNV_OFFSET_BASIS, it) // Validate even unused string components.
+            if (it is Key.BytesValue) Key.bytes(it.value) else it
+        }
+        return EsinxeRandom(seed).also { it.prefix = prefix + copied }
+    }
 
     private fun keyedRaw(keys: Array<out Key>, domain: String? = null): ULong {
         var hash = fnvUpdate(FNV_OFFSET_BASIS, v1Prefix)
@@ -88,6 +97,9 @@ class EsinxeRandom(seed: ULong) {
             hash = fnvByte(hash, 0xF0)
             hash = fnvULong(hash, data.size.toULong())
             hash = fnvUpdate(hash, data)
+        }
+        for (component in prefix) {
+            hash = hashKey(hash, component)
         }
         for (component in keys) {
             hash = hashKey(hash, component)
@@ -134,12 +146,17 @@ class EsinxeRandom(seed: ULong) {
     }
 
     fun <T> shuffle(items: List<T>, vararg keys: Key): List<T> {
+        return permutation(items, "shuffle", keys)
+    }
+
+    private fun <T> permutation(items: List<T>, domain: String, keys: Array<out Key>): List<T> {
+        keys.forEach { hashKey(FNV_OFFSET_BASIS, it) }
         val values = items.toMutableList()
         for (position in values.lastIndex downTo 1) {
             val iterationKeys = keys.toMutableList()
             iterationKeys.add(Key.u64(position.toULong()))
             val picked = bounded(
-                keyedRaw(iterationKeys.toTypedArray(), "shuffle"),
+                keyedRaw(iterationKeys.toTypedArray(), domain),
                 (position + 1).toULong(),
             ).toInt()
             val value = values[position]
@@ -148,6 +165,14 @@ class EsinxeRandom(seed: ULong) {
         }
         return values
     }
+
+    fun <T> sample(items: List<T>, count: Int, vararg keys: Key): List<T> {
+        require(count in 0..items.size) { "count must be in [0, length]" }
+        return permutation(items, "sample-v1", keys).take(count)
+    }
+
+    fun <T> prepareWeightedChoice(items: List<T>, integerWeights: List<ULong>): PreparedWeightedChoice<T> =
+        PreparedWeightedChoice(scope(), items, integerWeights)
 
     fun <T> weightedChoice(
         items: List<T>,
@@ -219,5 +244,39 @@ class EsinxeRandom(seed: ULong) {
         key += GOLDEN_GAMMA
         index += 1UL
         return value
+    }
+}
+
+class PreparedWeightedChoice<T> internal constructor(
+    private val field: EsinxeRandom,
+    items: List<T>,
+    weights: List<ULong>,
+) {
+    private val items: List<T> = items.toList()
+    private val cumulative: List<ULong>
+
+    init {
+        require(items.isNotEmpty() && items.size == weights.size) {
+            "items and weights must have the same non-zero length"
+        }
+        var total = 0UL
+        cumulative = weights.map { weight ->
+            val next = total + weight
+            require(next >= total) { "total weight exceeds uint64" }
+            total = next
+            total
+        }
+        require(total > 0UL) { "total weight must be positive" }
+    }
+
+    fun choose(vararg keys: Key): T {
+        val target = field.int(cumulative.last(), *keys)
+        var low = 0
+        var high = cumulative.size
+        while (low < high) {
+            val middle = low + (high - low) / 2
+            if (cumulative[middle] <= target) low = middle + 1 else high = middle
+        }
+        return items[low]
     }
 }

@@ -1,3 +1,4 @@
+import argparse
 import collections
 import math
 import os
@@ -11,17 +12,70 @@ import esinxe
 
 
 def main():
+    parser = argparse.ArgumentParser(
+        description="Deterministic RNG smoke diagnostics, not certification"
+    )
+    parser.add_argument("--samples", type=int, default=200000)
+    args = parser.parse_args()
+    if not 100 <= args.samples <= 1000000:
+        parser.error("--samples must be in [100, 1000000]")
     seed = 123456789
-    sample_size = 200000
+    sample_size = args.samples
     rng = esinxe.Random(seed)
     values = [rng.NextRawAt(i) for i in range(sample_size)]
+    print(f"dataset=stream seed={seed} samples={sample_size}")
+    summarize(values)
+
+    for label, make in (
+        ("keyed-u64", lambda i: rng.raw(esinxe.u64(i))),
+        ("keyed-grid", lambda i: rng.at2D(i % 257 - 128, i // 257 - 128, "terrain")),
+    ):
+        keyed = [make(i) for i in range(sample_size)]
+        print(f"dataset={label} seed={seed} samples={sample_size}")
+        summarize(keyed)
+        print(f"sample_collisions={sample_size - len(set(keyed))}")
+
+    # Unlike small bounds, this exercises deterministic rejection frequently.
+    maximum = (1 << 63) + 1
+    threshold = ((1 << 64) - maximum) % maximum
+    bounded = [esinxe._bounded_raw(value, maximum) for value in values]
+    counts = collections.Counter(value * 100 // maximum for value in bounded)
+    expected = sample_size / 100
+    chi_square = sum((counts[i] - expected) ** 2 / expected for i in range(100))
+    print(
+        f"high_retry_bound={maximum} first_rejections="
+        f"{sum(value < threshold for value in values)} "
+        f"bucket_chi_square={chi_square:.3f} df=99"
+    )
+
+    for bit in (0, 1, 31, 63):
+        other = esinxe.Random(seed ^ (1 << bit))
+        distances = [
+            popcount(values[i] ^ other.NextRawAt(i))
+            for i in range(min(sample_size, 50000))
+        ]
+        print(
+            f"avalanche flip_bit={bit} "
+            f"mean_hamming={statistics.mean(distances):.3f} "
+            f"min={min(distances)} max={max(distances)}"
+        )
+    print(
+        f"stream_collisions={sample_size - len(set(values))} "
+        "(permutation invariant, not evidence of statistical quality)"
+    )
+    print(
+        "Smoke diagnostics only: not a proof of uniformity, independence, or security."
+    )
+
+
+def summarize(values):
+    sample_size = len(values)
 
     for buckets in (100, 1000):
         counts = collections.Counter(value % buckets for value in values)
         expected = sample_size / buckets
         chi_square = sum(
-            ((counts[bucket] - expected) ** 2) / expected
-            for bucket in range(buckets)
+            ((counts[bucket] - expected) ** 2) / expected for bucket in range(buckets)
         )
         print(
             f"buckets={buckets} hit={len(counts)}/{buckets} "
@@ -30,8 +84,7 @@ def main():
         )
 
     proportions = [
-        sum((value >> bit) & 1 for value in values) / sample_size
-        for bit in range(64)
+        sum((value >> bit) & 1 for value in values) / sample_size for bit in range(64)
     ]
     print(
         f"bit_balance min={min(proportions):.5f} "
@@ -40,20 +93,6 @@ def main():
 
     normalized = [value / (1 << 64) for value in values]
     print(f"serial_correlation_lag1={correlation(normalized[:-1], normalized[1:]):.6f}")
-
-    for bit in (0, 1, 31, 63):
-        other = esinxe.Random(seed ^ (1 << bit))
-        distances = [
-            popcount(values[i] ^ other.NextRawAt(i))
-            for i in range(50000)
-        ]
-        print(
-            f"avalanche flip_bit={bit} "
-            f"mean_hamming={statistics.mean(distances):.3f} "
-            f"min={min(distances)} max={max(distances)}"
-        )
-
-    print(f"raw64_collisions={sample_size - len(set(values))}")
 
 
 def popcount(value):

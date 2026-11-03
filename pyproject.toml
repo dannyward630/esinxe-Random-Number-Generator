@@ -38,6 +38,7 @@ classifiers = [
 [project.optional-dependencies]
 dev = [
     "build>=1.2",
+    "mypy>=1.15",
     "pip-audit>=2.9",
     "ruff>=0.15",
     "setuptools>=77",
@@ -55,6 +56,9 @@ Documentation = "https://github.com/dannyward630/esinxe-Random-Number-Generator#
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+esinxe = ["*.pyi", "py.typed"]
+
 [tool.ruff]
 target-version = "py39"
 
@@ -64,3 +68,7 @@ select = ["B", "E", "F", "I"]
 [tool.ruff.lint.per-file-ignores]
 "Python/Esinxepy1-0-0.py" = ["E402", "F403"]
 "scripts/*.py" = ["E402"]
+# These adapters embed generated programs in other languages.
+"tests/test_helpers_native.py" = ["E501"]
+"tests/test_helpers_managed.py" = ["E501"]
+"tests/test_helpers_modern.py" = ["E501"]

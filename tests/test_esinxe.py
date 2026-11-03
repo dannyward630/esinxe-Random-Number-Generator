@@ -11,9 +11,13 @@ import textwrap
 import unittest
 from pathlib import Path
 
+from tooling import compiler_command, run_script, tool
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
-V1_VECTORS = json.loads((ROOT / "tests" / "vectors-v1.json").read_text())
+V1_VECTORS = json.loads(
+    (ROOT / "tests" / "vectors-v1.json").read_text(encoding="utf-8")
+)
 EXPECTED_FIRST_VALUES = [
     540659726606785873,
     454886589211414944,
@@ -83,8 +87,7 @@ class PythonBehaviorTests(unittest.TestCase):
         counts = collections.Counter(values)
         expected = len(values) / 100
         chi_square = sum(
-            ((counts[bucket] - expected) ** 2) / expected
-            for bucket in range(100)
+            ((counts[bucket] - expected) ** 2) / expected for bucket in range(100)
         )
 
         self.assertEqual(len(counts), 100)
@@ -107,8 +110,7 @@ class PythonBehaviorTests(unittest.TestCase):
         base = self.module.Random(123456789)
         flipped = self.module.Random(123456789 ^ (1 << 31))
         distances = [
-            popcount(base.NextRawAt(i) ^ flipped.NextRawAt(i))
-            for i in range(10000)
+            popcount(base.NextRawAt(i) ^ flipped.NextRawAt(i)) for i in range(10000)
         ]
 
         self.assertLess(abs(statistics.mean(distances) - 32), 0.4)
@@ -231,7 +233,7 @@ class CrossLanguageSmokeTests(unittest.TestCase):
         if shutil.which("node") is None:
             self.skipTest("node is not installed")
         subprocess.run(
-            ["npm", "test"],
+            [tool("npm"), "test"],
             cwd=ROOT / "JavaScript",
             check=True,
             text=True,
@@ -242,7 +244,7 @@ class CrossLanguageSmokeTests(unittest.TestCase):
         if shutil.which("cargo") is None:
             self.skipTest("cargo is not installed")
         subprocess.run(
-            ["cargo", "test", "--quiet"],
+            [tool("cargo"), "test", "--quiet"],
             cwd=ROOT / "Rust",
             check=True,
             text=True,
@@ -253,7 +255,7 @@ class CrossLanguageSmokeTests(unittest.TestCase):
         if shutil.which("go") is None:
             self.skipTest("go is not installed")
         subprocess.run(
-            ["go", "test", "./..."],
+            [tool("go"), "test", "./..."],
             cwd=ROOT / "Go",
             check=True,
             text=True,
@@ -266,7 +268,9 @@ class CrossLanguageSmokeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             subprocess.run(
                 [
-                    "javac",
+                    tool("javac"),
+                    "-encoding",
+                    "UTF-8",
                     "-d",
                     tmpdir,
                     str(ROOT / "JVM" / "java" / "com" / "esinxe" / "Random.java"),
@@ -278,7 +282,7 @@ class CrossLanguageSmokeTests(unittest.TestCase):
                 capture_output=True,
             )
             subprocess.run(
-                ["java", "-cp", tmpdir, "EsinxeSmokeTest"],
+                [tool("java"), "-cp", tmpdir, "EsinxeSmokeTest"],
                 cwd=ROOT,
                 check=True,
                 text=True,
@@ -292,7 +296,7 @@ class CrossLanguageSmokeTests(unittest.TestCase):
             jar = Path(tmpdir) / "esinxe-kotlin-test.jar"
             subprocess.run(
                 [
-                    "kotlinc",
+                    tool("kotlinc"),
                     str(ROOT / "JVM" / "kotlin" / "Esinxe.kt"),
                     str(ROOT / "JVM" / "kotlin" / "EsinxeSmokeTest.kt"),
                     "-include-runtime",
@@ -305,7 +309,7 @@ class CrossLanguageSmokeTests(unittest.TestCase):
                 capture_output=True,
             )
             subprocess.run(
-                ["java", "-jar", str(jar)],
+                [tool("java"), "-jar", str(jar)],
                 cwd=ROOT,
                 check=True,
                 text=True,
@@ -528,13 +532,16 @@ class CrossLanguageSmokeTests(unittest.TestCase):
         )
         lines = compile_and_run("cpp", source).splitlines()
         cases = V1_VECTORS["cases"]
-        self.assertEqual(lines[:5], [
-            cases["rawMixed"],
-            cases["int100"],
-            cases["rangeSigned"],
-            cases["at2D"],
-            cases["at3D"],
-        ])
+        self.assertEqual(
+            lines[:5],
+            [
+                cases["rawMixed"],
+                cases["int100"],
+                cases["rangeSigned"],
+                cases["at2D"],
+                cases["at3D"],
+            ],
+        )
         self.assertEqual(lines[5], cases["floatUpper53"])
         self.assertEqual(lines[6], "1" if cases["chanceRatio"] else "0")
         self.assertEqual(lines[7], cases["choose"])
@@ -550,8 +557,9 @@ class CrossLanguageSmokeTests(unittest.TestCase):
             5.times { |i| puts "#{rng.Next} #{rng.NextRawAt(i)}" }
             """
         )
-        result = subprocess.run(
-            ["ruby", "-e", script],
+        result = run_script(
+            "ruby",
+            script,
             cwd=ROOT,
             check=True,
             text=True,
@@ -584,8 +592,9 @@ class CrossLanguageSmokeTests(unittest.TestCase):
             puts rng.weightedChoice(%w[common rare legendary], [80, 18, 2], *key)
             """
         )
-        result = subprocess.run(
-            ["ruby", "-e", script],
+        result = run_script(
+            "ruby",
+            script,
             cwd=ROOT,
             check=True,
             text=True,
@@ -593,13 +602,16 @@ class CrossLanguageSmokeTests(unittest.TestCase):
         )
         lines = result.stdout.splitlines()
         cases = V1_VECTORS["cases"]
-        self.assertEqual(lines[:5], [
-            cases["rawMixed"],
-            cases["int100"],
-            cases["rangeSigned"],
-            cases["at2D"],
-            cases["at3D"],
-        ])
+        self.assertEqual(
+            lines[:5],
+            [
+                cases["rawMixed"],
+                cases["int100"],
+                cases["rangeSigned"],
+                cases["at2D"],
+                cases["at3D"],
+            ],
+        )
         self.assertEqual(lines[5], cases["floatUpper53"])
         self.assertEqual(lines[6], "1" if cases["chanceRatio"] else "0")
         self.assertEqual(lines[7], cases["choose"])
@@ -614,7 +626,8 @@ class CrossLanguageSmokeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp = Path(tmpdir)
             (tmp / "Esinxecs1-0-0.cs").write_text(
-                (ROOT / "C#" / "Esinxecs1-0-0.cs").read_text()
+                (ROOT / "C#" / "Esinxecs1-0-0.cs").read_text(encoding="utf-8"),
+                encoding="utf-8",
             )
             (tmp / "Program.cs").write_text(
                 textwrap.dedent(
@@ -635,7 +648,8 @@ class CrossLanguageSmokeTests(unittest.TestCase):
                         }
                     }
                     """
-                )
+                ),
+                encoding="utf-8",
             )
             (tmp / "EsinxeSmoke.csproj").write_text(
                 textwrap.dedent(
@@ -649,7 +663,8 @@ class CrossLanguageSmokeTests(unittest.TestCase):
                       </PropertyGroup>
                     </Project>
                     """
-                ).strip()
+                ).strip(),
+                encoding="utf-8",
             )
             env = os.environ.copy()
             env["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1"
@@ -673,7 +688,8 @@ class CrossLanguageSmokeTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp = Path(tmpdir)
             (tmp / "Esinxecs1-0-0.cs").write_text(
-                (ROOT / "C#" / "Esinxecs1-0-0.cs").read_text()
+                (ROOT / "C#" / "Esinxecs1-0-0.cs").read_text(encoding="utf-8"),
+                encoding="utf-8",
             )
             (tmp / "Program.cs").write_text(
                 textwrap.dedent(
@@ -686,6 +702,21 @@ class CrossLanguageSmokeTests(unittest.TestCase):
                         static void Main()
                         {
                             var rng = new E(12345);
+                            foreach (string invalid in
+                                new[] {"\\ud800", "\\udc00", "x\\ud800y"})
+                            {
+                                try
+                                {
+                                    E.Key.String(invalid);
+                                    throw new Exception("malformed Unicode accepted");
+                                }
+                                catch (System.Text.EncoderFallbackException) { }
+                            }
+                            if (rng.Raw(E.Key.String("🌍")) != 15694140828174711031UL)
+                                throw new Exception("non-BMP vector changed");
+                            if (rng.Raw(E.Key.String("a\\0b")) !=
+                                13581488430406810937UL)
+                                throw new Exception("NUL vector changed");
                             var key = new[] {
                                 E.Key.I64(-1),
                                 E.Key.U64(ulong.MaxValue),
@@ -713,7 +744,8 @@ class CrossLanguageSmokeTests(unittest.TestCase):
                         }
                     }
                     """
-                )
+                ),
+                encoding="utf-8",
             )
             (tmp / "EsinxeV1.csproj").write_text(
                 textwrap.dedent(
@@ -724,10 +756,12 @@ class CrossLanguageSmokeTests(unittest.TestCase):
                         <TargetFramework>net8.0</TargetFramework>
                         <Nullable>enable</Nullable>
                         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+                        <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
                       </PropertyGroup>
                     </Project>
                     """
-                ).strip()
+                ).strip(),
+                encoding="utf-8",
             )
             env = os.environ.copy()
             env["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1"
@@ -741,13 +775,16 @@ class CrossLanguageSmokeTests(unittest.TestCase):
             )
             lines = result.stdout.splitlines()
             cases = V1_VECTORS["cases"]
-            self.assertEqual(lines[:5], [
-                cases["rawMixed"],
-                cases["int100"],
-                cases["rangeSigned"],
-                cases["at2D"],
-                cases["at3D"],
-            ])
+            self.assertEqual(
+                lines[:5],
+                [
+                    cases["rawMixed"],
+                    cases["int100"],
+                    cases["rangeSigned"],
+                    cases["at2D"],
+                    cases["at3D"],
+                ],
+            )
             self.assertEqual(lines[5], cases["floatUpper53"])
             self.assertEqual(lines[6], "1" if cases["chanceRatio"] else "0")
             self.assertEqual(lines[7], cases["choose"])
@@ -766,13 +803,12 @@ def compile_and_run_sources(kind, sources):
         source_paths = []
         for index, source in enumerate(sources):
             source_path = tmp / f"source-{index}{suffix}"
-            source_path.write_text(source)
+            source_path.write_text(source, encoding="utf-8")
             source_paths.append(str(source_path))
-        output_path = tmp / "esinxe-test"
-        compiler = "cc" if kind == "c" else "c++"
+        output_path = tmp / ("esinxe-test.exe" if os.name == "nt" else "esinxe-test")
         standard = "-std=c11" if kind == "c" else "-std=c++17"
         command = [
-            compiler,
+            *compiler_command(kind),
             standard,
             "-Wall",
             "-Wextra",
@@ -782,13 +818,27 @@ def compile_and_run_sources(kind, sources):
             "-o",
             str(output_path),
         ]
-        subprocess.run(command, cwd=ROOT, check=True, capture_output=True, text=True)
+        if os.environ.get("ESINXE_SANITIZERS") == "1":
+            command[1:1] = [
+                "-fsanitize=address,undefined",
+                "-fno-omit-frame-pointer",
+                "-O1",
+                "-g",
+            ]
+        compiled = subprocess.run(
+            command, cwd=ROOT, capture_output=True, encoding="utf-8", timeout=120
+        )
+        if compiled.returncode:
+            raise AssertionError(
+                f"compiler failed:\n{compiled.stdout}\n{compiled.stderr}"
+            )
         result = subprocess.run(
             [str(output_path)],
             cwd=ROOT,
             check=True,
             capture_output=True,
-            text=True,
+            encoding="utf-8",
+            timeout=30,
         )
         return result.stdout
 

@@ -62,9 +62,10 @@ def build_vectors():
 
 def main():
     output = ROOT / "tests" / "vectors-v1.json"
-    output.write_text(
-        json.dumps(build_vectors(), indent=2, ensure_ascii=False) + "\n",
-        encoding="utf-8",
+    output.write_bytes(
+        (json.dumps(build_vectors(), indent=2, ensure_ascii=False) + "\n").encode(
+            "utf-8"
+        )
     )
     print(output)
 

@@ -28,6 +28,8 @@ python3 -m py_compile \
   tests/test_esinxe.py
 python3 scripts/generate_vectors.py >/dev/null
 git diff --exit-code -- tests/vectors-v1.json
+python3 scripts/generate_conformance.py >/dev/null
+git diff --exit-code -- tests/conformance-v1.json
 ruby -c Ruby/Esinxeruby1-0-0.rb
 node --check demo/app.js
 node --test JavaScript/test/*.test.js
@@ -36,14 +38,13 @@ if command -v cargo >/dev/null 2>&1; then
   cargo fmt --manifest-path Rust/Cargo.toml --check
   cargo test --manifest-path Rust/Cargo.toml --quiet
   cargo clippy --manifest-path Rust/Cargo.toml --all-targets -- -D warnings
-  cargo package --manifest-path Rust/Cargo.toml --allow-dirty --no-verify --list \
-    >/dev/null
+  python3 scripts/check_rust_package.py
 else
   echo "Skipping Rust tests: cargo not found"
 fi
 if command -v go >/dev/null 2>&1; then
   gofmt_diff="$(mktemp)"
-  gofmt -d Go/esinxe/esinxe.go Go/esinxe/esinxe_test.go >"$gofmt_diff"
+  gofmt -d Go/esinxe/*.go >"$gofmt_diff"
   if [ -s "$gofmt_diff" ]; then
     cat "$gofmt_diff"
     rm -f "$gofmt_diff"
@@ -91,6 +92,7 @@ tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
 python3 -m build --sdist --wheel --outdir "$tmpdir" >/dev/null
 python3 -m twine check "$tmpdir"/*
+python3 scripts/check_python_package.py
 python3 -m pip check
 if command -v pip-audit >/dev/null 2>&1; then
   pip-audit . --progress-spinner off

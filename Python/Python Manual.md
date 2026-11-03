@@ -31,6 +31,28 @@ The historical `Next*` stream methods remain available for sequential and
 offset-based generation. See [the shared API reference](../docs/API.md) and
 [the frozen algorithm specification](../SPEC_V1.md).
 
+## Scoped fields and collection helpers
+
+```python
+terrain = field.scope("terrain", esinxe.i64(-4))
+assert terrain.raw("height") == field.raw("terrain", esinxe.i64(-4), "height")
+party = terrain.sample(["archer", "scout", "guardian"], 2, "party")
+loot = terrain.prepareWeightedChoice(["common", "rare"], [9, 1])
+assert loot.choose("room") == terrain.weightedChoice(["common", "rare"], [9, 1], "room")
+```
+
+Scopes copy mutable byte keys and snapshot seeds; nested scopes concatenate
+prefixes. Prepared choices copy sequence structure and weights and retain the
+seed/prefix at preparation. Later input mutation or reseeding cannot change their
+choices. Sampling copies its input and selects positions without replacement;
+counts must be integers from zero through the collection length.
+
+Python wheels ship generic public stubs and `py.typed`. `sample` preserves the
+item type in its output list; `choose` and prepared `choose` infer that type.
+Run `python scripts/check_python_package.py` in the development environment to
+verify installed wheel behavior and typing outside this checkout. The precise
+portable semantics are in [the helper supplement](../SPEC_HELPERS_V1.md).
+
 ## Test
 
 ```sh

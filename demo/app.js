@@ -1,4 +1,5 @@
 import { Random, i64 } from "../JavaScript/src/index.js";
+import { seedLiteral, stringLiteral } from "./snippets.mjs";
 
 const seedInput = document.querySelector("#seed");
 const namespaceInput = document.querySelector("#namespace");
@@ -23,6 +24,7 @@ const colors = {
 };
 
 let currentField;
+let currentNamespace;
 let activeCell = null;
 
 function parseSeed() {
@@ -70,6 +72,7 @@ function render() {
   if (seed === null) return;
   seedInput.setCustomValidity("");
   const namespace = namespaceInput.value;
+  currentNamespace = namespace;
   currentField = new Random(seed);
   activeCell = null;
   grid.replaceChildren();
@@ -99,8 +102,10 @@ function render() {
 }
 
 function renderSnippet() {
-  const seed = seedInput.value.trim() || "0";
-  const namespace = JSON.stringify(namespaceInput.value);
+  if (!currentField) return;
+  const language = languageSelect.value;
+  const seed = seedLiteral(language, currentField.seed);
+  const namespace = stringLiteral(language, currentNamespace);
   const snippets = {
     Python: `import esinxe
 
@@ -112,7 +117,7 @@ loot = field.choose(
 )`,
     JavaScript: `import { Random, i64 } from "esinxe";
 
-const field = new Random(${seed}n);
+const field = new Random(${seed});
 const value = field.at2D(x, y, ${namespace});
 const loot = field.choose(
   ["common", "rare", "legendary"],
@@ -132,7 +137,7 @@ loot, _ := esinxe.Choose(
     []string{"common", "rare", "legendary"},
     esinxe.String("loot"), esinxe.I64(x), esinxe.I64(y),
 )`,
-    Java: `Random field = new Random(${seed}L);
+    Java: `Random field = new Random(${seed});
 long value = field.at2D(x, y, ${namespace});
 String loot = field.choose(
     List.of("common", "rare", "legendary"),
