@@ -119,6 +119,9 @@ def check_markdown_links() -> None:
         if any(part in GENERATED_PARTS for part in path.parts):
             continue
         text = path.read_text(encoding="utf-8")
+        # Generic calls such as Choose[T](...) inside examples are not links.
+        text = re.sub(r"(?ms)^```[^\n]*\n.*?^```[ \t]*$", "", text)
+        text = re.sub(r"`[^`\n]*`", "", text)
         for raw_target in MARKDOWN_LINK.findall(text):
             target = raw_target.strip().split(maxsplit=1)[0].strip("<>")
             if target.startswith(IGNORED_LINK_SCHEMES):

@@ -91,6 +91,27 @@ including historical non-positive bounds. Fixed-width ports retain their
 documented native argument ranges; Java signed ranges may cross zero even when
 their width exceeds `Long.MAX_VALUE`.
 
+## Additional helpers
+
+`scope(prefix...)` returns an independent field with a seed/prefix snapshot.
+For raw values, `field.scope(a).raw(b)` equals `field.raw(a, b)`. Coordinate and
+permutation domains precede the prefix. Scoping affects keyed calls only; a
+scoped generator's legacy stream still matches its original seed and offset.
+
+`sample(items, count, key...)` returns a copied sample of positions without
+replacement under domain `sample-v1`. Counts must be integers in `[0, length]`.
+Every count shares the same full permutation; equal input values are distinct
+positions. Even a zero count validates the keys.
+
+`prepareWeightedChoice(items, integerWeights)` snapshots the field and copies
+item/weight sequence structure once. Its `choose(key...)` matches the existing
+weighted helper with O(log n) cumulative-table search. Item objects retain their
+normal reference semantics. C exposes an owned index-based table.
+
+Exact semantics are in [the additive helper specification](../SPEC_HELPERS_V1.md).
+Idiomatic names, accepted ranges, and C ownership rules are in the
+[capability matrix](CAPABILITIES.md) and individual language manuals.
+
 ## State Isolation
 
 Keyed methods never advance or otherwise mutate the compatibility stream.

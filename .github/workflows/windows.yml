@@ -1,0 +1,101 @@
+name: Windows and minimum runtimes
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows cross-language suite
+    runs-on: windows-2025
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy,rustfmt
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.26.x'
+      - uses: actions/setup-java@v6.0.0
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+      - uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install verified Kotlin compiler
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $archive = Join-Path $env:RUNNER_TEMP 'kotlin.zip'
+          Invoke-WebRequest 'https://github.com/JetBrains/kotlin/releases/download/v2.3.21/kotlin-compiler-2.3.21.zip' -OutFile $archive
+          $expected = 'a8cfc1d62cd4d0de4d04f42575e40135bd620588c17d568a20eb9c7c259af14f'
+          if ((Get-FileHash -LiteralPath $archive -Algorithm SHA256).Hash.ToLowerInvariant() -ne $expected) { throw 'Kotlin checksum mismatch' }
+          Expand-Archive -LiteralPath $archive -DestinationPath $env:RUNNER_TEMP
+          Join-Path $env:RUNNER_TEMP 'kotlinc/bin' | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+      - name: Install development tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-dev.txt
+          npm ci --prefix JavaScript
+      - name: Require native toolchains
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($name in @('gcc','g++','cargo','go','javac','java','kotlinc','ruby','dotnet','node','npm')) { Get-Command $name -ErrorAction Stop | Select-Object Name,Source }
+      - name: Build and test every port
+        run: |
+          python setup.py build_ext --inplace
+          python -m unittest discover -s tests -v
+      - name: Check declarations and consumer packages
+        run: |
+          npm run typecheck --prefix JavaScript
+          python scripts/check_python_package.py
+          python scripts/check_rust_package.py
+          python scripts/check_repo.py
+
+  node-minimum:
+    name: Node 18 consumer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '18'
+      - run: npm ci --prefix JavaScript
+      - run: npm test --prefix JavaScript
+      - run: npm run typecheck --prefix JavaScript
+
+  rust-minimum:
+    name: Rust 1.70 consumer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@1.70.0
+      - run: cargo test --manifest-path Rust/Cargo.toml --locked --offline
+
+  go-minimum:
+    name: Go 1.22 consumer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version: '1.22.x'
+      - run: go test ./...
+        working-directory: Go

@@ -43,6 +43,8 @@ Never use it for secrets, tokens, gambling, lotteries, or security decisions.
 | --- | --- |
 | Copy a language example | [Language quick starts](docs/QUICK_STARTS.md) |
 | Understand every operation | [API reference](docs/API.md) |
+| Compare language boundaries | [Port capability matrix](docs/CAPABILITIES.md) |
+| Use scoped fields and reusable helpers | [Portable helper supplement](SPEC_HELPERS_V1.md) |
 | Implement or verify a port | [Algorithm v1 specification](SPEC_V1.md) |
 | Understand design boundaries | [Architecture](docs/ARCHITECTURE.md) |
 | Review statistical evidence | [RNG analysis](docs/RNG_ANALYSIS.md) |
@@ -155,6 +157,28 @@ The repository is the source of truth until registry access is available.
 
 The historical `Python/Esinxepy1-0-0.py` filename remains a compatibility shim.
 
+## Additional Keyed Helpers
+
+All ten ports also provide scoped fields, sampling without replacement, and
+prepared weighted choices. These additions preserve every existing v1 output.
+
+```python
+world = esinxe.Random(20260611)
+terrain = world.scope("terrain")
+height = terrain.raw(esinxe.i64(-4), esinxe.i64(9))
+# Same result as world.raw("terrain", esinxe.i64(-4), esinxe.i64(9)).
+
+party = world.sample(["archer", "scout", "guardian", "healer"], 2, "party")
+loot = world.prepareWeightedChoice(["common", "rare", "legendary"], [80, 18, 2])
+drop = loot.choose("room", esinxe.i64(7))
+```
+
+Scopes and prepared tables snapshot the seed and prefix. Sampling copies its
+input; repeated counts share the same deterministic permutation. Prepared choices
+match `weightedChoice` while reusing validation and cumulative weights. See the
+[helper contract](SPEC_HELPERS_V1.md) and [port names and limits](docs/CAPABILITIES.md).
+Python wheels include generic type declarations and `py.typed`.
+
 ## Verification
 
 Run all available compiler, conformance, statistical, native-extension, and
@@ -167,6 +191,13 @@ packaging checks:
 The script explicitly names missing toolchains instead of treating them as a
 pass. Statistical conclusions remain bounded to the included sample sizes; see
 [docs/RNG_ANALYSIS.md](docs/RNG_ANALYSIS.md) for the practical quality verdict.
+
+On Windows, use `python -m unittest discover -s tests -v` after building the
+optional extension with `python setup.py build_ext --inplace`. Compiler discovery
+supports GCC/Clang and `CC`/`CXX` overrides. CI exercises all ports on Windows and
+Linux, installed Python/Rust packages, and documented minimum runtimes. The
+[shared corpus](tests/conformance-v1.json) is generated independently of the
+reference package and consumed across the ports.
 
 ## Project Policy
 

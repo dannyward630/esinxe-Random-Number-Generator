@@ -37,7 +37,9 @@ def build(output):
             "demo/styles.css",
             "JavaScript/src/index.js",
             "SPEC_V1.md",
+            "SPEC_HELPERS_V1.md",
             "docs/RNG_ANALYSIS.md",
+            "docs/CAPABILITIES.md",
         )
     }
     files.update(

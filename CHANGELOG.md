@@ -6,7 +6,22 @@ compatibility version is independent and is named explicitly.
 
 ## Unreleased
 
+### Added
+
+- Scoped typed key prefixes, deterministic sampling without replacement, and
+  prepared cumulative-weight choices across all ten ports, with copied snapshots
+  and a separate additive helper specification.
+- Independent shared conformance corpus covering numeric limits, multiple
+  rejection retries, UTF-8/NULs, namespaces, and the new helpers across ports.
+- Length-bearing C string/coordinate helpers and a documented capability matrix.
+- Generic Python stubs, `py.typed`, and installed-wheel runtime/type consumer tests.
+- Windows cross-language CI and Node 18 / Rust 1.70 / Go 1.22 minimum-runtime checks.
+
 ### Fixed
+
+- Windows compiler/launcher discovery, Unicode subprocess source, and explicit
+  source-file encoding; honored quoted `CC`/`CXX` compiler overrides.
+- Rust lockfile compatibility with the documented 1.70 compiler floor.
 
 - Preserved Python scalar/native batch parity for non-positive and full-width
   bounds, and rejected oversized legacy bounds before they can hang or truncate.

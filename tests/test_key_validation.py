@@ -1,9 +1,9 @@
 """Canonical key encoding must reject invalid data, not silently alias it."""
 
-import subprocess
 import unittest
 
 from test_esinxe import ROOT, compile_and_run
+from tooling import run_script
 
 import esinxe
 
@@ -23,8 +23,9 @@ Timeout.timeout(2) do
 end
 raise 'full uint64 range changed' unless rng.NextMaxAt(0, 1 << 64) == rng.NextRawAt(0)
 """
-        subprocess.run(
-            ["ruby", "-e", script],
+        run_script(
+            "ruby",
+            script,
             cwd=ROOT,
             check=True,
             timeout=5,
@@ -87,8 +88,9 @@ end
 raise 'non-BMP vector' unless rng.raw("🌍") == 15694140828174711031
 raise 'NUL vector' unless rng.raw("a\0b") == 13581488430406810937
 """
-        subprocess.run(
-            ["ruby", "-e", script],
+        run_script(
+            "ruby",
+            script,
             cwd=ROOT,
             check=True,
             capture_output=True,

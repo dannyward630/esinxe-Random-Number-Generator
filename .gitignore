@@ -4,6 +4,7 @@ dist/
 __pycache__/
 *.py[cod]
 *.so
+*.pyd
 target/
 node_modules/
 .DS_Store
