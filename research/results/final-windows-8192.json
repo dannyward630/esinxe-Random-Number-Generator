@@ -1,0 +1,2155 @@
+{
+  "config": {
+    "numpy_runtime_dependency": false,
+    "optional_numpy_philox_measurement": "omitted; this run does not compare NumPy's variant4x64 to Philox4x32",
+    "samples_per_workload": 8192,
+    "seed": 20261102,
+    "timed_repeats": 7,
+    "timing_clock": "time.perf_counter_ns",
+    "warmup_repeats": 1
+  },
+  "finished_at_utc": "2026-11-03T06:20:48.798Z",
+  "provenance": {
+    "candidate_sources": [
+      "https://github.com/DEShawResearch/random123/blob/main/include/Random123/philox.h",
+      "https://github.com/DEShawResearch/random123/blob/main/tests/kat_vectors",
+      "https://docs.python.org/3/library/hashlib.html"
+    ],
+    "environment": {
+      "cpu_count": 12,
+      "esinxe_version": "1.1.0",
+      "hashlib_algorithms_available": [
+        "blake2b",
+        "blake2s",
+        "md5",
+        "md5-sha1",
+        "ripemd160",
+        "sha1",
+        "sha224",
+        "sha256",
+        "sha384",
+        "sha3_224",
+        "sha3_256",
+        "sha3_384",
+        "sha3_512",
+        "sha512",
+        "sha512_224",
+        "sha512_256",
+        "shake_128",
+        "shake_256",
+        "sm3"
+      ],
+      "machine": "AMD64",
+      "native_extension_loaded": true,
+      "native_extension_path": "C:\\This_PC\\Bugs and Stuff\\.scratch\\esinxe-pr12-review-20261102\\src\\esinxe\\_native.cp311-win_amd64.pyd",
+      "numpy_version_if_installed": "2.4.4",
+      "platform": "Windows-10-10.0.26300-SP0",
+      "processor": "Intel64 Family 6 Model 165 Stepping 5, GenuineIntel",
+      "python_executable": "C:\\Users\\djwar\\AppData\\Local\\Programs\\Python\\Python311\\python.exe",
+      "python_implementation": "CPython",
+      "python_version": "3.11.9 (tags/v3.11.9:de54cf5, Apr  2 2024, 10:12:12) [MSC v.1938 64 bit (AMD64)]",
+      "release": "10",
+      "system": "Windows"
+    },
+    "git": {
+      "dirty": false,
+      "git_version": "git version 2.56.0.windows.3",
+      "head": "6e94c52b6b05ef3eecfda30d9506fd3ac66e0584",
+      "status_porcelain": []
+    },
+    "source_sha256": {
+      "SPEC_V1.md": "c5f993f3ece5614df747b9715b347a0c019d92ca80b1e08eb8463ac612ece6f6",
+      "docs\\RNG_ANALYSIS.md": "ef31c0665902fefeec119d72862aa1981c71611207b44b80020ce09bd8064e55",
+      "scripts\\benchmark_practical.py": "9c947023bc4d47240ba46063e10f7b759d90e55662d4db638cf477ab777ce921",
+      "src\\esinxe\\__init__.py": "aa36cbc6147d4c70b8066651e209402b7c63d9d2da20424715d63ca12df640ea",
+      "src\\esinxe\\_native.c": "90ac951639f472762e29ecfa6c05dd1a43895c0ffaeb90940e5c7715a53c6062",
+      "src\\esinxe\\_native.cp311-win_amd64.pyd": "8f7890967630334d6301388828ebdc4c3dd6682f83cd8a63a5fd48148243f052"
+    }
+  },
+  "recorded_at_utc": "2026-11-03T06:20:37.374Z",
+  "schema_version": 1,
+  "workloads": {
+    "entity_loot_ids": {
+      "description": "One loot draw per stable string entity ID with a uint64 roll slot cycling over four separately addressed draws.",
+      "end_to_end": {
+        "blake2b_64_end_to_end": {
+          "output_checksum_sha256": "dcf1cddbff2f84c5267b105911cd9b66681b5bccbaddb13906ef2685a0c0ac22",
+          "raw_timings": [
+            {
+              "checksum_sha256": "dcf1cddbff2f84c5267b105911cd9b66681b5bccbaddb13906ef2685a0c0ac22",
+              "elapsed_ns": 45725500,
+              "ended_at_utc": "2026-11-03T06:20:44.620Z",
+              "index": 0,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:44.574Z",
+              "units": 8192,
+              "units_per_second": 179156.05078129272
+            },
+            {
+              "checksum_sha256": "dcf1cddbff2f84c5267b105911cd9b66681b5bccbaddb13906ef2685a0c0ac22",
+              "elapsed_ns": 45553000,
+              "ended_at_utc": "2026-11-03T06:20:44.667Z",
+              "index": 1,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:44.622Z",
+              "units": 8192,
+              "units_per_second": 179834.47851952672
+            },
+            {
+              "checksum_sha256": "dcf1cddbff2f84c5267b105911cd9b66681b5bccbaddb13906ef2685a0c0ac22",
+              "elapsed_ns": 44650500,
+              "ended_at_utc": "2026-11-03T06:20:44.714Z",
+              "index": 2,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:44.670Z",
+              "units": 8192,
+              "units_per_second": 183469.3900404251
+            },
+            {
+              "checksum_sha256": "dcf1cddbff2f84c5267b105911cd9b66681b5bccbaddb13906ef2685a0c0ac22",
+              "elapsed_ns": 45180700,
+              "ended_at_utc": "2026-11-03T06:20:44.761Z",
+              "index": 3,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:44.716Z",
+              "units": 8192,
+              "units_per_second": 181316.35853362165
+            },
+            {
+              "checksum_sha256": "dcf1cddbff2f84c5267b105911cd9b66681b5bccbaddb13906ef2685a0c0ac22",
+              "elapsed_ns": 45602600,
+              "ended_at_utc": "2026-11-03T06:20:44.809Z",
+              "index": 4,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:44.763Z",
+              "units": 8192,
+              "units_per_second": 179638.8802392846
+            },
+            {
+              "checksum_sha256": "dcf1cddbff2f84c5267b105911cd9b66681b5bccbaddb13906ef2685a0c0ac22",
+              "elapsed_ns": 44923900,
+              "ended_at_utc": "2026-11-03T06:20:44.856Z",
+              "index": 5,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:44.811Z",
+              "units": 8192,
+              "units_per_second": 182352.8233301205
+            },
+            {
+              "checksum_sha256": "dcf1cddbff2f84c5267b105911cd9b66681b5bccbaddb13906ef2685a0c0ac22",
+              "elapsed_ns": 44873100,
+              "ended_at_utc": "2026-11-03T06:20:44.903Z",
+              "index": 6,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:44.858Z",
+              "units": 8192,
+              "units_per_second": 182559.26156204942
+            }
+          ],
+          "summary_ns": {
+            "max": 45725500,
+            "median": 45180700,
+            "min": 44650500
+          },
+          "warmup_timings": [
+            {
+              "checksum_sha256": "dcf1cddbff2f84c5267b105911cd9b66681b5bccbaddb13906ef2685a0c0ac22",
+              "elapsed_ns": 45839500,
+              "ended_at_utc": "2026-11-03T06:20:44.572Z",
+              "index": 0,
+              "kind": "warmup",
+              "started_at_utc": "2026-11-03T06:20:44.526Z",
+              "units": 8192,
+              "units_per_second": 178710.50076898743
+            }
+          ]
+        },
+        "esinxe_raw_batch": {
+          "output_checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+          "raw_timings": [
+            {
+              "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+              "elapsed_ns": 23130500,
+              "ended_at_utc": "2026-11-03T06:20:44.372Z",
+              "index": 0,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:44.349Z",
+              "units": 8192,
+              "units_per_second": 354164.41494995786
+            },
+            {
+              "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+              "elapsed_ns": 23420700,
+              "ended_at_utc": "2026-11-03T06:20:44.397Z",
+              "index": 1,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:44.374Z",
+              "units": 8192,
+              "units_per_second": 349776.0528079861
+            },
+            {
+              "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+              "elapsed_ns": 24155000,
+              "ended_at_utc": "2026-11-03T06:20:44.423Z",
+              "index": 2,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:44.399Z",
+              "units": 8192,
+              "units_per_second": 339143.03456841235
+            },
+            {
+              "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+              "elapsed_ns": 23208200,
+              "ended_at_utc": "2026-11-03T06:20:44.448Z",
+              "index": 3,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:44.425Z",
+              "units": 8192,
+              "units_per_second": 352978.68856697204
+            },
+            {
+              "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+              "elapsed_ns": 23733800,
+              "ended_at_utc": "2026-11-03T06:20:44.474Z",
+              "index": 4,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:44.450Z",
+              "units": 8192,
+              "units_per_second": 345161.7524374521
+            },
+            {
+              "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+              "elapsed_ns": 22989600,
+              "ended_at_utc": "2026-11-03T06:20:44.499Z",
+              "index": 5,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:44.476Z",
+              "units": 8192,
+              "units_per_second": 356335.0384521697
+            },
+            {
+              "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+              "elapsed_ns": 23488900,
+              "ended_at_utc": "2026-11-03T06:20:44.524Z",
+              "index": 6,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:44.501Z",
+              "units": 8192,
+              "units_per_second": 348760.4783536053
+            }
+          ],
+          "summary_ns": {
+            "max": 24155000,
+            "median": 23420700,
+            "min": 22989600
+          },
+          "warmup_timings": [
+            {
+              "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+              "elapsed_ns": 23088000,
+              "ended_at_utc": "2026-11-03T06:20:44.347Z",
+              "index": 0,
+              "kind": "warmup",
+              "started_at_utc": "2026-11-03T06:20:44.324Z",
+              "units": 8192,
+              "units_per_second": 354816.3548163548
+            }
+          ]
+        },
+        "esinxe_raw_scalar": {
+          "output_checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+          "raw_timings": [
+            {
+              "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+              "elapsed_ns": 195853200,
+              "ended_at_utc": "2026-11-03T06:20:42.911Z",
+              "index": 0,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:42.715Z",
+              "units": 8192,
+              "units_per_second": 41827.24612107436
+            },
+            {
+              "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+              "elapsed_ns": 194858500,
+              "ended_at_utc": "2026-11-03T06:20:43.108Z",
+              "index": 1,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:42.913Z",
+              "units": 8192,
+              "units_per_second": 42040.762912575025
+            },
+            {
+              "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+              "elapsed_ns": 194184800,
+              "ended_at_utc": "2026-11-03T06:20:43.304Z",
+              "index": 2,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:43.110Z",
+              "units": 8192,
+              "units_per_second": 42186.61810811145
+            },
+            {
+              "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+              "elapsed_ns": 193684300,
+              "ended_at_utc": "2026-11-03T06:20:43.500Z",
+              "index": 3,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:43.306Z",
+              "units": 8192,
+              "units_per_second": 42295.632635169706
+            },
+            {
+              "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+              "elapsed_ns": 200050300,
+              "ended_at_utc": "2026-11-03T06:20:43.702Z",
+              "index": 4,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:43.502Z",
+              "units": 8192,
+              "units_per_second": 40949.701150160734
+            },
+            {
+              "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+              "elapsed_ns": 203824800,
+              "ended_at_utc": "2026-11-03T06:20:43.908Z",
+              "index": 5,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:43.704Z",
+              "units": 8192,
+              "units_per_second": 40191.38004796276
+            },
+            {
+              "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+              "elapsed_ns": 195763600,
+              "ended_at_utc": "2026-11-03T06:20:44.106Z",
+              "index": 6,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:43.910Z",
+              "units": 8192,
+              "units_per_second": 41846.39023802178
+            }
+          ],
+          "summary_ns": {
+            "max": 203824800,
+            "median": 195763600,
+            "min": 193684300
+          },
+          "warmup_timings": [
+            {
+              "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+              "elapsed_ns": 200000200,
+              "ended_at_utc": "2026-11-03T06:20:42.713Z",
+              "index": 0,
+              "kind": "warmup",
+              "started_at_utc": "2026-11-03T06:20:42.513Z",
+              "units": 8192,
+              "units_per_second": 40959.95904004096
+            }
+          ]
+        },
+        "philox4x32_10_end_to_end": {
+          "output_checksum_sha256": "ed331fde7bdd19553de7853c9ff3badaaea0e5d75d7d1e588064fb8ed79b0f0c",
+          "raw_timings": [
+            {
+              "checksum_sha256": "ed331fde7bdd19553de7853c9ff3badaaea0e5d75d7d1e588064fb8ed79b0f0c",
+              "elapsed_ns": 124317400,
+              "ended_at_utc": "2026-11-03T06:20:45.557Z",
+              "index": 0,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:45.433Z",
+              "units": 8192,
+              "units_per_second": 65895.844025052
+            },
+            {
+              "checksum_sha256": "ed331fde7bdd19553de7853c9ff3badaaea0e5d75d7d1e588064fb8ed79b0f0c",
+              "elapsed_ns": 131600300,
+              "ended_at_utc": "2026-11-03T06:20:45.690Z",
+              "index": 1,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:45.559Z",
+              "units": 8192,
+              "units_per_second": 62249.09821634145
+            },
+            {
+              "checksum_sha256": "ed331fde7bdd19553de7853c9ff3badaaea0e5d75d7d1e588064fb8ed79b0f0c",
+              "elapsed_ns": 125348300,
+              "ended_at_utc": "2026-11-03T06:20:45.818Z",
+              "index": 2,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:45.692Z",
+              "units": 8192,
+              "units_per_second": 65353.897898894524
+            },
+            {
+              "checksum_sha256": "ed331fde7bdd19553de7853c9ff3badaaea0e5d75d7d1e588064fb8ed79b0f0c",
+              "elapsed_ns": 123861800,
+              "ended_at_utc": "2026-11-03T06:20:45.944Z",
+              "index": 3,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:45.820Z",
+              "units": 8192,
+              "units_per_second": 66138.2282511638
+            },
+            {
+              "checksum_sha256": "ed331fde7bdd19553de7853c9ff3badaaea0e5d75d7d1e588064fb8ed79b0f0c",
+              "elapsed_ns": 123611500,
+              "ended_at_utc": "2026-11-03T06:20:46.069Z",
+              "index": 4,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:45.945Z",
+              "units": 8192,
+              "units_per_second": 66272.1510539068
+            },
+            {
+              "checksum_sha256": "ed331fde7bdd19553de7853c9ff3badaaea0e5d75d7d1e588064fb8ed79b0f0c",
+              "elapsed_ns": 145936500,
+              "ended_at_utc": "2026-11-03T06:20:46.218Z",
+              "index": 5,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:46.072Z",
+              "units": 8192,
+              "units_per_second": 56134.00348781833
+            },
+            {
+              "checksum_sha256": "ed331fde7bdd19553de7853c9ff3badaaea0e5d75d7d1e588064fb8ed79b0f0c",
+              "elapsed_ns": 126566300,
+              "ended_at_utc": "2026-11-03T06:20:46.347Z",
+              "index": 6,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:46.221Z",
+              "units": 8192,
+              "units_per_second": 64724.97023299251
+            }
+          ],
+          "summary_ns": {
+            "max": 145936500,
+            "median": 125348300,
+            "min": 123611500
+          },
+          "warmup_timings": [
+            {
+              "checksum_sha256": "ed331fde7bdd19553de7853c9ff3badaaea0e5d75d7d1e588064fb8ed79b0f0c",
+              "elapsed_ns": 123050100,
+              "ended_at_utc": "2026-11-03T06:20:45.431Z",
+              "index": 0,
+              "kind": "warmup",
+              "started_at_utc": "2026-11-03T06:20:45.308Z",
+              "units": 8192,
+              "units_per_second": 66574.50908207307
+            }
+          ]
+        },
+        "sha256_64_end_to_end": {
+          "output_checksum_sha256": "1eeb52ed00a51f4cc77dc19b9ed2f67778d8373ac1268f9149be90d2b07d9e02",
+          "raw_timings": [
+            {
+              "checksum_sha256": "1eeb52ed00a51f4cc77dc19b9ed2f67778d8373ac1268f9149be90d2b07d9e02",
+              "elapsed_ns": 48230900,
+              "ended_at_utc": "2026-11-03T06:20:45.003Z",
+              "index": 0,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:44.955Z",
+              "units": 8192,
+              "units_per_second": 169849.61922750768
+            },
+            {
+              "checksum_sha256": "1eeb52ed00a51f4cc77dc19b9ed2f67778d8373ac1268f9149be90d2b07d9e02",
+              "elapsed_ns": 48572300,
+              "ended_at_utc": "2026-11-03T06:20:45.053Z",
+              "index": 1,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:45.005Z",
+              "units": 8192,
+              "units_per_second": 168655.7976459834
+            },
+            {
+              "checksum_sha256": "1eeb52ed00a51f4cc77dc19b9ed2f67778d8373ac1268f9149be90d2b07d9e02",
+              "elapsed_ns": 48710500,
+              "ended_at_utc": "2026-11-03T06:20:45.104Z",
+              "index": 2,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:45.055Z",
+              "units": 8192,
+              "units_per_second": 168177.29237022818
+            },
+            {
+              "checksum_sha256": "1eeb52ed00a51f4cc77dc19b9ed2f67778d8373ac1268f9149be90d2b07d9e02",
+              "elapsed_ns": 48213300,
+              "ended_at_utc": "2026-11-03T06:20:45.154Z",
+              "index": 3,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:45.106Z",
+              "units": 8192,
+              "units_per_second": 169911.6218968625
+            },
+            {
+              "checksum_sha256": "1eeb52ed00a51f4cc77dc19b9ed2f67778d8373ac1268f9149be90d2b07d9e02",
+              "elapsed_ns": 48215900,
+              "ended_at_utc": "2026-11-03T06:20:45.204Z",
+              "index": 4,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:45.156Z",
+              "units": 8192,
+              "units_per_second": 169902.45956209465
+            },
+            {
+              "checksum_sha256": "1eeb52ed00a51f4cc77dc19b9ed2f67778d8373ac1268f9149be90d2b07d9e02",
+              "elapsed_ns": 48504900,
+              "ended_at_utc": "2026-11-03T06:20:45.255Z",
+              "index": 5,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:45.206Z",
+              "units": 8192,
+              "units_per_second": 168890.1533659486
+            },
+            {
+              "checksum_sha256": "1eeb52ed00a51f4cc77dc19b9ed2f67778d8373ac1268f9149be90d2b07d9e02",
+              "elapsed_ns": 48438400,
+              "ended_at_utc": "2026-11-03T06:20:45.306Z",
+              "index": 6,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:45.257Z",
+              "units": 8192,
+              "units_per_second": 169122.01889410056
+            }
+          ],
+          "summary_ns": {
+            "max": 48710500,
+            "median": 48438400,
+            "min": 48213300
+          },
+          "warmup_timings": [
+            {
+              "checksum_sha256": "1eeb52ed00a51f4cc77dc19b9ed2f67778d8373ac1268f9149be90d2b07d9e02",
+              "elapsed_ns": 47981100,
+              "ended_at_utc": "2026-11-03T06:20:44.953Z",
+              "index": 0,
+              "kind": "warmup",
+              "started_at_utc": "2026-11-03T06:20:44.905Z",
+              "units": 8192,
+              "units_per_second": 170733.89313708938
+            }
+          ]
+        }
+      },
+      "key_shape": "typed key components; terrain uses i64/i64/string, entities use string/string/string/u64",
+      "sample_count": 8192,
+      "scope_prefix": [
+        "practical-benchmark-v1",
+        "entity-loot"
+      ],
+      "stages": {
+        "bulk_generation_from_prepared_keys": {
+          "blake2b_64": {
+            "output_checksum_sha256": "dcf1cddbff2f84c5267b105911cd9b66681b5bccbaddb13906ef2685a0c0ac22",
+            "raw_timings": [
+              {
+                "checksum_sha256": "dcf1cddbff2f84c5267b105911cd9b66681b5bccbaddb13906ef2685a0c0ac22",
+                "elapsed_ns": 8616600,
+                "ended_at_utc": "2026-11-03T06:20:48.045Z",
+                "index": 0,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:48.036Z",
+                "units": 8192,
+                "units_per_second": 950723.0230021122
+              },
+              {
+                "checksum_sha256": "dcf1cddbff2f84c5267b105911cd9b66681b5bccbaddb13906ef2685a0c0ac22",
+                "elapsed_ns": 8263500,
+                "ended_at_utc": "2026-11-03T06:20:48.055Z",
+                "index": 1,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:48.046Z",
+                "units": 8192,
+                "units_per_second": 991347.491982816
+              },
+              {
+                "checksum_sha256": "dcf1cddbff2f84c5267b105911cd9b66681b5bccbaddb13906ef2685a0c0ac22",
+                "elapsed_ns": 8241600,
+                "ended_at_utc": "2026-11-03T06:20:48.065Z",
+                "index": 2,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:48.057Z",
+                "units": 8192,
+                "units_per_second": 993981.7511162881
+              },
+              {
+                "checksum_sha256": "dcf1cddbff2f84c5267b105911cd9b66681b5bccbaddb13906ef2685a0c0ac22",
+                "elapsed_ns": 8342500,
+                "ended_at_utc": "2026-11-03T06:20:48.075Z",
+                "index": 3,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:48.067Z",
+                "units": 8192,
+                "units_per_second": 981959.8441714115
+              },
+              {
+                "checksum_sha256": "dcf1cddbff2f84c5267b105911cd9b66681b5bccbaddb13906ef2685a0c0ac22",
+                "elapsed_ns": 8292400,
+                "ended_at_utc": "2026-11-03T06:20:48.085Z",
+                "index": 4,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:48.077Z",
+                "units": 8192,
+                "units_per_second": 987892.5280980174
+              },
+              {
+                "checksum_sha256": "dcf1cddbff2f84c5267b105911cd9b66681b5bccbaddb13906ef2685a0c0ac22",
+                "elapsed_ns": 8504100,
+                "ended_at_utc": "2026-11-03T06:20:48.096Z",
+                "index": 5,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:48.087Z",
+                "units": 8192,
+                "units_per_second": 963300.0552674592
+              },
+              {
+                "checksum_sha256": "dcf1cddbff2f84c5267b105911cd9b66681b5bccbaddb13906ef2685a0c0ac22",
+                "elapsed_ns": 8369200,
+                "ended_at_utc": "2026-11-03T06:20:48.106Z",
+                "index": 6,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:48.098Z",
+                "units": 8192,
+                "units_per_second": 978827.1280409119
+              }
+            ],
+            "summary_ns": {
+              "max": 8616600,
+              "median": 8342500,
+              "min": 8241600
+            },
+            "warmup_timings": [
+              {
+                "checksum_sha256": "dcf1cddbff2f84c5267b105911cd9b66681b5bccbaddb13906ef2685a0c0ac22",
+                "elapsed_ns": 8243300,
+                "ended_at_utc": "2026-11-03T06:20:48.034Z",
+                "index": 0,
+                "kind": "warmup",
+                "started_at_utc": "2026-11-03T06:20:48.026Z",
+                "units": 8192,
+                "units_per_second": 993776.7641599844
+              }
+            ]
+          },
+          "esinxe_v1_spec_reference": {
+            "output_checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+            "raw_timings": [
+              {
+                "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+                "elapsed_ns": 152199200,
+                "ended_at_utc": "2026-11-03T06:20:47.126Z",
+                "index": 0,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:46.974Z",
+                "units": 8192,
+                "units_per_second": 53824.19881313437
+              },
+              {
+                "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+                "elapsed_ns": 151576500,
+                "ended_at_utc": "2026-11-03T06:20:47.280Z",
+                "index": 1,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:47.128Z",
+                "units": 8192,
+                "units_per_second": 54045.317051125996
+              },
+              {
+                "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+                "elapsed_ns": 153929200,
+                "ended_at_utc": "2026-11-03T06:20:47.436Z",
+                "index": 2,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:47.282Z",
+                "units": 8192,
+                "units_per_second": 53219.27223684655
+              },
+              {
+                "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+                "elapsed_ns": 148522600,
+                "ended_at_utc": "2026-11-03T06:20:47.586Z",
+                "index": 3,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:47.438Z",
+                "units": 8192,
+                "units_per_second": 55156.58896356514
+              },
+              {
+                "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+                "elapsed_ns": 143685700,
+                "ended_at_utc": "2026-11-03T06:20:47.732Z",
+                "index": 4,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:47.589Z",
+                "units": 8192,
+                "units_per_second": 57013.32839663237
+              },
+              {
+                "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+                "elapsed_ns": 144030300,
+                "ended_at_utc": "2026-11-03T06:20:47.878Z",
+                "index": 5,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:47.734Z",
+                "units": 8192,
+                "units_per_second": 56876.92103675407
+              },
+              {
+                "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+                "elapsed_ns": 143885200,
+                "ended_at_utc": "2026-11-03T06:20:48.024Z",
+                "index": 6,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:47.880Z",
+                "units": 8192,
+                "units_per_second": 56934.27816064474
+              }
+            ],
+            "summary_ns": {
+              "max": 153929200,
+              "median": 148522600,
+              "min": 143685700
+            },
+            "warmup_timings": [
+              {
+                "checksum_sha256": "bd24fa3c5cb40baf741f957026ae5985c4cc7e590f14d06df166c7393c52cc90",
+                "elapsed_ns": 150994500,
+                "ended_at_utc": "2026-11-03T06:20:46.972Z",
+                "index": 0,
+                "kind": "warmup",
+                "started_at_utc": "2026-11-03T06:20:46.821Z",
+                "units": 8192,
+                "units_per_second": 54253.63175479902
+              }
+            ]
+          },
+          "philox4x32_10": {
+            "output_checksum_sha256": "ed331fde7bdd19553de7853c9ff3badaaea0e5d75d7d1e588064fb8ed79b0f0c",
+            "raw_timings": [
+              {
+                "checksum_sha256": "ed331fde7bdd19553de7853c9ff3badaaea0e5d75d7d1e588064fb8ed79b0f0c",
+                "elapsed_ns": 70725400,
+                "ended_at_utc": "2026-11-03T06:20:48.355Z",
+                "index": 0,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:48.284Z",
+                "units": 8192,
+                "units_per_second": 115828.25971998744
+              },
+              {
+                "checksum_sha256": "ed331fde7bdd19553de7853c9ff3badaaea0e5d75d7d1e588064fb8ed79b0f0c",
+                "elapsed_ns": 71090900,
+                "ended_at_utc": "2026-11-03T06:20:48.429Z",
+                "index": 1,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:48.358Z",
+                "units": 8192,
+                "units_per_second": 115232.75130853597
+              },
+              {
+                "checksum_sha256": "ed331fde7bdd19553de7853c9ff3badaaea0e5d75d7d1e588064fb8ed79b0f0c",
+                "elapsed_ns": 70762900,
+                "ended_at_utc": "2026-11-03T06:20:48.501Z",
+                "index": 2,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:48.431Z",
+                "units": 8192,
+                "units_per_second": 115766.87784135473
+              },
+              {
+                "checksum_sha256": "ed331fde7bdd19553de7853c9ff3badaaea0e5d75d7d1e588064fb8ed79b0f0c",
+                "elapsed_ns": 71710100,
+                "ended_at_utc": "2026-11-03T06:20:48.575Z",
+                "index": 3,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:48.503Z",
+                "units": 8192,
+                "units_per_second": 114237.74335832748
+              },
+              {
+                "checksum_sha256": "ed331fde7bdd19553de7853c9ff3badaaea0e5d75d7d1e588064fb8ed79b0f0c",
+                "elapsed_ns": 70855200,
+                "ended_at_utc": "2026-11-03T06:20:48.648Z",
+                "index": 4,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:48.577Z",
+                "units": 8192,
+                "units_per_second": 115616.07334394653
+              },
+              {
+                "checksum_sha256": "ed331fde7bdd19553de7853c9ff3badaaea0e5d75d7d1e588064fb8ed79b0f0c",
+                "elapsed_ns": 72347000,
+                "ended_at_utc": "2026-11-03T06:20:48.722Z",
+                "index": 5,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:48.650Z",
+                "units": 8192,
+                "units_per_second": 113232.06214494036
+              },
+              {
+                "checksum_sha256": "ed331fde7bdd19553de7853c9ff3badaaea0e5d75d7d1e588064fb8ed79b0f0c",
+                "elapsed_ns": 71075300,
+                "ended_at_utc": "2026-11-03T06:20:48.795Z",
+                "index": 6,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:48.724Z",
+                "units": 8192,
+                "units_per_second": 115258.04323020796
+              }
+            ],
+            "summary_ns": {
+              "max": 72347000,
+              "median": 71075300,
+              "min": 70725400
+            },
+            "warmup_timings": [
+              {
+                "checksum_sha256": "ed331fde7bdd19553de7853c9ff3badaaea0e5d75d7d1e588064fb8ed79b0f0c",
+                "elapsed_ns": 72619900,
+                "ended_at_utc": "2026-11-03T06:20:48.282Z",
+                "index": 0,
+                "kind": "warmup",
+                "started_at_utc": "2026-11-03T06:20:48.210Z",
+                "units": 8192,
+                "units_per_second": 112806.54476252377
+              }
+            ]
+          },
+          "sha256_64": {
+            "output_checksum_sha256": "1eeb52ed00a51f4cc77dc19b9ed2f67778d8373ac1268f9149be90d2b07d9e02",
+            "raw_timings": [
+              {
+                "checksum_sha256": "1eeb52ed00a51f4cc77dc19b9ed2f67778d8373ac1268f9149be90d2b07d9e02",
+                "elapsed_ns": 10835100,
+                "ended_at_utc": "2026-11-03T06:20:48.132Z",
+                "index": 0,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:48.121Z",
+                "units": 8192,
+                "units_per_second": 756061.3192310177
+              },
+              {
+                "checksum_sha256": "1eeb52ed00a51f4cc77dc19b9ed2f67778d8373ac1268f9149be90d2b07d9e02",
+                "elapsed_ns": 10669000,
+                "ended_at_utc": "2026-11-03T06:20:48.144Z",
+                "index": 1,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:48.133Z",
+                "units": 8192,
+                "units_per_second": 767832.0367419627
+              },
+              {
+                "checksum_sha256": "1eeb52ed00a51f4cc77dc19b9ed2f67778d8373ac1268f9149be90d2b07d9e02",
+                "elapsed_ns": 10846000,
+                "ended_at_utc": "2026-11-03T06:20:48.157Z",
+                "index": 2,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:48.146Z",
+                "units": 8192,
+                "units_per_second": 755301.4936382077
+              },
+              {
+                "checksum_sha256": "1eeb52ed00a51f4cc77dc19b9ed2f67778d8373ac1268f9149be90d2b07d9e02",
+                "elapsed_ns": 10726500,
+                "ended_at_utc": "2026-11-03T06:20:48.170Z",
+                "index": 3,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:48.159Z",
+                "units": 8192,
+                "units_per_second": 763716.0303920198
+              },
+              {
+                "checksum_sha256": "1eeb52ed00a51f4cc77dc19b9ed2f67778d8373ac1268f9149be90d2b07d9e02",
+                "elapsed_ns": 10711000,
+                "ended_at_utc": "2026-11-03T06:20:48.182Z",
+                "index": 4,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:48.172Z",
+                "units": 8192,
+                "units_per_second": 764821.2118382971
+              },
+              {
+                "checksum_sha256": "1eeb52ed00a51f4cc77dc19b9ed2f67778d8373ac1268f9149be90d2b07d9e02",
+                "elapsed_ns": 10760300,
+                "ended_at_utc": "2026-11-03T06:20:48.195Z",
+                "index": 5,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:48.184Z",
+                "units": 8192,
+                "units_per_second": 761317.0636506417
+              },
+              {
+                "checksum_sha256": "1eeb52ed00a51f4cc77dc19b9ed2f67778d8373ac1268f9149be90d2b07d9e02",
+                "elapsed_ns": 10860500,
+                "ended_at_utc": "2026-11-03T06:20:48.208Z",
+                "index": 6,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:48.197Z",
+                "units": 8192,
+                "units_per_second": 754293.0804290778
+              }
+            ],
+            "summary_ns": {
+              "max": 10860500,
+              "median": 10760300,
+              "min": 10669000
+            },
+            "warmup_timings": [
+              {
+                "checksum_sha256": "1eeb52ed00a51f4cc77dc19b9ed2f67778d8373ac1268f9149be90d2b07d9e02",
+                "elapsed_ns": 10664600,
+                "ended_at_utc": "2026-11-03T06:20:48.119Z",
+                "index": 0,
+                "kind": "warmup",
+                "started_at_utc": "2026-11-03T06:20:48.108Z",
+                "units": 8192,
+                "units_per_second": 768148.8288355869
+              }
+            ]
+          }
+        },
+        "encoding_only": {
+          "output_checksum_sha256": "1729d22fa594575bce4d94aa749e81a72d2c9dec566a0a9d0e8f983854591b2a",
+          "raw_timings": [
+            {
+              "checksum_sha256": "1729d22fa594575bce4d94aa749e81a72d2c9dec566a0a9d0e8f983854591b2a",
+              "elapsed_ns": 36161000,
+              "ended_at_utc": "2026-11-03T06:20:46.426Z",
+              "index": 0,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:46.389Z",
+              "units": 8192,
+              "units_per_second": 226542.40756616244
+            },
+            {
+              "checksum_sha256": "1729d22fa594575bce4d94aa749e81a72d2c9dec566a0a9d0e8f983854591b2a",
+              "elapsed_ns": 50441400,
+              "ended_at_utc": "2026-11-03T06:20:46.480Z",
+              "index": 1,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:46.430Z",
+              "units": 8192,
+              "units_per_second": 162406.27738326057
+            },
+            {
+              "checksum_sha256": "1729d22fa594575bce4d94aa749e81a72d2c9dec566a0a9d0e8f983854591b2a",
+              "elapsed_ns": 37204500,
+              "ended_at_utc": "2026-11-03T06:20:46.522Z",
+              "index": 2,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:46.484Z",
+              "units": 8192,
+              "units_per_second": 220188.41806770687
+            },
+            {
+              "checksum_sha256": "1729d22fa594575bce4d94aa749e81a72d2c9dec566a0a9d0e8f983854591b2a",
+              "elapsed_ns": 37803100,
+              "ended_at_utc": "2026-11-03T06:20:46.564Z",
+              "index": 3,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:46.526Z",
+              "units": 8192,
+              "units_per_second": 216701.80487843588
+            },
+            {
+              "checksum_sha256": "1729d22fa594575bce4d94aa749e81a72d2c9dec566a0a9d0e8f983854591b2a",
+              "elapsed_ns": 36798600,
+              "ended_at_utc": "2026-11-03T06:20:46.604Z",
+              "index": 4,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:46.568Z",
+              "units": 8192,
+              "units_per_second": 222617.16478344286
+            },
+            {
+              "checksum_sha256": "1729d22fa594575bce4d94aa749e81a72d2c9dec566a0a9d0e8f983854591b2a",
+              "elapsed_ns": 36294800,
+              "ended_at_utc": "2026-11-03T06:20:46.646Z",
+              "index": 5,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:46.609Z",
+              "units": 8192,
+              "units_per_second": 225707.26385046894
+            },
+            {
+              "checksum_sha256": "1729d22fa594575bce4d94aa749e81a72d2c9dec566a0a9d0e8f983854591b2a",
+              "elapsed_ns": 36899500,
+              "ended_at_utc": "2026-11-03T06:20:46.687Z",
+              "index": 6,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:46.650Z",
+              "units": 8192,
+              "units_per_second": 222008.42829848643
+            }
+          ],
+          "summary_ns": {
+            "max": 50441400,
+            "median": 36899500,
+            "min": 36161000
+          },
+          "warmup_timings": [
+            {
+              "checksum_sha256": "1729d22fa594575bce4d94aa749e81a72d2c9dec566a0a9d0e8f983854591b2a",
+              "elapsed_ns": 35893600,
+              "ended_at_utc": "2026-11-03T06:20:46.385Z",
+              "index": 0,
+              "kind": "warmup",
+              "started_at_utc": "2026-11-03T06:20:46.349Z",
+              "units": 8192,
+              "units_per_second": 228230.10230236032
+            }
+          ]
+        },
+        "per_object_setup": {
+          "blake2b_64": {
+            "reason": "the hash wrapper consumes canonical bytes directly per output",
+            "status": "not_applicable"
+          },
+          "esinxe_v1": {
+            "reason": "v1 keyed draws are stateless; there is no per-key generator to initialize",
+            "status": "not_applicable"
+          },
+          "philox4x32_10": {
+            "output_checksum_sha256": "0f9300c9796edd42407c926c9357ded1f854ca9a8e96fc20a7ec9ce8da5c267b",
+            "raw_timings": [
+              {
+                "checksum_sha256": "0f9300c9796edd42407c926c9357ded1f854ca9a8e96fc20a7ec9ce8da5c267b",
+                "elapsed_ns": 11410500,
+                "ended_at_utc": "2026-11-03T06:20:46.717Z",
+                "index": 0,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:46.706Z",
+                "units": 8192,
+                "units_per_second": 717935.2350904868
+              },
+              {
+                "checksum_sha256": "0f9300c9796edd42407c926c9357ded1f854ca9a8e96fc20a7ec9ce8da5c267b",
+                "elapsed_ns": 11162600,
+                "ended_at_utc": "2026-11-03T06:20:46.732Z",
+                "index": 1,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:46.721Z",
+                "units": 8192,
+                "units_per_second": 733879.2037697311
+              },
+              {
+                "checksum_sha256": "0f9300c9796edd42407c926c9357ded1f854ca9a8e96fc20a7ec9ce8da5c267b",
+                "elapsed_ns": 11260300,
+                "ended_at_utc": "2026-11-03T06:20:46.746Z",
+                "index": 2,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:46.735Z",
+                "units": 8192,
+                "units_per_second": 727511.7003987461
+              },
+              {
+                "checksum_sha256": "0f9300c9796edd42407c926c9357ded1f854ca9a8e96fc20a7ec9ce8da5c267b",
+                "elapsed_ns": 11290000,
+                "ended_at_utc": "2026-11-03T06:20:46.761Z",
+                "index": 3,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:46.750Z",
+                "units": 8192,
+                "units_per_second": 725597.8742249778
+              },
+              {
+                "checksum_sha256": "0f9300c9796edd42407c926c9357ded1f854ca9a8e96fc20a7ec9ce8da5c267b",
+                "elapsed_ns": 11951200,
+                "ended_at_utc": "2026-11-03T06:20:46.776Z",
+                "index": 4,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:46.764Z",
+                "units": 8192,
+                "units_per_second": 685454.1803333557
+              },
+              {
+                "checksum_sha256": "0f9300c9796edd42407c926c9357ded1f854ca9a8e96fc20a7ec9ce8da5c267b",
+                "elapsed_ns": 11326600,
+                "ended_at_utc": "2026-11-03T06:20:46.791Z",
+                "index": 5,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:46.779Z",
+                "units": 8192,
+                "units_per_second": 723253.2269171685
+              },
+              {
+                "checksum_sha256": "0f9300c9796edd42407c926c9357ded1f854ca9a8e96fc20a7ec9ce8da5c267b",
+                "elapsed_ns": 12009700,
+                "ended_at_utc": "2026-11-03T06:20:46.806Z",
+                "index": 6,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:46.794Z",
+                "units": 8192,
+                "units_per_second": 682115.2901404698
+              }
+            ],
+            "summary_ns": {
+              "max": 12009700,
+              "median": 11326600,
+              "min": 11162600
+            },
+            "warmup_timings": [
+              {
+                "checksum_sha256": "0f9300c9796edd42407c926c9357ded1f854ca9a8e96fc20a7ec9ce8da5c267b",
+                "elapsed_ns": 11260700,
+                "ended_at_utc": "2026-11-03T06:20:46.702Z",
+                "index": 0,
+                "kind": "warmup",
+                "started_at_utc": "2026-11-03T06:20:46.691Z",
+                "units": 8192,
+                "units_per_second": 727485.8578951575
+              }
+            ]
+          },
+          "sha256_64": {
+            "reason": "the hash wrapper consumes canonical bytes directly per output",
+            "status": "not_applicable"
+          }
+        }
+      }
+    },
+    "terrain_coordinates": {
+      "description": "One height lookup per signed tile coordinate in a row-major scan; x spans -128..127 and y advances from -32.",
+      "end_to_end": {
+        "blake2b_64_end_to_end": {
+          "output_checksum_sha256": "1d0d49cf96d344fced8743037f8b7b6c85f38e80042c53909865a498c22382ee",
+          "raw_timings": [
+            {
+              "checksum_sha256": "1d0d49cf96d344fced8743037f8b7b6c85f38e80042c53909865a498c22382ee",
+              "elapsed_ns": 35244200,
+              "ended_at_utc": "2026-11-03T06:20:38.957Z",
+              "index": 0,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:38.922Z",
+              "units": 8192,
+              "units_per_second": 232435.4078117818
+            },
+            {
+              "checksum_sha256": "1d0d49cf96d344fced8743037f8b7b6c85f38e80042c53909865a498c22382ee",
+              "elapsed_ns": 35272400,
+              "ended_at_utc": "2026-11-03T06:20:38.995Z",
+              "index": 1,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:38.959Z",
+              "units": 8192,
+              "units_per_second": 232249.57757340017
+            },
+            {
+              "checksum_sha256": "1d0d49cf96d344fced8743037f8b7b6c85f38e80042c53909865a498c22382ee",
+              "elapsed_ns": 35032800,
+              "ended_at_utc": "2026-11-03T06:20:39.032Z",
+              "index": 2,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:38.997Z",
+              "units": 8192,
+              "units_per_second": 233838.00324267545
+            },
+            {
+              "checksum_sha256": "1d0d49cf96d344fced8743037f8b7b6c85f38e80042c53909865a498c22382ee",
+              "elapsed_ns": 35171700,
+              "ended_at_utc": "2026-11-03T06:20:39.069Z",
+              "index": 3,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:39.034Z",
+              "units": 8192,
+              "units_per_second": 232914.5307164567
+            },
+            {
+              "checksum_sha256": "1d0d49cf96d344fced8743037f8b7b6c85f38e80042c53909865a498c22382ee",
+              "elapsed_ns": 35188300,
+              "ended_at_utc": "2026-11-03T06:20:39.106Z",
+              "index": 4,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:39.071Z",
+              "units": 8192,
+              "units_per_second": 232804.65381959346
+            },
+            {
+              "checksum_sha256": "1d0d49cf96d344fced8743037f8b7b6c85f38e80042c53909865a498c22382ee",
+              "elapsed_ns": 35332400,
+              "ended_at_utc": "2026-11-03T06:20:39.144Z",
+              "index": 5,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:39.108Z",
+              "units": 8192,
+              "units_per_second": 231855.18108025496
+            },
+            {
+              "checksum_sha256": "1d0d49cf96d344fced8743037f8b7b6c85f38e80042c53909865a498c22382ee",
+              "elapsed_ns": 35427600,
+              "ended_at_utc": "2026-11-03T06:20:39.181Z",
+              "index": 6,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:39.146Z",
+              "units": 8192,
+              "units_per_second": 231232.14668789305
+            }
+          ],
+          "summary_ns": {
+            "max": 35427600,
+            "median": 35244200,
+            "min": 35032800
+          },
+          "warmup_timings": [
+            {
+              "checksum_sha256": "1d0d49cf96d344fced8743037f8b7b6c85f38e80042c53909865a498c22382ee",
+              "elapsed_ns": 35386200,
+              "ended_at_utc": "2026-11-03T06:20:38.920Z",
+              "index": 0,
+              "kind": "warmup",
+              "started_at_utc": "2026-11-03T06:20:38.885Z",
+              "units": 8192,
+              "units_per_second": 231502.6761845013
+            }
+          ]
+        },
+        "esinxe_raw_batch": {
+          "output_checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+          "raw_timings": [
+            {
+              "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+              "elapsed_ns": 15428900,
+              "ended_at_utc": "2026-11-03T06:20:38.777Z",
+              "index": 0,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:38.761Z",
+              "units": 8192,
+              "units_per_second": 530951.655659185
+            },
+            {
+              "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+              "elapsed_ns": 15617700,
+              "ended_at_utc": "2026-11-03T06:20:38.794Z",
+              "index": 1,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:38.779Z",
+              "units": 8192,
+              "units_per_second": 524533.0618464947
+            },
+            {
+              "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+              "elapsed_ns": 15601700,
+              "ended_at_utc": "2026-11-03T06:20:38.812Z",
+              "index": 2,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:38.797Z",
+              "units": 8192,
+              "units_per_second": 525070.9858541057
+            },
+            {
+              "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+              "elapsed_ns": 15801000,
+              "ended_at_utc": "2026-11-03T06:20:38.830Z",
+              "index": 3,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:38.814Z",
+              "units": 8192,
+              "units_per_second": 518448.1994810455
+            },
+            {
+              "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+              "elapsed_ns": 15606500,
+              "ended_at_utc": "2026-11-03T06:20:38.848Z",
+              "index": 4,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:38.832Z",
+              "units": 8192,
+              "units_per_second": 524909.492839522
+            },
+            {
+              "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+              "elapsed_ns": 15805800,
+              "ended_at_utc": "2026-11-03T06:20:38.865Z",
+              "index": 5,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:38.849Z",
+              "units": 8192,
+              "units_per_second": 518290.7540270027
+            },
+            {
+              "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+              "elapsed_ns": 15628100,
+              "ended_at_utc": "2026-11-03T06:20:38.883Z",
+              "index": 6,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:38.867Z",
+              "units": 8192,
+              "units_per_second": 524184.0018940242
+            }
+          ],
+          "summary_ns": {
+            "max": 15805800,
+            "median": 15617700,
+            "min": 15428900
+          },
+          "warmup_timings": [
+            {
+              "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+              "elapsed_ns": 15638500,
+              "ended_at_utc": "2026-11-03T06:20:38.760Z",
+              "index": 0,
+              "kind": "warmup",
+              "started_at_utc": "2026-11-03T06:20:38.744Z",
+              "units": 8192,
+              "units_per_second": 523835.40620903537
+            }
+          ]
+        },
+        "esinxe_raw_scalar": {
+          "output_checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+          "raw_timings": [
+            {
+              "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+              "elapsed_ns": 143295800,
+              "ended_at_utc": "2026-11-03T06:20:37.705Z",
+              "index": 0,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:37.561Z",
+              "units": 8192,
+              "units_per_second": 57168.45853123399
+            },
+            {
+              "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+              "elapsed_ns": 147241300,
+              "ended_at_utc": "2026-11-03T06:20:37.854Z",
+              "index": 1,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:37.707Z",
+              "units": 8192,
+              "units_per_second": 55636.56392601804
+            },
+            {
+              "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+              "elapsed_ns": 143447500,
+              "ended_at_utc": "2026-11-03T06:20:37.999Z",
+              "index": 2,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:37.856Z",
+              "units": 8192,
+              "units_per_second": 57108.00118510256
+            },
+            {
+              "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+              "elapsed_ns": 143440600,
+              "ended_at_utc": "2026-11-03T06:20:38.145Z",
+              "index": 3,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:38.001Z",
+              "units": 8192,
+              "units_per_second": 57110.7482818672
+            },
+            {
+              "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+              "elapsed_ns": 142934500,
+              "ended_at_utc": "2026-11-03T06:20:38.290Z",
+              "index": 4,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:38.147Z",
+              "units": 8192,
+              "units_per_second": 57312.96502943656
+            },
+            {
+              "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+              "elapsed_ns": 143080300,
+              "ended_at_utc": "2026-11-03T06:20:38.435Z",
+              "index": 5,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:38.292Z",
+              "units": 8192,
+              "units_per_second": 57254.56264768805
+            },
+            {
+              "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+              "elapsed_ns": 145270500,
+              "ended_at_utc": "2026-11-03T06:20:38.582Z",
+              "index": 6,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:38.437Z",
+              "units": 8192,
+              "units_per_second": 56391.35268344227
+            }
+          ],
+          "summary_ns": {
+            "max": 147241300,
+            "median": 143440600,
+            "min": 142934500
+          },
+          "warmup_timings": [
+            {
+              "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+              "elapsed_ns": 143538700,
+              "ended_at_utc": "2026-11-03T06:20:37.559Z",
+              "index": 0,
+              "kind": "warmup",
+              "started_at_utc": "2026-11-03T06:20:37.416Z",
+              "units": 8192,
+              "units_per_second": 57071.71654752342
+            }
+          ]
+        },
+        "philox4x32_10_end_to_end": {
+          "output_checksum_sha256": "beef357c045b458570e20d802aa33aa04c4e7af1fa075ade0b957beb8102b48b",
+          "raw_timings": [
+            {
+              "checksum_sha256": "beef357c045b458570e20d802aa33aa04c4e7af1fa075ade0b957beb8102b48b",
+              "elapsed_ns": 113979400,
+              "ended_at_utc": "2026-11-03T06:20:39.752Z",
+              "index": 0,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:39.638Z",
+              "units": 8192,
+              "units_per_second": 71872.63663433919
+            },
+            {
+              "checksum_sha256": "beef357c045b458570e20d802aa33aa04c4e7af1fa075ade0b957beb8102b48b",
+              "elapsed_ns": 115615400,
+              "ended_at_utc": "2026-11-03T06:20:39.870Z",
+              "index": 1,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:39.754Z",
+              "units": 8192,
+              "units_per_second": 70855.61266059712
+            },
+            {
+              "checksum_sha256": "beef357c045b458570e20d802aa33aa04c4e7af1fa075ade0b957beb8102b48b",
+              "elapsed_ns": 121165200,
+              "ended_at_utc": "2026-11-03T06:20:39.993Z",
+              "index": 2,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:39.872Z",
+              "units": 8192,
+              "units_per_second": 67610.17189754154
+            },
+            {
+              "checksum_sha256": "beef357c045b458570e20d802aa33aa04c4e7af1fa075ade0b957beb8102b48b",
+              "elapsed_ns": 115932600,
+              "ended_at_utc": "2026-11-03T06:20:40.111Z",
+              "index": 3,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:39.995Z",
+              "units": 8192,
+              "units_per_second": 70661.74656653953
+            },
+            {
+              "checksum_sha256": "beef357c045b458570e20d802aa33aa04c4e7af1fa075ade0b957beb8102b48b",
+              "elapsed_ns": 118834700,
+              "ended_at_utc": "2026-11-03T06:20:40.232Z",
+              "index": 4,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:40.113Z",
+              "units": 8192,
+              "units_per_second": 68936.09358209344
+            },
+            {
+              "checksum_sha256": "beef357c045b458570e20d802aa33aa04c4e7af1fa075ade0b957beb8102b48b",
+              "elapsed_ns": 116916500,
+              "ended_at_utc": "2026-11-03T06:20:40.351Z",
+              "index": 5,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:40.234Z",
+              "units": 8192,
+              "units_per_second": 70067.0991690651
+            },
+            {
+              "checksum_sha256": "beef357c045b458570e20d802aa33aa04c4e7af1fa075ade0b957beb8102b48b",
+              "elapsed_ns": 116461700,
+              "ended_at_utc": "2026-11-03T06:20:40.469Z",
+              "index": 6,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:40.353Z",
+              "units": 8192,
+              "units_per_second": 70340.72145606668
+            }
+          ],
+          "summary_ns": {
+            "max": 121165200,
+            "median": 116461700,
+            "min": 113979400
+          },
+          "warmup_timings": [
+            {
+              "checksum_sha256": "beef357c045b458570e20d802aa33aa04c4e7af1fa075ade0b957beb8102b48b",
+              "elapsed_ns": 114509500,
+              "ended_at_utc": "2026-11-03T06:20:39.636Z",
+              "index": 0,
+              "kind": "warmup",
+              "started_at_utc": "2026-11-03T06:20:39.522Z",
+              "units": 8192,
+              "units_per_second": 71539.91590217405
+            }
+          ]
+        },
+        "sha256_64_end_to_end": {
+          "output_checksum_sha256": "04b4363497533066c2612c8c67721f3c22422201508bdea85390e4776a50b981",
+          "raw_timings": [
+            {
+              "checksum_sha256": "04b4363497533066c2612c8c67721f3c22422201508bdea85390e4776a50b981",
+              "elapsed_ns": 39672600,
+              "ended_at_utc": "2026-11-03T06:20:39.267Z",
+              "index": 0,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:39.227Z",
+              "units": 8192,
+              "units_per_second": 206490.1216456698
+            },
+            {
+              "checksum_sha256": "04b4363497533066c2612c8c67721f3c22422201508bdea85390e4776a50b981",
+              "elapsed_ns": 39649100,
+              "ended_at_utc": "2026-11-03T06:20:39.308Z",
+              "index": 1,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:39.268Z",
+              "units": 8192,
+              "units_per_second": 206612.50822843393
+            },
+            {
+              "checksum_sha256": "04b4363497533066c2612c8c67721f3c22422201508bdea85390e4776a50b981",
+              "elapsed_ns": 39897000,
+              "ended_at_utc": "2026-11-03T06:20:39.350Z",
+              "index": 2,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:39.310Z",
+              "units": 8192,
+              "units_per_second": 205328.7214577537
+            },
+            {
+              "checksum_sha256": "04b4363497533066c2612c8c67721f3c22422201508bdea85390e4776a50b981",
+              "elapsed_ns": 41800500,
+              "ended_at_utc": "2026-11-03T06:20:39.394Z",
+              "index": 3,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:39.352Z",
+              "units": 8192,
+              "units_per_second": 195978.51700338512
+            },
+            {
+              "checksum_sha256": "04b4363497533066c2612c8c67721f3c22422201508bdea85390e4776a50b981",
+              "elapsed_ns": 40332600,
+              "ended_at_utc": "2026-11-03T06:20:39.436Z",
+              "index": 4,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:39.396Z",
+              "units": 8192,
+              "units_per_second": 203111.1309461825
+            },
+            {
+              "checksum_sha256": "04b4363497533066c2612c8c67721f3c22422201508bdea85390e4776a50b981",
+              "elapsed_ns": 40229800,
+              "ended_at_utc": "2026-11-03T06:20:39.478Z",
+              "index": 5,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:39.438Z",
+              "units": 8192,
+              "units_per_second": 203630.14481802046
+            },
+            {
+              "checksum_sha256": "04b4363497533066c2612c8c67721f3c22422201508bdea85390e4776a50b981",
+              "elapsed_ns": 39897600,
+              "ended_at_utc": "2026-11-03T06:20:39.520Z",
+              "index": 6,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:39.480Z",
+              "units": 8192,
+              "units_per_second": 205325.6336220725
+            }
+          ],
+          "summary_ns": {
+            "max": 41800500,
+            "median": 39897600,
+            "min": 39649100
+          },
+          "warmup_timings": [
+            {
+              "checksum_sha256": "04b4363497533066c2612c8c67721f3c22422201508bdea85390e4776a50b981",
+              "elapsed_ns": 41882200,
+              "ended_at_utc": "2026-11-03T06:20:39.225Z",
+              "index": 0,
+              "kind": "warmup",
+              "started_at_utc": "2026-11-03T06:20:39.183Z",
+              "units": 8192,
+              "units_per_second": 195596.2198738366
+            }
+          ]
+        }
+      },
+      "key_shape": "typed key components; terrain uses i64/i64/string, entities use string/string/string/u64",
+      "sample_count": 8192,
+      "scope_prefix": [
+        "practical-benchmark-v1",
+        "terrain"
+      ],
+      "stages": {
+        "bulk_generation_from_prepared_keys": {
+          "blake2b_64": {
+            "output_checksum_sha256": "1d0d49cf96d344fced8743037f8b7b6c85f38e80042c53909865a498c22382ee",
+            "raw_timings": [
+              {
+                "checksum_sha256": "1d0d49cf96d344fced8743037f8b7b6c85f38e80042c53909865a498c22382ee",
+                "elapsed_ns": 6653500,
+                "ended_at_utc": "2026-11-03T06:20:41.735Z",
+                "index": 0,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:41.728Z",
+                "units": 8192,
+                "units_per_second": 1231231.682573082
+              },
+              {
+                "checksum_sha256": "1d0d49cf96d344fced8743037f8b7b6c85f38e80042c53909865a498c22382ee",
+                "elapsed_ns": 6120600,
+                "ended_at_utc": "2026-11-03T06:20:41.743Z",
+                "index": 1,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:41.737Z",
+                "units": 8192,
+                "units_per_second": 1338430.8727902493
+              },
+              {
+                "checksum_sha256": "1d0d49cf96d344fced8743037f8b7b6c85f38e80042c53909865a498c22382ee",
+                "elapsed_ns": 6525800,
+                "ended_at_utc": "2026-11-03T06:20:41.752Z",
+                "index": 2,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:41.745Z",
+                "units": 8192,
+                "units_per_second": 1255325.0176223605
+              },
+              {
+                "checksum_sha256": "1d0d49cf96d344fced8743037f8b7b6c85f38e80042c53909865a498c22382ee",
+                "elapsed_ns": 6165200,
+                "ended_at_utc": "2026-11-03T06:20:41.760Z",
+                "index": 3,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:41.754Z",
+                "units": 8192,
+                "units_per_second": 1328748.4590929735
+              },
+              {
+                "checksum_sha256": "1d0d49cf96d344fced8743037f8b7b6c85f38e80042c53909865a498c22382ee",
+                "elapsed_ns": 6656100,
+                "ended_at_utc": "2026-11-03T06:20:41.768Z",
+                "index": 4,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:41.762Z",
+                "units": 8192,
+                "units_per_second": 1230750.7399227775
+              },
+              {
+                "checksum_sha256": "1d0d49cf96d344fced8743037f8b7b6c85f38e80042c53909865a498c22382ee",
+                "elapsed_ns": 6075600,
+                "ended_at_utc": "2026-11-03T06:20:41.776Z",
+                "index": 5,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:41.770Z",
+                "units": 8192,
+                "units_per_second": 1348344.196457963
+              },
+              {
+                "checksum_sha256": "1d0d49cf96d344fced8743037f8b7b6c85f38e80042c53909865a498c22382ee",
+                "elapsed_ns": 7323700,
+                "ended_at_utc": "2026-11-03T06:20:41.786Z",
+                "index": 6,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:41.778Z",
+                "units": 8192,
+                "units_per_second": 1118560.290563513
+              }
+            ],
+            "summary_ns": {
+              "max": 7323700,
+              "median": 6525800,
+              "min": 6075600
+            },
+            "warmup_timings": [
+              {
+                "checksum_sha256": "1d0d49cf96d344fced8743037f8b7b6c85f38e80042c53909865a498c22382ee",
+                "elapsed_ns": 6091100,
+                "ended_at_utc": "2026-11-03T06:20:41.726Z",
+                "index": 0,
+                "kind": "warmup",
+                "started_at_utc": "2026-11-03T06:20:41.720Z",
+                "units": 8192,
+                "units_per_second": 1344913.0698888542
+              }
+            ]
+          },
+          "esinxe_v1_spec_reference": {
+            "output_checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+            "raw_timings": [
+              {
+                "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+                "elapsed_ns": 103179100,
+                "ended_at_utc": "2026-11-03T06:20:41.074Z",
+                "index": 0,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:40.971Z",
+                "units": 8192,
+                "units_per_second": 79395.92417456636
+              },
+              {
+                "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+                "elapsed_ns": 106933000,
+                "ended_at_utc": "2026-11-03T06:20:41.183Z",
+                "index": 1,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:41.076Z",
+                "units": 8192,
+                "units_per_second": 76608.71760822197
+              },
+              {
+                "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+                "elapsed_ns": 102041900,
+                "ended_at_utc": "2026-11-03T06:20:41.287Z",
+                "index": 2,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:41.185Z",
+                "units": 8192,
+                "units_per_second": 80280.74741846242
+              },
+              {
+                "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+                "elapsed_ns": 103331700,
+                "ended_at_utc": "2026-11-03T06:20:41.393Z",
+                "index": 3,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:41.289Z",
+                "units": 8192,
+                "units_per_second": 79278.67246933903
+              },
+              {
+                "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+                "elapsed_ns": 108423700,
+                "ended_at_utc": "2026-11-03T06:20:41.503Z",
+                "index": 4,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:41.395Z",
+                "units": 8192,
+                "units_per_second": 75555.43668035678
+              },
+              {
+                "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+                "elapsed_ns": 103597000,
+                "ended_at_utc": "2026-11-03T06:20:41.609Z",
+                "index": 5,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:41.505Z",
+                "units": 8192,
+                "units_per_second": 79075.64890875218
+              },
+              {
+                "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+                "elapsed_ns": 107461500,
+                "ended_at_utc": "2026-11-03T06:20:41.718Z",
+                "index": 6,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:41.611Z",
+                "units": 8192,
+                "units_per_second": 76231.95283892371
+              }
+            ],
+            "summary_ns": {
+              "max": 108423700,
+              "median": 103597000,
+              "min": 102041900
+            },
+            "warmup_timings": [
+              {
+                "checksum_sha256": "d9d2dc809a8409056e7093547224551d2d610589df40f8722155cde3c9bb77ec",
+                "elapsed_ns": 101337000,
+                "ended_at_utc": "2026-11-03T06:20:40.969Z",
+                "index": 0,
+                "kind": "warmup",
+                "started_at_utc": "2026-11-03T06:20:40.868Z",
+                "units": 8192,
+                "units_per_second": 80839.18016124416
+              }
+            ]
+          },
+          "philox4x32_10": {
+            "output_checksum_sha256": "beef357c045b458570e20d802aa33aa04c4e7af1fa075ade0b957beb8102b48b",
+            "raw_timings": [
+              {
+                "checksum_sha256": "beef357c045b458570e20d802aa33aa04c4e7af1fa075ade0b957beb8102b48b",
+                "elapsed_ns": 70663800,
+                "ended_at_utc": "2026-11-03T06:20:42.026Z",
+                "index": 0,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:41.956Z",
+                "units": 8192,
+                "units_per_second": 115929.23109144994
+              },
+              {
+                "checksum_sha256": "beef357c045b458570e20d802aa33aa04c4e7af1fa075ade0b957beb8102b48b",
+                "elapsed_ns": 71516800,
+                "ended_at_utc": "2026-11-03T06:20:42.100Z",
+                "index": 1,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:42.028Z",
+                "units": 8192,
+                "units_per_second": 114546.51214819455
+              },
+              {
+                "checksum_sha256": "beef357c045b458570e20d802aa33aa04c4e7af1fa075ade0b957beb8102b48b",
+                "elapsed_ns": 71275300,
+                "ended_at_utc": "2026-11-03T06:20:42.173Z",
+                "index": 2,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:42.102Z",
+                "units": 8192,
+                "units_per_second": 114934.62672202011
+              },
+              {
+                "checksum_sha256": "beef357c045b458570e20d802aa33aa04c4e7af1fa075ade0b957beb8102b48b",
+                "elapsed_ns": 71249000,
+                "ended_at_utc": "2026-11-03T06:20:42.246Z",
+                "index": 3,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:42.175Z",
+                "units": 8192,
+                "units_per_second": 114977.05230950609
+              },
+              {
+                "checksum_sha256": "beef357c045b458570e20d802aa33aa04c4e7af1fa075ade0b957beb8102b48b",
+                "elapsed_ns": 70533900,
+                "ended_at_utc": "2026-11-03T06:20:42.319Z",
+                "index": 4,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:42.248Z",
+                "units": 8192,
+                "units_per_second": 116142.73420298609
+              },
+              {
+                "checksum_sha256": "beef357c045b458570e20d802aa33aa04c4e7af1fa075ade0b957beb8102b48b",
+                "elapsed_ns": 71055100,
+                "ended_at_utc": "2026-11-03T06:20:42.392Z",
+                "index": 5,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:42.321Z",
+                "units": 8192,
+                "units_per_second": 115290.80952669126
+              },
+              {
+                "checksum_sha256": "beef357c045b458570e20d802aa33aa04c4e7af1fa075ade0b957beb8102b48b",
+                "elapsed_ns": 70692300,
+                "ended_at_utc": "2026-11-03T06:20:42.464Z",
+                "index": 6,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:42.394Z",
+                "units": 8192,
+                "units_per_second": 115882.4935671919
+              }
+            ],
+            "summary_ns": {
+              "max": 71516800,
+              "median": 71055100,
+              "min": 70533900
+            },
+            "warmup_timings": [
+              {
+                "checksum_sha256": "beef357c045b458570e20d802aa33aa04c4e7af1fa075ade0b957beb8102b48b",
+                "elapsed_ns": 71401000,
+                "ended_at_utc": "2026-11-03T06:20:41.953Z",
+                "index": 0,
+                "kind": "warmup",
+                "started_at_utc": "2026-11-03T06:20:41.882Z",
+                "units": 8192,
+                "units_per_second": 114732.28666265178
+              }
+            ]
+          },
+          "sha256_64": {
+            "output_checksum_sha256": "04b4363497533066c2612c8c67721f3c22422201508bdea85390e4776a50b981",
+            "raw_timings": [
+              {
+                "checksum_sha256": "04b4363497533066c2612c8c67721f3c22422201508bdea85390e4776a50b981",
+                "elapsed_ns": 9736900,
+                "ended_at_utc": "2026-11-03T06:20:41.809Z",
+                "index": 0,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:41.799Z",
+                "units": 8192,
+                "units_per_second": 841335.5380049092
+              },
+              {
+                "checksum_sha256": "04b4363497533066c2612c8c67721f3c22422201508bdea85390e4776a50b981",
+                "elapsed_ns": 9978100,
+                "ended_at_utc": "2026-11-03T06:20:41.821Z",
+                "index": 1,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:41.811Z",
+                "units": 8192,
+                "units_per_second": 820997.9855884387
+              },
+              {
+                "checksum_sha256": "04b4363497533066c2612c8c67721f3c22422201508bdea85390e4776a50b981",
+                "elapsed_ns": 9890100,
+                "ended_at_utc": "2026-11-03T06:20:41.833Z",
+                "index": 2,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:41.823Z",
+                "units": 8192,
+                "units_per_second": 828303.0505252727
+              },
+              {
+                "checksum_sha256": "04b4363497533066c2612c8c67721f3c22422201508bdea85390e4776a50b981",
+                "elapsed_ns": 9717700,
+                "ended_at_utc": "2026-11-03T06:20:41.845Z",
+                "index": 3,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:41.835Z",
+                "units": 8192,
+                "units_per_second": 842997.828704323
+              },
+              {
+                "checksum_sha256": "04b4363497533066c2612c8c67721f3c22422201508bdea85390e4776a50b981",
+                "elapsed_ns": 9766200,
+                "ended_at_utc": "2026-11-03T06:20:41.857Z",
+                "index": 4,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:41.847Z",
+                "units": 8192,
+                "units_per_second": 838811.410784133
+              },
+              {
+                "checksum_sha256": "04b4363497533066c2612c8c67721f3c22422201508bdea85390e4776a50b981",
+                "elapsed_ns": 9798500,
+                "ended_at_utc": "2026-11-03T06:20:41.868Z",
+                "index": 5,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:41.859Z",
+                "units": 8192,
+                "units_per_second": 836046.3336224932
+              },
+              {
+                "checksum_sha256": "04b4363497533066c2612c8c67721f3c22422201508bdea85390e4776a50b981",
+                "elapsed_ns": 9821400,
+                "ended_at_utc": "2026-11-03T06:20:41.880Z",
+                "index": 6,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:41.870Z",
+                "units": 8192,
+                "units_per_second": 834096.9719184637
+              }
+            ],
+            "summary_ns": {
+              "max": 9978100,
+              "median": 9798500,
+              "min": 9717700
+            },
+            "warmup_timings": [
+              {
+                "checksum_sha256": "04b4363497533066c2612c8c67721f3c22422201508bdea85390e4776a50b981",
+                "elapsed_ns": 9730700,
+                "ended_at_utc": "2026-11-03T06:20:41.797Z",
+                "index": 0,
+                "kind": "warmup",
+                "started_at_utc": "2026-11-03T06:20:41.787Z",
+                "units": 8192,
+                "units_per_second": 841871.6022485535
+              }
+            ]
+          }
+        },
+        "encoding_only": {
+          "output_checksum_sha256": "a4ca652a34029b5000bc4d576648bb00ba03fffb6cd8cd7f4915716937ec4ea9",
+          "raw_timings": [
+            {
+              "checksum_sha256": "a4ca652a34029b5000bc4d576648bb00ba03fffb6cd8cd7f4915716937ec4ea9",
+              "elapsed_ns": 28928900,
+              "ended_at_utc": "2026-11-03T06:20:40.532Z",
+              "index": 0,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:40.504Z",
+              "units": 8192,
+              "units_per_second": 283177.0305818749
+            },
+            {
+              "checksum_sha256": "a4ca652a34029b5000bc4d576648bb00ba03fffb6cd8cd7f4915716937ec4ea9",
+              "elapsed_ns": 29053600,
+              "ended_at_utc": "2026-11-03T06:20:40.565Z",
+              "index": 1,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:40.536Z",
+              "units": 8192,
+              "units_per_second": 281961.6157722279
+            },
+            {
+              "checksum_sha256": "a4ca652a34029b5000bc4d576648bb00ba03fffb6cd8cd7f4915716937ec4ea9",
+              "elapsed_ns": 28816400,
+              "ended_at_utc": "2026-11-03T06:20:40.597Z",
+              "index": 2,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:40.568Z",
+              "units": 8192,
+              "units_per_second": 284282.56131924875
+            },
+            {
+              "checksum_sha256": "a4ca652a34029b5000bc4d576648bb00ba03fffb6cd8cd7f4915716937ec4ea9",
+              "elapsed_ns": 30538900,
+              "ended_at_utc": "2026-11-03T06:20:40.631Z",
+              "index": 3,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:40.601Z",
+              "units": 8192,
+              "units_per_second": 268248.03774857643
+            },
+            {
+              "checksum_sha256": "a4ca652a34029b5000bc4d576648bb00ba03fffb6cd8cd7f4915716937ec4ea9",
+              "elapsed_ns": 30614700,
+              "ended_at_utc": "2026-11-03T06:20:40.665Z",
+              "index": 4,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:40.635Z",
+              "units": 8192,
+              "units_per_second": 267583.87310671015
+            },
+            {
+              "checksum_sha256": "a4ca652a34029b5000bc4d576648bb00ba03fffb6cd8cd7f4915716937ec4ea9",
+              "elapsed_ns": 30354900,
+              "ended_at_utc": "2026-11-03T06:20:40.699Z",
+              "index": 5,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:40.669Z",
+              "units": 8192,
+              "units_per_second": 269874.05657735653
+            },
+            {
+              "checksum_sha256": "a4ca652a34029b5000bc4d576648bb00ba03fffb6cd8cd7f4915716937ec4ea9",
+              "elapsed_ns": 30918500,
+              "ended_at_utc": "2026-11-03T06:20:40.734Z",
+              "index": 6,
+              "kind": "timed",
+              "started_at_utc": "2026-11-03T06:20:40.703Z",
+              "units": 8192,
+              "units_per_second": 264954.63880848035
+            }
+          ],
+          "summary_ns": {
+            "max": 30918500,
+            "median": 30354900,
+            "min": 28816400
+          },
+          "warmup_timings": [
+            {
+              "checksum_sha256": "a4ca652a34029b5000bc4d576648bb00ba03fffb6cd8cd7f4915716937ec4ea9",
+              "elapsed_ns": 29018900,
+              "ended_at_utc": "2026-11-03T06:20:40.500Z",
+              "index": 0,
+              "kind": "warmup",
+              "started_at_utc": "2026-11-03T06:20:40.471Z",
+              "units": 8192,
+              "units_per_second": 282298.7776931586
+            }
+          ]
+        },
+        "per_object_setup": {
+          "blake2b_64": {
+            "reason": "the hash wrapper consumes canonical bytes directly per output",
+            "status": "not_applicable"
+          },
+          "esinxe_v1": {
+            "reason": "v1 keyed draws are stateless; there is no per-key generator to initialize",
+            "status": "not_applicable"
+          },
+          "philox4x32_10": {
+            "output_checksum_sha256": "f24983c6337785a4f93520e641ee09c8ba283e708148a9af3a19aa30f937b5a9",
+            "raw_timings": [
+              {
+                "checksum_sha256": "f24983c6337785a4f93520e641ee09c8ba283e708148a9af3a19aa30f937b5a9",
+                "elapsed_ns": 11146300,
+                "ended_at_utc": "2026-11-03T06:20:40.764Z",
+                "index": 0,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:40.752Z",
+                "units": 8192,
+                "units_per_second": 734952.4057310497
+              },
+              {
+                "checksum_sha256": "f24983c6337785a4f93520e641ee09c8ba283e708148a9af3a19aa30f937b5a9",
+                "elapsed_ns": 11315600,
+                "ended_at_utc": "2026-11-03T06:20:40.778Z",
+                "index": 1,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:40.767Z",
+                "units": 8192,
+                "units_per_second": 723956.308105624
+              },
+              {
+                "checksum_sha256": "f24983c6337785a4f93520e641ee09c8ba283e708148a9af3a19aa30f937b5a9",
+                "elapsed_ns": 11015000,
+                "ended_at_utc": "2026-11-03T06:20:40.792Z",
+                "index": 2,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:40.781Z",
+                "units": 8192,
+                "units_per_second": 743713.1184748071
+              },
+              {
+                "checksum_sha256": "f24983c6337785a4f93520e641ee09c8ba283e708148a9af3a19aa30f937b5a9",
+                "elapsed_ns": 11395700,
+                "ended_at_utc": "2026-11-03T06:20:40.807Z",
+                "index": 3,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:40.795Z",
+                "units": 8192,
+                "units_per_second": 718867.6430583466
+              },
+              {
+                "checksum_sha256": "f24983c6337785a4f93520e641ee09c8ba283e708148a9af3a19aa30f937b5a9",
+                "elapsed_ns": 11125700,
+                "ended_at_utc": "2026-11-03T06:20:40.821Z",
+                "index": 4,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:40.810Z",
+                "units": 8192,
+                "units_per_second": 736313.2207411668
+              },
+              {
+                "checksum_sha256": "f24983c6337785a4f93520e641ee09c8ba283e708148a9af3a19aa30f937b5a9",
+                "elapsed_ns": 15202100,
+                "ended_at_utc": "2026-11-03T06:20:40.840Z",
+                "index": 5,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:40.824Z",
+                "units": 8192,
+                "units_per_second": 538872.9188730505
+              },
+              {
+                "checksum_sha256": "f24983c6337785a4f93520e641ee09c8ba283e708148a9af3a19aa30f937b5a9",
+                "elapsed_ns": 11116100,
+                "ended_at_utc": "2026-11-03T06:20:40.854Z",
+                "index": 6,
+                "kind": "timed",
+                "started_at_utc": "2026-11-03T06:20:40.843Z",
+                "units": 8192,
+                "units_per_second": 736949.1098496775
+              }
+            ],
+            "summary_ns": {
+              "max": 15202100,
+              "median": 11146300,
+              "min": 11015000
+            },
+            "warmup_timings": [
+              {
+                "checksum_sha256": "f24983c6337785a4f93520e641ee09c8ba283e708148a9af3a19aa30f937b5a9",
+                "elapsed_ns": 12352900,
+                "ended_at_utc": "2026-11-03T06:20:40.749Z",
+                "index": 0,
+                "kind": "warmup",
+                "started_at_utc": "2026-11-03T06:20:40.737Z",
+                "units": 8192,
+                "units_per_second": 663164.1153089558
+              }
+            ]
+          },
+          "sha256_64": {
+            "reason": "the hash wrapper consumes canonical bytes directly per output",
+            "status": "not_applicable"
+          }
+        }
+      }
+    }
+  }
+}

@@ -22,6 +22,10 @@ assert len(sample) == len(set(sample)) == 2
 prepared = scoped.prepareWeightedChoice(items, [80, 18, 2])
 picked: str = prepared.choose("loot")
 assert picked == scoped.weightedChoice(items, [80, 18, 2], "loot")
+stable: str = scoped.stableChoice(items, items, "region")
+assert stable == scoped.stableChoice(items[::-1], items[::-1], "region")
+batch: list[int] = scoped.rawBatch([("tile", esinxe.i64(-1)), ("tile", esinxe.i64(2))])
+assert batch == [scoped.raw("tile", esinxe.i64(x)) for x in (-1, 2)]
 assert field.index == scoped.index == 0
 """
 

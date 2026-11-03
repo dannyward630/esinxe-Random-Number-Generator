@@ -1,0 +1,229 @@
+{
+  "schema": "esinxe-stable-choice-v1",
+  "cases": [
+    {
+      "id": "empty-zero",
+      "seed": "0",
+      "prefix": [],
+      "keys": [],
+      "ids": [
+        "common",
+        "rare",
+        "legendary"
+      ],
+      "expectedId": "rare",
+      "scores": {
+        "common": "904660401129223147",
+        "rare": "8173427754956974800",
+        "legendary": "3701381106727774391"
+      }
+    },
+    {
+      "id": "empty-one",
+      "seed": "1",
+      "prefix": [],
+      "keys": [],
+      "ids": [
+        "",
+        "a\u0000b",
+        "\u96ea",
+        "\ud83c\udf0d"
+      ],
+      "expectedId": "\u96ea",
+      "scores": {
+        "": "11736446430909278549",
+        "a\u0000b": "630703254361216297",
+        "\u96ea": "16125739239909996045",
+        "\ud83c\udf0d": "2315501082647531756"
+      }
+    },
+    {
+      "id": "signed-positive",
+      "seed": "12345",
+      "prefix": [],
+      "keys": [
+        {
+          "type": "i64",
+          "value": "1"
+        }
+      ],
+      "ids": [
+        "common",
+        "rare",
+        "legendary"
+      ],
+      "expectedId": "legendary",
+      "scores": {
+        "common": "9109500103496092900",
+        "rare": "15237650578944973379",
+        "legendary": "16884276741252305754"
+      }
+    },
+    {
+      "id": "unsigned-positive",
+      "seed": "12345",
+      "prefix": [],
+      "keys": [
+        {
+          "type": "u64",
+          "value": "1"
+        }
+      ],
+      "ids": [
+        "",
+        "a\u0000b",
+        "\u96ea",
+        "\ud83c\udf0d"
+      ],
+      "expectedId": "",
+      "scores": {
+        "": "14618165219194074606",
+        "a\u0000b": "7046959786005212485",
+        "\u96ea": "5107330091423505813",
+        "\ud83c\udf0d": "7177350788785764953"
+      }
+    },
+    {
+      "id": "limits-nul",
+      "seed": "18446744073709551615",
+      "prefix": [],
+      "keys": [
+        {
+          "type": "i64",
+          "value": "-9223372036854775808"
+        },
+        {
+          "type": "u64",
+          "value": "18446744073709551615"
+        },
+        {
+          "type": "string",
+          "value": "a\u0000b"
+        },
+        {
+          "type": "bytes",
+          "value": "0001ff"
+        }
+      ],
+      "ids": [
+        "common",
+        "rare",
+        "legendary"
+      ],
+      "expectedId": "common",
+      "scores": {
+        "common": "15675831383167207684",
+        "rare": "381472659365989327",
+        "legendary": "4069736679161920108"
+      }
+    },
+    {
+      "id": "unicode-scope",
+      "seed": "9223372036854775808",
+      "prefix": [
+        {
+          "type": "string",
+          "value": "terrain"
+        }
+      ],
+      "keys": [
+        {
+          "type": "string",
+          "value": "\ud83c\udf0d\u96ea"
+        },
+        {
+          "type": "u64",
+          "value": "0"
+        }
+      ],
+      "ids": [
+        "",
+        "a\u0000b",
+        "\u96ea",
+        "\ud83c\udf0d"
+      ],
+      "expectedId": "\u96ea",
+      "scores": {
+        "": "8170842469058915530",
+        "a\u0000b": "4322443455594772766",
+        "\u96ea": "14315490436636327496",
+        "\ud83c\udf0d": "6054843381335619967"
+      }
+    },
+    {
+      "id": "nested-scope",
+      "seed": "42",
+      "prefix": [
+        {
+          "type": "string",
+          "value": "world"
+        },
+        {
+          "type": "i64",
+          "value": "-1"
+        },
+        {
+          "type": "bytes",
+          "value": "00ff"
+        }
+      ],
+      "keys": [
+        {
+          "type": "string",
+          "value": ""
+        },
+        {
+          "type": "bytes",
+          "value": ""
+        }
+      ],
+      "ids": [
+        "common",
+        "rare",
+        "legendary"
+      ],
+      "expectedId": "legendary",
+      "scores": {
+        "common": "2214655658331664713",
+        "rare": "3725838036967710215",
+        "legendary": "3827638662347153403"
+      }
+    },
+    {
+      "id": "mixed-reference",
+      "seed": "12345",
+      "prefix": [],
+      "keys": [
+        {
+          "type": "i64",
+          "value": "-1"
+        },
+        {
+          "type": "u64",
+          "value": "18446744073709551615"
+        },
+        {
+          "type": "string",
+          "value": "snowman \u2603"
+        },
+        {
+          "type": "bytes",
+          "value": "0001ff"
+        }
+      ],
+      "ids": [
+        "",
+        "a\u0000b",
+        "\u96ea",
+        "\ud83c\udf0d"
+      ],
+      "expectedId": "",
+      "scores": {
+        "": "17950949451226068997",
+        "a\u0000b": "2078881927384352497",
+        "\u96ea": "5196194890289468544",
+        "\ud83c\udf0d": "12079470732833966572"
+      }
+    }
+  ]
+}

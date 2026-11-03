@@ -187,11 +187,101 @@ static PyObject *py_default_list(PyObject *self, PyObject *args)
     return values;
 }
 
+static uint64_t fnv_update(uint64_t hash, const unsigned char *data, Py_ssize_t length)
+{
+    for (Py_ssize_t i = 0; i < length; i++)
+    {
+        hash = (hash ^ data[i]) * UINT64_C(0x100000001B3);
+    }
+    return hash;
+}
+
+typedef struct KeyedRow
+{
+    const unsigned char *data;
+    Py_ssize_t length;
+    uint64_t value;
+} KeyedRow;
+
+static PyObject *py_keyed_list(PyObject *self, PyObject *args)
+{
+    (void)self;
+    PyObject *seed_obj, *prefix_obj, *rows_obj;
+    if (!PyArg_ParseTuple(args, "OOO", &seed_obj, &prefix_obj, &rows_obj))
+        return NULL;
+    if (PyBool_Check(seed_obj))
+    {
+        PyErr_SetString(PyExc_TypeError, "seed must be an integer, not bool");
+        return NULL;
+    }
+    uint64_t seed = PyLong_AsUnsignedLongLong(seed_obj);
+    if (PyErr_Occurred()) return NULL;
+    if (!PyBytes_Check(prefix_obj))
+    {
+        PyErr_SetString(PyExc_TypeError, "encoded prefix must be immutable bytes");
+        return NULL;
+    }
+    /* Own a tuple snapshot: a caller may mutate its input list while the GIL is
+       released. The tuple keeps every immutable bytes buffer alive throughout. */
+    PyObject *rows = PySequence_Tuple(rows_obj);
+    if (rows == NULL) return NULL;
+    Py_ssize_t length = PyTuple_GET_SIZE(rows);
+    if ((size_t)length > SIZE_MAX / sizeof(KeyedRow))
+    {
+        Py_DECREF(rows);
+        return PyErr_NoMemory();
+    }
+    KeyedRow *encoded = length ? PyMem_Malloc((size_t)length * sizeof(KeyedRow)) : NULL;
+    if (length && encoded == NULL)
+    {
+        Py_DECREF(rows);
+        return PyErr_NoMemory();
+    }
+    for (Py_ssize_t i = 0; i < length; i++)
+    {
+        PyObject *row = PyTuple_GET_ITEM(rows, i);
+        if (!PyBytes_Check(row))
+        {
+            PyMem_Free(encoded);
+            Py_DECREF(rows);
+            PyErr_SetString(PyExc_TypeError, "encoded rows must be immutable bytes");
+            return NULL;
+        }
+        encoded[i].data = (const unsigned char *)PyBytes_AS_STRING(row);
+        encoded[i].length = PyBytes_GET_SIZE(row);
+    }
+    static const unsigned char version[] = "esinxe-v1";
+    unsigned char seed_bytes[8];
+    for (unsigned int i = 0; i < 8; i++) seed_bytes[i] = (unsigned char)(seed >> (8 * i));
+    uint64_t base = fnv_update(UINT64_C(0xCBF29CE484222325), version, sizeof(version));
+    base = fnv_update(base, seed_bytes, 8);
+    base = fnv_update(base, (const unsigned char *)PyBytes_AS_STRING(prefix_obj),
+                      PyBytes_GET_SIZE(prefix_obj));
+    Py_BEGIN_ALLOW_THREADS
+    for (Py_ssize_t i = 0; i < length; i++)
+        encoded[i].value = mix64(fnv_update(base, encoded[i].data, encoded[i].length));
+    Py_END_ALLOW_THREADS
+    PyObject *values = PyList_New(length);
+    if (values != NULL)
+    {
+        for (Py_ssize_t i = 0; i < length; i++)
+        {
+            PyObject *item = PyLong_FromUnsignedLongLong(encoded[i].value);
+            if (item == NULL) { Py_CLEAR(values); break; }
+            PyList_SET_ITEM(values, i, item);
+        }
+    }
+    PyMem_Free(encoded);
+    Py_DECREF(rows);
+    return values;
+}
+
 static PyMethodDef methods[] = {
     {"mix64", py_mix64, METH_O, "Return the 64-bit mixed value."},
     {"raw_list", py_raw_list, METH_VARARGS, "Return raw 64-bit values."},
     {"default_list", py_default_list, METH_VARARGS, "Return default bounded values."},
     {"bounded_list", py_bounded_list, METH_VARARGS, "Return bounded values."},
+    {"keyed_list", py_keyed_list, METH_VARARGS, "Hash immutable encoded keyed rows."},
     {NULL, NULL, 0, NULL},
 };
 

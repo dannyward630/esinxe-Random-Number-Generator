@@ -164,6 +164,26 @@ module Esinxe
             int(denominator, *keys) < numerator
         end
 
+        def stable_choice(items, ids, *keys)
+            raise ArgumentError, "items and IDs must have the same non-zero length" if items.empty? || items.length != ids.length
+            encoded = ids.map do |id|
+                raise TypeError, "candidate IDs must be strings" unless id.is_a?(String)
+                EncodeKey(id)
+                id.encode(Encoding::UTF_8).b
+            end
+            raise ArgumentError, "candidate IDs must be unique" unless encoded.uniq.length == encoded.length
+            winner = 0
+            best = -1
+            ids.each_with_index do |id, i|
+                score = KeyedRaw(keys + [id], "stable-choice-v1")
+                if score > best || (score == best && (encoded[i] <=> encoded[winner]) < 0)
+                    winner = i
+                    best = score
+                end
+            end
+            items[winner]
+        end
+
         def choose(items, *keys)
             raise ArgumentError, "items must not be empty" if items.empty?
 

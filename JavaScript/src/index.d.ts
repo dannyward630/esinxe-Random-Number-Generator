@@ -42,6 +42,7 @@ export declare class Random {
     ...keys: KeyComponent[]
   ): boolean;
   choose<T>(items: readonly T[], ...keys: KeyComponent[]): T;
+  stableChoice<T>(items: readonly T[], ids: readonly string[], ...keys: KeyComponent[]): T;
   shuffle<T>(items: readonly T[], ...keys: KeyComponent[]): T[];
   sample<T>(items: readonly T[], count: number, ...keys: KeyComponent[]): T[];
   prepareWeightedChoice<T>(items: readonly T[], integerWeights: readonly IntegerInput[]): PreparedWeightedChoice<T>;

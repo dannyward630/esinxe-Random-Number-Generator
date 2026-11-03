@@ -41,6 +41,9 @@ Never use it for secrets, tokens, gambling, lotteries, or security decisions.
 
 | Need | Start here |
 | --- | --- |
+| Explore a streamed procedural world | [Play Verdant](https://dannyward630.github.io/esinxe-Random-Number-Generator/examples/world/) / [run locally](examples/world/README.md) |
+| Install and verify a package | [Installation guide](docs/INSTALLATION.md) |
+| Compare measured alternatives | [Practical workload evidence](research/PRACTICAL_VALUE_BENCHMARK.md) |
 | Copy a language example | [Language quick starts](docs/QUICK_STARTS.md) |
 | Understand every operation | [API reference](docs/API.md) |
 | Compare language boundaries | [Port capability matrix](docs/CAPABILITIES.md) |
@@ -52,6 +55,13 @@ Never use it for secrets, tokens, gambling, lotteries, or security decisions.
 | Report a vulnerability | [Security policy](SECURITY.md) |
 
 ## What It Solves
+
+The practical niche is reproducible content addressed by durable IDs, especially
+when multiple languages must agree. A stable digest plus your own key encoding
+can serve the same underlying purpose; esinxe supplies a frozen typed encoding,
+portable helpers, and conformance fixtures. Its value is that shared contract.
+The [world integration](examples/world/README.md) demonstrates it, and the
+[comparison](research/PRACTICAL_VALUE_BENCHMARK.md) records the costs and limits.
 
 - Generate a world chunk independently while keeping borders and content stable.
 - Regenerate loot, encounters, fixtures, or test data from durable identifiers.
@@ -75,6 +85,8 @@ Each seeded field provides:
 - `at2D(x, y, namespace?)` and `at3D(x, y, z, namespace?)`.
 - `chanceRatio(numerator, denominator, key...)`.
 - `choose(items, key...)`.
+- `stableChoice(items, ids, key...)`: preserve selections when candidates reorder;
+  additions change only assignments won by the new stable ID.
 - `shuffle(items, key...)`: deterministic Fisher-Yates copy.
 - `weightedChoice(items, integerWeights, key...)`.
 

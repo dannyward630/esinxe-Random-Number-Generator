@@ -113,3 +113,16 @@ stores indexes rather than items; callers map indexes to their own collection.
 Call `EsinxePreparedWeightedFreeV1(&prepared)` when finished (repeated free is
 safe). Initialize before the first init/free; do not shallow-copy the owning
 struct or directly alter its internals. All helpers preserve legacy streams.
+
+## Stable-ID choice
+
+Pass `ids` as string-tagged `EsinxeKey` values; use `EsinxeStringN` to preserve
+embedded NUL bytes. The result is an index, or `SIZE_MAX` for invalid input.
+`EsinxeStableChoiceIndexV1(seed, ids, count, keys, key_count)` is the unscoped
+convenience. Readable pointers and accurate lengths remain caller obligations.
+
+`EsinxeFieldStableChoiceIndexV1(&field, ids, count, keys, key_count)` ranks unique UTF-8 string IDs independently.
+Items and IDs must have equal nonzero lengths; an empty individual ID is valid.
+Reordering preserves the winning ID. Adding an ID changes only assignments it
+wins; removing a nonwinner has no effect. No stream state changes. See the
+[portable helper contract](../SPEC_HELPERS_V1.md) for score and tie rules.

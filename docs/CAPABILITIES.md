@@ -1,7 +1,7 @@
 # Port capabilities and input boundaries
 
 All ten ports implement the frozen v1 keyed operations and the additive
-[scope, sample, and prepared-choice contract](../SPEC_HELPERS_V1.md). Existing
+[scope, sample, stable-ID and prepared-choice contract](../SPEC_HELPERS_V1.md). Existing
 legacy stream behavior is retained, including differences described below.
 
 For portable application data use explicit signed/unsigned keys, int64
@@ -43,6 +43,17 @@ initialization/free and storage non-overlap requirements.
 | Java / Kotlin | `field.scope(...)` | `field.sample(items, count, ...)` | `field.prepareWeightedChoice(items, weights).choose(...)` |
 
 Port manuals contain compilable call patterns and exact error/ownership rules.
+
+Stable-ID choice uses `stableChoice(items, ids, keys...)` in Python/JS/Java/Kotlin,
+`StableChoice` in C++/C#, `stable_choice` in Ruby/Rust, and the generic
+`esinxe.StableChoice(field, items, ids, keys...)` in Go. Rust takes `&[&str]` IDs
+and returns `Result<&T, &str>`. C exposes `EsinxeStableChoiceIndexV1` and
+`EsinxeFieldStableChoiceIndexV1`, taking IDs as string-tagged `EsinxeKey` arrays
+and returning an index or `SIZE_MAX`. It does not take an item buffer.
+
+Python additionally provides `rawBatch(rows)` with native/fallback parity. Other
+ports do not promise keyed batch APIs. This is separate from historical stream
+batch helpers, which advance stream position.
 
 ## Compatibility streams
 

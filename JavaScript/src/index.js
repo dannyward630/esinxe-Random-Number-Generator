@@ -252,6 +252,34 @@ export class Random {
     return items[Number(this.int(items.length, ...keys))];
   }
 
+  stableChoice(items, ids, ...keys) {
+    if (items.length === 0 || items.length !== ids.length) {
+      throw new RangeError("items and IDs must have the same non-zero length");
+    }
+    const encoded = ids.map((id) => {
+      if (typeof id !== "string") throw new TypeError("candidate IDs must be strings");
+      encodeComponent(id);
+      return encoder.encode(id);
+    });
+    if (new Set(ids).size !== ids.length) throw new RangeError("candidate IDs must be unique");
+    const less = (a, b) => {
+      for (let i = 0; i < Math.min(a.length, b.length); i++) {
+        if (a[i] !== b[i]) return a[i] < b[i];
+      }
+      return a.length < b.length;
+    };
+    let winner = 0;
+    let rank = -1n;
+    for (let i = 0; i < ids.length; i++) {
+      const score = keyedRaw(this.seed, [...keys, ids[i]], "stable-choice-v1", this.#prefix);
+      if (score > rank || (score === rank && less(encoded[i], encoded[winner]))) {
+        winner = i;
+        rank = score;
+      }
+    }
+    return items[winner];
+  }
+
   shuffle(items, ...keys) {
     const values = Array.from(items);
     for (let index = values.length - 1; index > 0; index--) {

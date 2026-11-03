@@ -30,10 +30,13 @@ python3 scripts/generate_vectors.py >/dev/null
 git diff --exit-code -- tests/vectors-v1.json
 python3 scripts/generate_conformance.py >/dev/null
 git diff --exit-code -- tests/conformance-v1.json
+python3 scripts/generate_stable_choice_vectors.py >/dev/null
+git diff --exit-code -- tests/stable-choice-v1.json
 ruby -c Ruby/Esinxeruby1-0-0.rb
 node --check demo/app.js
 node --test JavaScript/test/*.test.js
 (cd JavaScript && npm run typecheck && npm audit && npm pack --dry-run >/dev/null)
+python3 scripts/check_javascript_package.py
 if command -v cargo >/dev/null 2>&1; then
   cargo fmt --manifest-path Rust/Cargo.toml --check
   cargo test --manifest-path Rust/Cargo.toml --quiet

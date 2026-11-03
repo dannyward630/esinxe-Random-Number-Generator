@@ -13,6 +13,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CORPUS = json.loads((ROOT / "tests/conformance-v1.json").read_text(encoding="utf-8"))
+STABLE = {
+    row["id"]: row
+    for row in json.loads(
+        (ROOT / "tests/stable-choice-v1.json").read_text(encoding="utf-8")
+    )["cases"]
+}
 
 
 def rust_bytes(data):
@@ -72,6 +78,10 @@ class ModernHelperConformanceTests(unittest.TestCase):
         blocks = []
         for row in CORPUS["cases"]:
             e = row["expected"]
+            stable = STABLE[row["id"]]
+            ids = ",".join(map(rust_string, stable["ids"]))
+            indices = ",".join(map(str, range(len(stable["ids"]))))
+            winner = stable["ids"].index(stable["expectedId"])
             keys = ",".join(map(rust_key, row["keys"]))
             prefix = ",".join(map(rust_key, row["prefix"]))
             ns = (
@@ -92,6 +102,13 @@ class ModernHelperConformanceTests(unittest.TestCase):
                 assert_eq!(field.at_2d({p["x"]}i64, {p["y"]}i64, {ns}), {e["at2D"]}u64);
                 assert_eq!(field.at_3d({p["x"]}i64, {p["y"]}i64, {p["z"]}i64, {ns}), {e["at3D"]}u64);
                 assert_eq!(field.chance_ratio({p["numerator"]}, {p["denominator"]}, keys).unwrap(), {str(e["chanceRatio"]).lower()});
+                let mut stable_items = [{indices}]; let mut stable_ids = [{ids}];
+                assert_eq!(*field.stable_choice(&stable_items, &stable_ids, keys).unwrap(), {winner});
+                stable_items.reverse(); stable_ids.reverse();
+                assert_eq!(*field.stable_choice(&stable_items, &stable_ids, keys).unwrap(), {winner});
+                stable_ids[1] = stable_ids[0];
+                assert!(field.stable_choice(&stable_items, &stable_ids, keys).is_err());
+                assert!(field.stable_choice::<u8>(&[], &[], keys).is_err());
                 assert_eq!(*field.choose(&items, keys).unwrap(), {e["choose"]});
                 assert_eq!(field.shuffle(&items, keys), {e["shuffle"]!r});
                 assert_eq!(field.sample(&[0usize,1,2,3,4], {p["sampleCount"]}, keys).unwrap(), {e["sample"]!r});
@@ -120,6 +137,10 @@ class ModernHelperConformanceTests(unittest.TestCase):
         blocks = []
         for row in CORPUS["cases"]:
             e = row["expected"]
+            stable = STABLE[row["id"]]
+            ids = ",".join(map(go_string, stable["ids"]))
+            indices = ",".join(map(str, range(len(stable["ids"]))))
+            winner = stable["ids"].index(stable["expectedId"])
             keys = ",".join(map(go_key, row["keys"]))
             prefix = ",".join(map(go_key, row["prefix"]))
             namespace = (
@@ -138,6 +159,11 @@ class ModernHelperConformanceTests(unittest.TestCase):
                 same(field.At2D({p["x"]}, {p["y"]}, ns), uint64({e["at2D"]}))
                 same(field.At3D({p["x"]}, {p["y"]}, {p["z"]}, ns), uint64({e["at3D"]}))
                 chance, err := field.ChanceRatio({p["numerator"]}, {p["denominator"]}, keys...); check(err); same(chance, {str(e["chanceRatio"]).lower()})
+                stableItems := []int{{{indices}}}; stableIds := []string{{{ids}}}
+                stable, err := e.StableChoice(field, stableItems, stableIds, keys...); check(err); same(stable, {winner})
+                for i,j := 0,len(stableIds)-1; i<j; i,j=i+1,j-1 {{ stableIds[i],stableIds[j]=stableIds[j],stableIds[i]; stableItems[i],stableItems[j]=stableItems[j],stableItems[i] }}
+                stable, err = e.StableChoice(field, stableItems, stableIds, keys...); check(err); same(stable, {winner})
+                stableIds[1]=stableIds[0]; _, err = e.StableChoice(field, stableItems, stableIds, keys...); if err==nil {{ panic("duplicate IDs accepted") }}
                 choice, err := e.Choose(field, items, keys...); check(err); same(choice, {e["choose"]})
                 same(e.Shuffle(field, items, keys...), []int{{{",".join(map(str, e["shuffle"]))}}})
                 sample, err := e.Sample(field, []int{{0,1,2,3,4}}, {p["sampleCount"]}, keys...); check(err); same(sample, []int{{{",".join(map(str, e["sample"]))}}})

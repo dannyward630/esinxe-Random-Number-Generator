@@ -1,10 +1,17 @@
 """Compile native conformance programs directly from the shared typed corpus."""
+
 import json
 import unittest
 
 from test_esinxe import ROOT, compile_and_run
 
 CORPUS = json.loads((ROOT / "tests/conformance-v1.json").read_text(encoding="utf-8"))
+STABLE = {
+    row["id"]: row
+    for row in json.loads(
+        (ROOT / "tests/stable-choice-v1.json").read_text(encoding="utf-8")
+    )["cases"]
+}
 
 
 def u64(value):
@@ -17,7 +24,7 @@ def i64(value):
 
 def literal(value):
     data = value.encode("utf-8")
-    return '"' + ''.join(f"\\{byte:03o}" for byte in data) + '"'
+    return '"' + "".join(f"\\{byte:03o}" for byte in data) + '"'
 
 
 def component(key, cpp):
@@ -30,14 +37,14 @@ def component(key, cpp):
     if cpp:
         if kind == "string":
             return f"Key::Utf8(std::string({literal(value)}, {len(data)}))"
-        return "Key::Bytes({" + ','.join(map(str, data)) + "})"
-    payload = '"' + ''.join(f"\\{byte:03o}" for byte in data) + '"'
+        return "Key::Bytes({" + ",".join(map(str, data)) + "})"
+    payload = '"' + "".join(f"\\{byte:03o}" for byte in data) + '"'
     return f"{'EsinxeStringN' if kind == 'string' else 'EsinxeBytes'}({payload}, {len(data)})"
 
 
 class NativeHelperTests(unittest.TestCase):
     def test_cpp_scopes_start_fresh_streams_without_advancing_parent(self):
-        source = r'''
+        source = r"""
 #include <cassert>
 #include "C++/Esinxecpp1-0-0.h"
 using namespace Esinxecpp;
@@ -55,11 +62,11 @@ int main() {
     assert(root.NextRaw() == control.NextRaw());
     assert(prefixedScope.NextRaw() == Random(42).NextRawAt(2));
 }
-'''
+"""
         compile_and_run("cpp", source)
 
     def test_cpp_boolean_collections_preserve_values(self):
-        source = r'''
+        source = r"""
 #include <cassert>
 #include <type_traits>
 #include "C++/Esinxecpp1-0-0.h"
@@ -96,79 +103,140 @@ int main() {
         assert(prepared.Choose(keys) == (field.Scope({Key::Utf8("boolean-values")}).WeightedChoice(numbers, {0,80,18,2,0}, keys) != 0));
     }
 }
-'''
+"""
         compile_and_run("cpp", source)
 
     def test_c_shared_corpus(self):
         p = CORPUS["parameters"]
-        lines = ['#include <assert.h>', '#include <limits.h>', '#include "C/Esinxec1-0-0.h"', 'int main(void) {']
+        lines = [
+            "#include <assert.h>",
+            "#include <limits.h>",
+            '#include "C/Esinxec1-0-0.h"',
+            "int main(void) {",
+        ]
         for case in CORPUS["cases"]:
             e = case["expected"]
-            prefix = ','.join(component(k, False) for k in case["prefix"]) or 'EsinxeU64(0)'
-            keys = ','.join(component(k, False) for k in case["keys"]) or 'EsinxeU64(0)'
-            ns = 'NULL' if case["namespace"] is None else literal(case["namespace"])
-            nslen = 0 if case["namespace"] is None else len(case["namespace"].encode("utf-8"))
-            lines += ['{', f'EsinxeKey prefix[] = {{{prefix}}}, keys[] = {{{keys}}};',
-                      'EsinxeKey storage[8]; EsinxeFieldV1 base, field;',
-                      f'EsinxeFieldInitV1(&base, {u64(case["seed"])});',
-                      f'assert(EsinxeFieldScopeV1(&base, prefix, {len(case["prefix"])}, storage, 8, &field));',
-                      f'size_t nk = {len(case["keys"])}; uint64_t number; int64_t ranged;',
-                      f'assert(EsinxeFieldRawV1(&field, keys, nk) == {u64(e["raw"])});',
-                      f'assert(EsinxeFieldIntV1(&field, {u64(p["bound"])}, keys, nk, &number) && number == {u64(e["int"])});',
-                      f'assert(EsinxeFieldRangeV1(&field, {i64(p["min"])}, {i64(p["max"])}, keys, nk, &ranged) && ranged == {i64(e["range"])});',
-                      f'assert(EsinxeFieldFloat01V1(&field, keys, nk) * 9007199254740992.0 == (double){u64(e["floatUpper53"])});',
-                      f'assert(EsinxeFieldAt2DNV1(&field, {i64(p["x"])}, {i64(p["y"])}, {ns}, {nslen}) == {u64(e["at2D"])});',
-                      f'assert(EsinxeFieldAt3DNV1(&field, {i64(p["x"])}, {i64(p["y"])}, {i64(p["z"])}, {ns}, {nslen}) == {u64(e["at3D"])});',
-                      f'assert(EsinxeFieldChanceRatioV1(&field, {p["numerator"]}, {p["denominator"]}, keys, nk) == {int(e["chanceRatio"])});',
-                      f'assert(EsinxeFieldChooseIndexV1(&field, 4, keys, nk) == {e["choose"]});',
-                      f'int items[] = {{0,1,2,3}}, source[] = {{0,1,2,3,4}}, sampled[{p["sampleCount"]}];',
-                      'assert(EsinxeFieldShuffleV1(&field, items, 4, sizeof(int), keys, nk));',
-                      *[f'assert(items[{i}] == {v});' for i, v in enumerate(e['shuffle'])],
-                      f'assert(EsinxeFieldSampleV1(&field, source, 5, sizeof(int), {p["sampleCount"]}, sampled, keys, nk));',
-                      *[f'assert(sampled[{i}] == {v});' for i, v in enumerate(e['sample'])],
-                      'assert(source[0] == 0 && source[4] == 4);',
-                      'uint64_t weights[] = {' + ','.join(u64(w) for w in p['weights']) + '};',
-                      'EsinxePreparedWeightedV1 prepared = {0};',
-                      'assert(EsinxePreparedWeightedInitV1(&prepared, &field, weights, 4));',
-                      f'assert(EsinxeFieldWeightedChoiceIndexV1(&field, weights, 4, keys, nk) == {e["weightedChoice"]});',
-                      'weights[1] = 0; EsinxeFieldInitV1(&field, 999);',
-                      f'assert(EsinxePreparedWeightedChooseV1(&prepared, keys, nk) == {e["weightedChoice"]});',
-                      'EsinxePreparedWeightedFreeV1(&prepared);', '}']
-        lines += [C_INVARIANTS, 'return 0; }']
-        compile_and_run("c", '\n'.join(lines))
+            stable = STABLE[case["id"]]
+            ids = ",".join(
+                component({"type": "string", "value": value}, False)
+                for value in stable["ids"]
+            )
+            winner = stable["ids"].index(stable["expectedId"])
+            prefix = (
+                ",".join(component(k, False) for k in case["prefix"]) or "EsinxeU64(0)"
+            )
+            keys = ",".join(component(k, False) for k in case["keys"]) or "EsinxeU64(0)"
+            ns = "NULL" if case["namespace"] is None else literal(case["namespace"])
+            nslen = (
+                0
+                if case["namespace"] is None
+                else len(case["namespace"].encode("utf-8"))
+            )
+            lines += [
+                "{",
+                f"EsinxeKey prefix[] = {{{prefix}}}, keys[] = {{{keys}}};",
+                "EsinxeKey storage[8]; EsinxeFieldV1 base, field;",
+                f"EsinxeFieldInitV1(&base, {u64(case['seed'])});",
+                f"assert(EsinxeFieldScopeV1(&base, prefix, {len(case['prefix'])}, storage, 8, &field));",
+                f"size_t nk = {len(case['keys'])}; uint64_t number; int64_t ranged;",
+                f"assert(EsinxeFieldRawV1(&field, keys, nk) == {u64(e['raw'])});",
+                f"assert(EsinxeFieldIntV1(&field, {u64(p['bound'])}, keys, nk, &number) && number == {u64(e['int'])});",
+                f"assert(EsinxeFieldRangeV1(&field, {i64(p['min'])}, {i64(p['max'])}, keys, nk, &ranged) && ranged == {i64(e['range'])});",
+                f"assert(EsinxeFieldFloat01V1(&field, keys, nk) * 9007199254740992.0 == (double){u64(e['floatUpper53'])});",
+                f"assert(EsinxeFieldAt2DNV1(&field, {i64(p['x'])}, {i64(p['y'])}, {ns}, {nslen}) == {u64(e['at2D'])});",
+                f"assert(EsinxeFieldAt3DNV1(&field, {i64(p['x'])}, {i64(p['y'])}, {i64(p['z'])}, {ns}, {nslen}) == {u64(e['at3D'])});",
+                f"assert(EsinxeFieldChanceRatioV1(&field, {p['numerator']}, {p['denominator']}, keys, nk) == {int(e['chanceRatio'])});",
+                f"EsinxeKey ids[] = {{{ids}}};",
+                f"assert(EsinxeFieldStableChoiceIndexV1(&field, ids, {len(stable['ids'])}, keys, nk) == {winner});",
+                f"for (size_t i=0; i<{len(stable['ids']) // 2}; ++i) {{ EsinxeKey t=ids[i]; ids[i]=ids[{len(stable['ids'])}-1-i]; ids[{len(stable['ids'])}-1-i]=t; }}",
+                f"assert(EsinxeFieldStableChoiceIndexV1(&field, ids, {len(stable['ids'])}, keys, nk) == {len(stable['ids']) - 1 - winner});",
+                "assert(EsinxeFieldStableChoiceIndexV1(&field, ids, 0, keys, nk) == SIZE_MAX);",
+                "ids[1]=ids[0]; assert(EsinxeFieldStableChoiceIndexV1(&field, ids, 2, keys, nk) == SIZE_MAX);",
+                f"assert(EsinxeFieldChooseIndexV1(&field, 4, keys, nk) == {e['choose']});",
+                f"int items[] = {{0,1,2,3}}, source[] = {{0,1,2,3,4}}, sampled[{p['sampleCount']}];",
+                "assert(EsinxeFieldShuffleV1(&field, items, 4, sizeof(int), keys, nk));",
+                *[f"assert(items[{i}] == {v});" for i, v in enumerate(e["shuffle"])],
+                f"assert(EsinxeFieldSampleV1(&field, source, 5, sizeof(int), {p['sampleCount']}, sampled, keys, nk));",
+                *[f"assert(sampled[{i}] == {v});" for i, v in enumerate(e["sample"])],
+                "assert(source[0] == 0 && source[4] == 4);",
+                "uint64_t weights[] = {"
+                + ",".join(u64(w) for w in p["weights"])
+                + "};",
+                "EsinxePreparedWeightedV1 prepared = {0};",
+                "assert(EsinxePreparedWeightedInitV1(&prepared, &field, weights, 4));",
+                f"assert(EsinxeFieldWeightedChoiceIndexV1(&field, weights, 4, keys, nk) == {e['weightedChoice']});",
+                "weights[1] = 0; EsinxeFieldInitV1(&field, 999);",
+                f"assert(EsinxePreparedWeightedChooseV1(&prepared, keys, nk) == {e['weightedChoice']});",
+                "EsinxePreparedWeightedFreeV1(&prepared);",
+                "}",
+            ]
+        lines += [C_INVARIANTS, "return 0; }"]
+        compile_and_run("c", "\n".join(lines))
 
     def test_cpp_shared_corpus(self):
         p = CORPUS["parameters"]
-        lines = ['#include <cassert>', '#include <climits>', '#include "C++/Esinxecpp1-0-0.h"', 'using namespace Esinxecpp;', 'int main() {']
+        lines = [
+            "#include <cassert>",
+            "#include <climits>",
+            '#include "C++/Esinxecpp1-0-0.h"',
+            "using namespace Esinxecpp;",
+            "int main() {",
+        ]
         for case in CORPUS["cases"]:
             e = case["expected"]
-            keys = ','.join(component(k, True) for k in case['keys'])
-            prefix = ','.join(component(k, True) for k in case['prefix'])
-            ns = 'std::nullopt' if case['namespace'] is None else f'std::string({literal(case["namespace"])}, {len(case["namespace"].encode("utf-8"))})'
-            lines += ['{', f'Random base({u64(case["seed"])}); auto field = base.Scope({{{prefix}}});',
-                      f'std::vector<Key> keys = {{{keys}}};',
-                      f'assert(field.Raw(keys) == {u64(e["raw"])});',
-                      f'assert(field.Int({u64(p["bound"])}, keys) == {u64(e["int"])});',
-                      f'assert(field.Range({i64(p["min"])}, {i64(p["max"])}, keys) == {i64(e["range"])});',
-                      f'assert(field.Float01(keys) * 9007199254740992.0 == (double){u64(e["floatUpper53"])});',
-                      f'assert(field.At2D({i64(p["x"])}, {i64(p["y"])}, {ns}) == {u64(e["at2D"])});',
-                      f'assert(field.At3D({i64(p["x"])}, {i64(p["y"])}, {i64(p["z"])}, {ns}) == {u64(e["at3D"])});',
-                      f'assert(field.ChanceRatio({p["numerator"]}, {p["denominator"]}, keys) == {str(e["chanceRatio"]).lower()});',
-                      'std::vector<int> items = {0,1,2,3}, source = {0,1,2,3,4};',
-                      f'assert(field.Choose(items, keys) == {e["choose"]});',
-                      'assert(field.Shuffle(items, keys) == std::vector<int>({' + ','.join(map(str,e['shuffle'])) + '}));',
-                      f'assert(field.Sample(source, {p["sampleCount"]}, keys) == std::vector<int>({{' + ','.join(map(str,e['sample'])) + '}));',
-                      'assert(source == std::vector<int>({0,1,2,3,4}));',
-                      'std::vector<uint64_t> weights = {' + ','.join(u64(w) for w in p['weights']) + '};',
-                      'auto prepared = field.PrepareWeightedChoice(items, weights);',
-                      f'assert(field.WeightedChoice(items, weights, keys) == {e["weightedChoice"]});',
-                      'items.assign(4,99); weights.assign(4,0); field.SetSeed(999);',
-                      f'assert(prepared.Choose(keys) == {e["weightedChoice"]});', '}']
-        lines += [CPP_INVARIANTS, 'return 0; }']
-        compile_and_run("cpp", '\n'.join(lines))
+            stable = STABLE[case["id"]]
+            ids = ",".join(
+                f"std::string({literal(value)}, {len(value.encode('utf-8'))})"
+                for value in stable["ids"]
+            )
+            indices = ",".join(map(str, range(len(stable["ids"]))))
+            winner = stable["ids"].index(stable["expectedId"])
+            keys = ",".join(component(k, True) for k in case["keys"])
+            prefix = ",".join(component(k, True) for k in case["prefix"])
+            ns = (
+                "std::nullopt"
+                if case["namespace"] is None
+                else f"std::string({literal(case['namespace'])}, {len(case['namespace'].encode('utf-8'))})"
+            )
+            lines += [
+                "{",
+                f"Random base({u64(case['seed'])}); auto field = base.Scope({{{prefix}}});",
+                f"std::vector<Key> keys = {{{keys}}};",
+                f"assert(field.Raw(keys) == {u64(e['raw'])});",
+                f"assert(field.Int({u64(p['bound'])}, keys) == {u64(e['int'])});",
+                f"assert(field.Range({i64(p['min'])}, {i64(p['max'])}, keys) == {i64(e['range'])});",
+                f"assert(field.Float01(keys) * 9007199254740992.0 == (double){u64(e['floatUpper53'])});",
+                f"assert(field.At2D({i64(p['x'])}, {i64(p['y'])}, {ns}) == {u64(e['at2D'])});",
+                f"assert(field.At3D({i64(p['x'])}, {i64(p['y'])}, {i64(p['z'])}, {ns}) == {u64(e['at3D'])});",
+                f"assert(field.ChanceRatio({p['numerator']}, {p['denominator']}, keys) == {str(e['chanceRatio']).lower()});",
+                "std::vector<int> items = {0,1,2,3}, source = {0,1,2,3,4};",
+                f"std::vector<int> stableItems={{{indices}}}; std::vector<std::string> stableIds={{{ids}}};",
+                f"assert(field.StableChoice(stableItems, stableIds, keys) == {winner});",
+                "std::reverse(stableItems.begin(), stableItems.end()); std::reverse(stableIds.begin(), stableIds.end());",
+                f"assert(field.StableChoice(stableItems, stableIds, keys) == {winner});",
+                "stableIds[1]=stableIds[0]; bool rejected=false; try { field.StableChoice(stableItems, stableIds, keys); } catch(const std::invalid_argument &) { rejected=true; } assert(rejected);",
+                f"assert(field.Choose(items, keys) == {e['choose']});",
+                "assert(field.Shuffle(items, keys) == std::vector<int>({"
+                + ",".join(map(str, e["shuffle"]))
+                + "}));",
+                f"assert(field.Sample(source, {p['sampleCount']}, keys) == std::vector<int>({{"
+                + ",".join(map(str, e["sample"]))
+                + "}));",
+                "assert(source == std::vector<int>({0,1,2,3,4}));",
+                "std::vector<uint64_t> weights = {"
+                + ",".join(u64(w) for w in p["weights"])
+                + "};",
+                "auto prepared = field.PrepareWeightedChoice(items, weights);",
+                f"assert(field.WeightedChoice(items, weights, keys) == {e['weightedChoice']});",
+                "items.assign(4,99); weights.assign(4,0); field.SetSeed(999);",
+                f"assert(prepared.Choose(keys) == {e['weightedChoice']});",
+                "}",
+            ]
+        lines += [CPP_INVARIANTS, "return 0; }"]
+        compile_and_run("cpp", "\n".join(lines))
 
 
-C_INVARIANTS = r'''
+C_INVARIANTS = r"""
 {
     EsinxeRandom stream, control; EsinxeInit(&stream, 42); EsinxeInit(&control, 42);
     EsinxeFieldV1 base, a, b; EsinxeFieldInitV1(&base, stream.seed);
@@ -236,9 +304,9 @@ C_INVARIANTS = r'''
     assert(EsinxeNextRaw(&stream) == EsinxeNextRaw(&control));
     assert(EsinxeAt2DNV1(1,2,3,"a\0b",3) != EsinxeAt2DV1(1,2,3,"a"));
 }
-'''
+"""
 
-CPP_INVARIANTS = r'''
+CPP_INVARIANTS = r"""
 {
     Random base(42), control(42);
     std::vector<Key> prefix = {Key::Bytes({1,2})};
@@ -288,4 +356,4 @@ CPP_INVARIANTS = r'''
     assert(maximum.Choose() == 0);
     assert(a.NextRaw() == control.NextRaw());
 }
-'''
+"""

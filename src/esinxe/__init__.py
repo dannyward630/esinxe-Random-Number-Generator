@@ -197,6 +197,20 @@ class Random:
     def _field_raw(self, key, domain=None):
         return _keyed_raw(self.seed, (*self._prefix, *key), domain)
 
+    def rawBatch(self, rows):
+        """Return repeated keyed raw values, encoding each row before advancing."""
+
+        prefix = b"".join(map(_encode_component, self._prefix))
+        encoded = []
+        for row in rows:
+            if isinstance(row, (str, bytes, bytearray, memoryview)):
+                raise TypeError("each batch row must be a sequence of key components")
+            encoded.append(b"".join(_encode_component(component) for component in row))
+        if _native is not None:
+            return _native.keyed_list(self.seed, prefix, encoded)
+        base = _fnv1a_update(FNV_OFFSET_BASIS, V1_PREFIX + _le64(self.seed) + prefix)
+        return [_mix64_masked(_fnv1a_update(base, row)) for row in encoded]
+
     def scope(self, *prefix):
         """Snapshot this seed with a copied typed prefix for keyed calls."""
 
@@ -256,6 +270,26 @@ class Random:
         if not items:
             raise ValueError("items must not be empty")
         return items[self.int(len(items), *key)]
+
+    def stableChoice(self, items, ids, *key):
+        """Choose by stable candidate ID, minimizing changes on add/remove."""
+
+        values, identifiers = tuple(items), tuple(ids)
+        if not values or len(values) != len(identifiers):
+            raise ValueError("items and IDs must have the same non-zero length")
+        encoded = []
+        for identifier in identifiers:
+            if not isinstance(identifier, str):
+                raise TypeError("candidate IDs must be UTF-8 strings")
+            encoded.append(identifier.encode("utf-8"))
+        if len(set(encoded)) != len(encoded):
+            raise ValueError("candidate IDs must be unique")
+        winner, rank = 0, -1
+        for index, identifier in enumerate(identifiers):
+            score = self._field_raw((*key, identifier), "stable-choice-v1")
+            if score > rank or (score == rank and encoded[index] < encoded[winner]):
+                winner, rank = index, score
+        return values[winner]
 
     def shuffle(self, items, *key):
         values = list(items)
