@@ -209,6 +209,16 @@ function siteDecorEntities(landmarks) {
   )));
 }
 
+function siteGuardianEntities(landmarks) {
+  return landmarks.map((site) => makeEntity(
+    "sentinel",
+    site.x + 4,
+    site.y + 2,
+    "iron-token",
+    { siteGuardian: true, siteId: site.id },
+  ));
+}
+
 function cloneChunk(chunk) {
   return {
     ...chunk,
@@ -238,11 +248,16 @@ export function decorateChunk(chunk) {
   const campEntitiesList = campEntities(seed, landmarks, trails);
   const caches = pathCacheEntities(seed, landmarks, trails);
   const decor = siteDecorEntities(landmarks);
+  const guardians = siteGuardianEntities(landmarks);
+  const guardianSpawns = new Set(guardians.map((entity) => coordKey(entity.x, entity.y)));
   const decorated = cloneChunk(chunk);
 
   for (const tile of decorated.tiles) {
     const key = coordKey(tile.x, tile.y);
-    if (isSiteClearing(tile.x, tile.y, landmarks)) {
+    if (guardianSpawns.has(key)) {
+      tile.terrain = "meadow";
+      tile.siteGuardianSpawn = true;
+    } else if (isSiteClearing(tile.x, tile.y, landmarks)) {
       tile.terrain = "meadow";
       tile.clearing = true;
       tile.siteClearing = true;
@@ -271,6 +286,7 @@ export function decorateChunk(chunk) {
     ...campEntitiesList,
     ...caches,
     ...decor,
+    ...guardians,
   ].filter((entity) => {
     const owner = chunkForTile(entity.x, entity.y);
     return owner.cx === cx && owner.cy === cy;

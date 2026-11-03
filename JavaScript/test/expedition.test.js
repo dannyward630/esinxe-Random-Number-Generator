@@ -205,3 +205,33 @@ test("starting camp has three wood nodes, two stone nodes, berries, and an optio
     assert.ok(!pathTiles(api().landmarksForSeed(seed)).has(coordKey(sentinel.x, sentinel.y)));
   }
 });
+
+test("each story site has one reachable sentinel guardian in its owner chunk", () => {
+  const { landmarksForSeed } = api();
+  for (const seed of [1, 2, 3, 41, 20261103, -20261103]) {
+    const landmarks = landmarksForSeed(seed);
+    const world = makeDecoratedWorld(seed, landmarks);
+    const entities = world.chunks.flatMap((chunk) => chunk.entities);
+    const guardians = entities.filter((entity) => entity.siteGuardian);
+    const allTrailTiles = new Set(landmarks.flatMap((site) => [...pathTiles(site)]));
+    assert.equal(guardians.length, 3, `expected one guardian per site for seed ${seed}`);
+    assert.equal(new Set(guardians.map((entity) => entity.id)).size, 3);
+
+    for (const site of landmarks) {
+      const guard = guardians.find((entity) => entity.siteId === site.id);
+      assert.ok(guard, `missing ${site.kind} guardian for seed ${seed}`);
+      assert.equal(guard.type, "sentinel");
+      assert.equal(guard.blocking, true);
+      assert.deepEqual({ x: guard.x, y: guard.y }, { x: site.x + 4, y: site.y + 2 });
+      assert.ok(!allTrailTiles.has(coordKey(guard.x, guard.y)), "guardian must not block a trail corridor");
+      assert.ok(Math.max(Math.abs(guard.x - site.x), Math.abs(guard.y - site.y)) > 3,
+        "guardian must be outside the local site clearing");
+      assert.ok(Math.hypot(guard.x, guard.y) > 3, "guardian must be outside the starting safe clearing");
+      const owner = chunkForTile(guard.x, guard.y);
+      const ownerChunk = world.chunks.find((chunk) => chunk.cx === owner.cx && chunk.cy === owner.cy);
+      assert.ok(ownerChunk?.entities.some((entity) => entity.id === guard.id));
+      const tile = world.tiles.get(coordKey(guard.x, guard.y));
+      assert.ok(tile && !["water", "mountain"].includes(tile.terrain), "guardian spawn terrain must be walkable");
+    }
+  }
+});
