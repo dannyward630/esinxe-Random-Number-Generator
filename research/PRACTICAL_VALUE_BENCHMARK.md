@@ -1,6 +1,6 @@
-# Practical keyed workload evaluation — initial Windows run
+# Practical keyed workload evaluation — Windows
 
-Run `python scripts/benchmark_practical.py --samples 8192 --repeats 7 --output research/results/windows-8192.json`.
+Run `python scripts/benchmark_practical.py --samples 8192 --repeats 7 --output research/results/final-windows-8192.json`.
 Raw individual timings, source hashes, environment, git state, setup segments,
 timestamps, seed, and checksums are retained in the JSON. These are local Python
 key-lookup workloads modeled on terrain coordinates and entity loot addresses;
@@ -8,14 +8,14 @@ they are not a whole-game rendering benchmark or a cross-language speed ranking.
 
 | End-to-end candidate | Terrain, median seconds | Entity/loot, median seconds |
 | --- | ---: | ---: |
-| esinxe scalar | 0.141116 | 0.191002 |
-| esinxe native keyed batch | 0.015469 | 0.022950 |
-| BLAKE2b-64 stable wrapper | 0.034968 | 0.045361 |
-| SHA256 truncated stable wrapper | 0.040246 | 0.048938 |
-| Experimental Philox4x32-10 mapping | 0.113976 | 0.122571 |
+| esinxe scalar | 0.143441 | 0.195764 |
+| esinxe native keyed batch | 0.015618 | 0.023421 |
+| BLAKE2b-64 stable wrapper | 0.035244 | 0.045181 |
+| SHA256 truncated stable wrapper | 0.039898 | 0.048438 |
+| Experimental Philox4x32-10 mapping | 0.116462 | 0.125348 |
 
 Batch/scalar checksums match exactly. This run measured about 9.1x terrain and
-8.3x entity throughput improvements from batching, including row encoding.
+8.4x entity throughput improvements from batching, including row encoding.
 Timing depends on host, interpreter, workload, and allocation. There are no CI
 timing thresholds and no claim that native Philox would have these Python timings.
 The hash wrappers use C-backed hashlib, whereas the experimental Philox rounds
@@ -35,3 +35,16 @@ Philox with a carefully specified key/counter layout across ports, validate
 structured-key patterns with external batteries, and measure real application cost.
 The prototype remains explicitly selectable in the benchmark, never a silent
 replacement for existing output.
+
+The final run was recorded from clean commit `6e94c52`; the result JSON was
+written outside the checkout before being copied into this report's commit.
+[Final measurements](results/final-windows-8192.json),
+[initial 8192-key measurements](results/windows-8192.json), and
+[initial 1000-key measurements](results/initial-windows.json) are retained.
+The initial runs intentionally record their dirty state and exact source hashes.
+
+The [browser-exported application proof](results/verdant-browser-evidence.json)
+records 18 matching configurations over 25 chunks. A Node regression check
+recomputes that exact fingerprint using the current generator, preventing the
+saved proof from silently drifting from the example. The browser world is a
+separate application demonstration; its rendering speed is not benchmarked here.
