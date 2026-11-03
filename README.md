@@ -56,6 +56,13 @@ Never use it for secrets, tokens, gambling, lotteries, or security decisions.
 
 ## What It Solves
 
+The practical niche is reproducible content addressed by durable IDs, especially
+when multiple languages must agree. A stable digest plus your own key encoding
+can serve the same underlying purpose; esinxe supplies a frozen typed encoding,
+portable helpers, and conformance fixtures. Its value is that shared contract.
+The [world integration](examples/world/README.md) demonstrates it, and the
+[comparison](research/PRACTICAL_VALUE_BENCHMARK.md) records the costs and limits.
+
 - Generate a world chunk independently while keeping borders and content stable.
 - Regenerate loot, encounters, fixtures, or test data from durable identifiers.
 - Partition simulation or sampling jobs without assigning mutable RNG streams.

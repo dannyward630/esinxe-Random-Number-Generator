@@ -14,7 +14,7 @@ they are not a whole-game rendering benchmark or a cross-language speed ranking.
 | SHA256 truncated stable wrapper | 0.039898 | 0.048438 |
 | Experimental Philox4x32-10 mapping | 0.116462 | 0.125348 |
 
-Batch/scalar checksums match exactly. This run measured about 9.1x terrain and
+Batch/scalar checksums match exactly. This run measured about 9.2x terrain and
 8.4x entity throughput improvements from batching, including row encoding.
 Timing depends on host, interpreter, workload, and allocation. There are no CI
 timing thresholds and no claim that native Philox would have these Python timings.

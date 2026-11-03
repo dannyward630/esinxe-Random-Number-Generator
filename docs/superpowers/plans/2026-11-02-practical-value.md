@@ -27,4 +27,15 @@ benchmark tooling with explicitly optional research dependencies.
 - [x] Add/test Python native keyed batches and measure the end-to-end effect.
 - [x] Specify/implement/test stable-ID choice across ports and shared fixtures.
 - [x] Verify installable Python/npm artifacts and document a working integration.
-- [ ] Review, run full checks, preserve old vectors, and publish evidence/deliverables.
+- [x] Review, run full local checks, preserve old vectors, and publish evidence/deliverables in PR #13.
+
+Publication gate: merge PR #13 only after remote CI passes, then verify Pages
+and downloadable artifacts. The active goal remains open until that gate passes.
+
+Local review verified unsigned score comparison and UTF-8 tie ordering across
+ports, native allocation bounds and owned immutable row snapshots while the GIL
+is released, worker cleanup and stale-load protection, and explicit separation
+of the experimental Philox mapping from the public v1 core. Local results: 74
+root tests, 30 Node tests, installed wheel/npm/Rust consumers, lint/type checks,
+and unchanged original v1 fixture bytes. Browser evidence records 18 matching
+configurations over 25 chunks; its digest is recomputed in Node tests.
