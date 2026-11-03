@@ -26,6 +26,33 @@ The historical `Next`, `NextRaw`, and `NextArray` overloads remain available
 for stream and offset access. See [the shared API reference](../docs/API.md)
 and [the frozen algorithm specification](../SPEC_V1.md).
 
+## Scopes, sampling, and prepared choices
+
+```ruby
+terrain = field.scope("terrain")
+selected = terrain.sample(["oak", "pine", "birch"], 2, Esinxe.u64(7))
+species = terrain.prepare_weighted_choice(["oak", "pine", "birch"], [80, 18, 2])
+tree = species.choose(Esinxe.u64(7))
+```
+
+`scope(*keys)` snapshots the seed and typed prefix. Nested scopes concatenate
+prefixes, and mutable strings and byte keys are copied through canonical
+encoding. Helper domains precede the prefix. Each scoped stream begins at the
+captured seed independently; reseeding one generator leaves other scopes and
+prepared choices unchanged.
+
+`sample(items, count, *keys)` requires an Integer count in `[0, items.length]`.
+It copies the input and returns the first count positions of a full descending
+Fisher-Yates permutation with domain `sample-v1`. Changing count preserves the
+permutation's prefix. Duplicate values represent separate positions. Keys are
+validated even when count is zero.
+
+`prepare_weighted_choice(items, integer_weights)` returns an
+`Esinxe::PreparedWeightedChoice`. It copies both sequences, validates matching
+nonzero lengths, nonnegative Integer weights, and total in `[1, 2^64-1]` once.
+`choose(*keys)` uses binary search and matches `weightedChoice`, including zero
+weights. Contained item objects remain shared; sequence copying is shallow.
+
 ## Test
 
 ```sh

@@ -36,7 +36,9 @@ def message(seed, keys, domain=None):
         elif kind == "u64":
             data += b"\x02" + struct.pack("<Q", int(value))
         else:
-            payload = value.encode("utf-8") if kind == "string" else bytes.fromhex(value)
+            payload = (
+                value.encode("utf-8") if kind == "string" else bytes.fromhex(value)
+            )
             data += bytes([3 if kind == "string" else 4])
             data += struct.pack("<Q", len(payload)) + payload
     return data
@@ -73,10 +75,48 @@ def build_corpus():
         ("empty-one", 1, [], [], ""),
         ("signed-positive", 12345, [], [component("i64", 1)], "terrain"),
         ("unsigned-positive", 12345, [], [component("u64", 1)], "terrain"),
-        ("limits-nul", MASK, [], [component("i64", -(1 << 63)), component("u64", MASK), component("string", "a\0b"), component("bytes", "0001ff")], "a\0b"),
-        ("unicode-scope", 1 << 63, [component("string", "terrain")], [component("string", "\U0001f30d\u96ea"), component("u64", 0)], ""),
-        ("nested-scope", 42, [component("string", "world"), component("i64", -1), component("bytes", "00ff")], [component("string", ""), component("bytes", "")], None),
-        ("mixed-reference", 12345, [], [component("i64", -1), component("u64", MASK), component("string", "snowman \u2603"), component("bytes", "0001ff")], "terrain/\u96ea"),
+        (
+            "limits-nul",
+            MASK,
+            [],
+            [
+                component("i64", -(1 << 63)),
+                component("u64", MASK),
+                component("string", "a\0b"),
+                component("bytes", "0001ff"),
+            ],
+            "a\0b",
+        ),
+        (
+            "unicode-scope",
+            1 << 63,
+            [component("string", "terrain")],
+            [component("string", "\U0001f30d\u96ea"), component("u64", 0)],
+            "",
+        ),
+        (
+            "nested-scope",
+            42,
+            [
+                component("string", "world"),
+                component("i64", -1),
+                component("bytes", "00ff"),
+            ],
+            [component("string", ""), component("bytes", "")],
+            None,
+        ),
+        (
+            "mixed-reference",
+            12345,
+            [],
+            [
+                component("i64", -1),
+                component("u64", MASK),
+                component("string", "snowman \u2603"),
+                component("bytes", "0001ff"),
+            ],
+            "terrain/\u96ea",
+        ),
     ]
     for label, seed, prefix, keys, namespace in inputs:
         combined = prefix + keys
@@ -100,16 +140,49 @@ def build_corpus():
             "sample": permutation(seed, combined, 5, "sample-v1")[:3],
             "weightedChoice": 1 if target < 80 else 2 if target < 98 else 3,
         }
-        rows.append({"id": label, "seed": str(seed), "prefix": prefix, "keys": keys, "namespace": namespace, "expected": expected})
+        rows.append(
+            {
+                "id": label,
+                "seed": str(seed),
+                "prefix": prefix,
+                "keys": keys,
+                "namespace": namespace,
+                "expected": expected,
+            }
+        )
     return {
         "schema": "esinxe-conformance-v1",
-        "parameters": {"bound": str((1 << 63) + 1), "min": str(-(1 << 63)), "max": str((1 << 63) - 1), "x": "-17", "y": "42", "z": str(-(1 << 63)), "numerator": "7", "denominator": "23", "weights": ["0", "80", "18", "2"], "sampleCount": 3},
+        "parameters": {
+            "bound": str((1 << 63) + 1),
+            "min": str(-(1 << 63)),
+            "max": str((1 << 63) - 1),
+            "x": "-17",
+            "y": "42",
+            "z": str(-(1 << 63)),
+            "numerator": "7",
+            "denominator": "23",
+            "weights": ["0", "80", "18", "2"],
+            "sampleCount": 3,
+        },
         "cases": rows,
-        "invalidCases": ["int-bound-zero", "range-equal-endpoints", "chance-denominator-zero", "empty-choice", "zero-total-weight", "weight-total-overflow", "sample-count-exceeds-length", "sample-negative-count", "malformed-unicode", "typed-integer-overflow"],
+        "invalidCases": [
+            "int-bound-zero",
+            "range-equal-endpoints",
+            "chance-denominator-zero",
+            "empty-choice",
+            "zero-total-weight",
+            "weight-total-overflow",
+            "sample-count-exceeds-length",
+            "sample-negative-count",
+            "malformed-unicode",
+            "typed-integer-overflow",
+        ],
     }
 
 
 if __name__ == "__main__":
     destination = ROOT / "tests/conformance-v1.json"
-    destination.write_text(json.dumps(build_corpus(), indent=2, ensure_ascii=True) + "\n", encoding="utf-8")
+    destination.write_bytes(
+        (json.dumps(build_corpus(), indent=2, ensure_ascii=True) + "\n").encode("utf-8")
+    )
     print(destination)

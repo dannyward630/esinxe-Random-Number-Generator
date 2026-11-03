@@ -1,6 +1,7 @@
 #ifndef ESINXECPP_H_INCLUDED
 #define ESINXECPP_H_INCLUDED
 
+#include <algorithm>
 #include <cstdint>
 #include <cstring>
 #include <ctime>
@@ -79,6 +80,8 @@ namespace Esinxecpp
         }
     };
 
+    template <typename T> class PreparedWeightedChoice;
+
     class Random
     {
     private:
@@ -87,6 +90,7 @@ namespace Esinxecpp
         std::uint64_t seed = static_cast<std::uint64_t>(std::time(nullptr));
         std::uint64_t index = 0;
         std::uint64_t key = seed;
+        std::vector<Key> scopePrefix;
 
         static std::uint64_t Mix64(std::uint64_t value)
         {
@@ -183,6 +187,10 @@ namespace Esinxecpp
                     reinterpret_cast<const std::uint8_t *>(domain),
                     length);
             }
+            for (const Key &component : scopePrefix)
+            {
+                hash = HashKey(hash, component);
+            }
             for (const Key &component : components)
             {
                 hash = HashKey(hash, component);
@@ -194,6 +202,16 @@ namespace Esinxecpp
         explicit Random(std::uint64_t localSeed = static_cast<std::uint64_t>(std::time(nullptr)))
         {
             SetSeed(localSeed);
+        }
+
+        Random Scope(const std::vector<Key> &prefix) const
+        {
+            Random scoped(seed);
+            scoped.scopePrefix = scopePrefix;
+            for (const Key &component : prefix)
+                HashKey(0, component); // Validate even when the scope is never queried.
+            scoped.scopePrefix.insert(scoped.scopePrefix.end(), prefix.begin(), prefix.end());
+            return scoped;
         }
 
         std::uint64_t Raw(const std::vector<Key> &components = {}) const
@@ -292,7 +310,7 @@ namespace Esinxecpp
         }
 
         template <typename T>
-        const T &Choose(
+        typename std::vector<T>::const_reference Choose(
             const std::vector<T> &items,
             const std::vector<Key> &components = {}) const
         {
@@ -308,6 +326,7 @@ namespace Esinxecpp
             const std::vector<T> &items,
             const std::vector<Key> &components = {}) const
         {
+            KeyedRaw(components); // Validate keys even for empty/singleton input.
             std::vector<T> values = items;
             for (std::size_t position = values.size(); position > 1; position--)
             {
@@ -318,13 +337,40 @@ namespace Esinxecpp
                     Bounded(
                         KeyedRaw(iterationKeys, "shuffle"),
                         position));
-                std::swap(values[current], values[picked]);
+                std::iter_swap(values.begin() + current, values.begin() + picked);
             }
             return values;
         }
 
         template <typename T>
-        const T &WeightedChoice(
+        std::vector<T> Sample(
+            const std::vector<T> &items,
+            std::size_t count,
+            const std::vector<Key> &components = {}) const
+        {
+            if (count > items.size())
+                throw std::invalid_argument("count must be between zero and item count");
+            KeyedRaw(components);
+            std::vector<T> values = items;
+            for (std::size_t position = values.size(); position > 1; --position)
+            {
+                std::vector<Key> iterationKeys = components;
+                iterationKeys.push_back(Key::Unsigned(position - 1));
+                const auto picked = static_cast<std::size_t>(
+                    Bounded(KeyedRaw(iterationKeys, "sample-v1"), position));
+                std::iter_swap(values.begin() + (position - 1), values.begin() + picked);
+            }
+            values.erase(values.begin() + static_cast<typename std::vector<T>::difference_type>(count), values.end());
+            return values;
+        }
+
+        template <typename T>
+        PreparedWeightedChoice<T> PrepareWeightedChoice(
+            const std::vector<T> &items,
+            const std::vector<std::uint64_t> &weights) const;
+
+        template <typename T>
+        typename std::vector<T>::const_reference WeightedChoice(
             const std::vector<T> &items,
             const std::vector<std::uint64_t> &weights,
             const std::vector<Key> &components = {}) const
@@ -478,6 +524,49 @@ namespace Esinxecpp
             return values;
         }
     };
+
+    template <typename T>
+    class PreparedWeightedChoice
+    {
+        Random field;
+        std::vector<T> items;
+        std::vector<std::uint64_t> cumulative;
+
+    public:
+        PreparedWeightedChoice(const Random &source, const std::vector<T> &values,
+                               const std::vector<std::uint64_t> &weights)
+            : field(source), items(values)
+        {
+            if (items.empty() || items.size() != weights.size())
+                throw std::invalid_argument("items and weights must have the same non-zero length");
+            cumulative.reserve(weights.size());
+            std::uint64_t total = 0;
+            for (const auto weight : weights)
+            {
+                const auto next = total + weight;
+                if (next < total)
+                    throw std::overflow_error("total weight exceeds uint64");
+                total = next;
+                cumulative.push_back(total);
+            }
+            if (total == 0)
+                throw std::invalid_argument("total weight must be positive");
+        }
+
+        typename std::vector<T>::const_reference Choose(const std::vector<Key> &components = {}) const
+        {
+            const auto target = field.Int(cumulative.back(), components);
+            const auto found = std::upper_bound(cumulative.begin(), cumulative.end(), target);
+            return items[static_cast<std::size_t>(found - cumulative.begin())];
+        }
+    };
+
+    template <typename T>
+    PreparedWeightedChoice<T> Random::PrepareWeightedChoice(
+        const std::vector<T> &items, const std::vector<std::uint64_t> &weights) const
+    {
+        return PreparedWeightedChoice<T>(*this, items, weights);
+    }
 }
 
 #endif

@@ -1,8 +1,10 @@
 """Versioned deterministic random fields and compatible stream generation."""
 
 import time
+from bisect import bisect_right
 from dataclasses import dataclass
 from operator import index as integer_index
+from typing import Generic, TypeVar
 
 try:
     from . import _native
@@ -19,6 +21,7 @@ MAX_INT_THRESHOLD = (UINT64_SIZE - MAX_INT_VALUE) % MAX_INT_VALUE
 FNV_OFFSET_BASIS = 0xCBF29CE484222325
 FNV_PRIME = 0x100000001B3
 V1_PREFIX = b"esinxe-v1\0"
+T = TypeVar("T")
 
 
 @dataclass(frozen=True)
@@ -124,14 +127,12 @@ def _encode_component(component):
     if isinstance(component, (bytes, bytearray, memoryview)):
         data = bytes(component)
         return b"\x04" + _le64(len(data)) + data
-    raise TypeError(
-        "v1 keys must be signed/unsigned integers, UTF-8 strings, or bytes"
-    )
+    raise TypeError("v1 keys must be signed/unsigned integers, UTF-8 strings, or bytes")
 
 
 def _domain(name):
     data = name.encode("ascii")
-    return b"\xF0" + _le64(len(data)) + data
+    return b"\xf0" + _le64(len(data)) + data
 
 
 def _keyed_raw(seed, components, domain=None):
@@ -145,6 +146,14 @@ def _keyed_raw(seed, components, domain=None):
     return _mix64_masked(hash_value)
 
 
+def _snapshot_key(component):
+    # Validate now, including keys that might otherwise go unused by empty helpers.
+    _encode_component(component)
+    if isinstance(component, (bytearray, memoryview)):
+        return bytes(component)
+    return component
+
+
 class Random:
     """Deterministic random-access generator.
 
@@ -152,13 +161,14 @@ class Random:
     the sequence directly without generating the values before it.
     """
 
-    __slots__ = ("seed", "index", "_key")
+    __slots__ = ("seed", "index", "_key", "_prefix")
 
     def __init__(self, seed=None):
         value = time.time_ns() if seed is None else _require_int(seed, "seed")
         self.seed = value & MASK_64
         self.index = 0
         self._key = self.seed
+        self._prefix = ()
 
     def SetSeed(self, localseed):
         self.seed = _require_int(localseed, "seed") & MASK_64
@@ -182,7 +192,17 @@ class Random:
     def raw(self, *key):
         """Return the v1 value for this seed and structured key."""
 
-        return _keyed_raw(self.seed, key)
+        return self._field_raw(key)
+
+    def _field_raw(self, key, domain=None):
+        return _keyed_raw(self.seed, (*self._prefix, *key), domain)
+
+    def scope(self, *prefix):
+        """Snapshot this seed with a copied typed prefix for keyed calls."""
+
+        scoped = Random(self.seed)
+        scoped._prefix = (*self._prefix, *map(_snapshot_key, prefix))
+        return scoped
 
     def int(self, maxvalue, *key):
         """Return a keyed integer in ``[0, maxvalue)``."""
@@ -213,13 +233,13 @@ class Random:
         components = [i64(x), i64(y)]
         if namespace is not None:
             components.append(str(namespace))
-        return _keyed_raw(self.seed, components, "at2d")
+        return self._field_raw(components, "at2d")
 
     def at3D(self, x, y, z, namespace=None):
         components = [i64(x), i64(y), i64(z)]
         if namespace is not None:
             components.append(str(namespace))
-        return _keyed_raw(self.seed, components, "at3d")
+        return self._field_raw(components, "at3d")
 
     def chanceRatio(self, numerator, denominator, *key):
         numerator = _require_int(numerator, "numerator")
@@ -241,8 +261,7 @@ class Random:
         values = list(items)
         for index in range(len(values) - 1, 0, -1):
             picked = _bounded_raw(
-                _keyed_raw(
-                    self.seed,
+                self._field_raw(
                     (*key, u64(index)),
                     "shuffle",
                 ),
@@ -251,13 +270,30 @@ class Random:
             values[index], values[picked] = values[picked], values[index]
         return values
 
+    def sample(self, items, count, *key):
+        """Sample positions without replacement using the sample-v1 domain."""
+
+        count = _require_int(count, "count")
+        values = list(items)
+        if not 0 <= count <= len(values):
+            raise ValueError("count must be in [0, len(items)]")
+        self.raw(*key)  # Validate the complete key even for an empty result.
+        for index in range(len(values) - 1, 0, -1):
+            picked = _bounded_raw(
+                self._field_raw((*key, u64(index)), "sample-v1"), index + 1
+            )
+            values[index], values[picked] = values[picked], values[index]
+        return values[:count]
+
+    def prepareWeightedChoice(self, items, integerWeights):
+        """Copy and validate a reusable weighted choice bound to this field."""
+
+        return PreparedWeightedChoice(self, items, integerWeights)
+
     def weightedChoice(self, items, integerWeights, *key):
         if not items or len(items) != len(integerWeights):
             raise ValueError("items and weights must have the same non-zero length")
-        weights = [
-            _require_int(weight, "weight")
-            for weight in integerWeights
-        ]
+        weights = [_require_int(weight, "weight") for weight in integerWeights]
         if any(weight < 0 for weight in weights):
             raise ValueError("weights must be non-negative integers")
         total = sum(weights)
@@ -403,6 +439,37 @@ class Random:
         return values
 
 
+class PreparedWeightedChoice(Generic[T]):
+    """A copied cumulative-weight table and field snapshot for repeated draws."""
+
+    __slots__ = ("_field", "_items", "_cumulative", "_total")
+
+    def __init__(self, field, items, integerWeights):
+        values = tuple(items)
+        weights = tuple(_require_int(weight, "weight") for weight in integerWeights)
+        if not values or len(values) != len(weights):
+            raise ValueError("items and weights must have the same non-zero length")
+        cumulative = []
+        running = 0
+        for weight in weights:
+            if weight < 0:
+                raise ValueError("weights must be non-negative integers")
+            running += weight
+            if running > MASK_64:
+                raise ValueError("total weight must not exceed 2^64 - 1")
+            cumulative.append(running)
+        if running == 0:
+            raise ValueError("total weight must be positive")
+        self._field = field.scope()
+        self._items = values
+        self._cumulative = tuple(cumulative)
+        self._total = running
+
+    def choose(self, *key):
+        target = self._field.int(self._total, *key)
+        return self._items[bisect_right(self._cumulative, target)]
+
+
 __all__ = [
     "FNV_OFFSET_BASIS",
     "FNV_PRIME",
@@ -411,6 +478,7 @@ __all__ = [
     "MAX_INT_VALUE",
     "UINT64_SIZE",
     "Random",
+    "PreparedWeightedChoice",
     "Signed",
     "Unsigned",
     "__version__",

@@ -37,6 +37,44 @@ The `next*` methods and Java `Next*` aliases retain the compatible stream API.
 See [the shared API reference](../docs/API.md) and
 [the frozen algorithm specification](../SPEC_V1.md).
 
+## Scopes, sampling, and prepared choices
+
+```java
+Random terrain = field.scope(Random.Key.string("terrain"));
+List<String> selected = terrain.sample(Arrays.asList("oak", "pine", "birch"), 2,
+    Random.Key.u64(7));
+Random.PreparedWeightedChoice<String> species = terrain.prepareWeightedChoice(
+    Arrays.asList("oak", "pine", "birch"), Arrays.asList(80L, 18L, 2L));
+String tree = species.choose(Random.Key.u64(7));
+```
+
+```kotlin
+val terrain = field.scope(Key.string("terrain"))
+val selected = terrain.sample(listOf("oak", "pine", "birch"), 2, Key.u64(7UL))
+val species = terrain.prepareWeightedChoice(
+    listOf("oak", "pine", "birch"), listOf(80UL, 18UL, 2UL))
+val tree = species.choose(Key.u64(7UL))
+```
+
+`scope` snapshots the seed and copies the typed prefix, including byte buffers;
+nested scopes concatenate prefixes. Helper domains precede the prefix. Each
+scoped stream starts independently at its captured seed. Reseeding a field never
+changes an existing scope or prepared choice.
+
+`sample(items, count, keys...)` accepts an `int`/`Int` count in `[0, items.size]`,
+copies the list, and takes the first count positions of a full descending
+Fisher-Yates permutation with domain `sample-v1`. The full permutation is
+independent of count, duplicates represent distinct positions, and keys are
+validated even when the requested result is empty.
+
+`prepareWeightedChoice` copies the items and cumulative weights once and returns
+`Random.PreparedWeightedChoice<T>` in Java or `PreparedWeightedChoice<T>` in
+Kotlin. Its `choose` binary search matches `weightedChoice`, including zero
+weights. Both validate matching nonempty sequences and total in `[1, 2^64-1]`.
+Java accepts nonnegative `List<Long>` weights, each at most `Long.MAX_VALUE`,
+and accumulates with `BigInteger`; Kotlin accepts `List<ULong>`. Overflow is
+rejected. Collection copying is shallow: contained item objects remain shared.
+
 ## Test
 
 ```sh

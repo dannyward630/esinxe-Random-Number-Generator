@@ -56,6 +56,20 @@ public final class Random {
     private long seed;
     private long index;
     private long key;
+    private Key[] prefix = new Key[0];
+
+    private static void validateKeys(Key[] keys) {
+        if (keys == null) throw new IllegalArgumentException("keys must not be null");
+        for (Key key : keys) if (key == null) throw new IllegalArgumentException("keys must not contain null");
+    }
+
+    public Random scope(Key... keys) {
+        validateKeys(keys);
+        Random result = new Random(seed);
+        result.prefix = Arrays.copyOf(prefix, prefix.length + keys.length);
+        System.arraycopy(keys, 0, result.prefix, prefix.length, keys.length);
+        return result;
+    }
 
     public Random(long seed) {
         setSeed(seed);
@@ -127,6 +141,7 @@ public final class Random {
     }
 
     private long keyedRaw(String domain, Key... keys) {
+        validateKeys(keys);
         long hash = fnvUpdate(FNV_OFFSET_BASIS, V1_PREFIX);
         hash = fnvLong(hash, seed);
         if (domain != null) {
@@ -134,6 +149,9 @@ public final class Random {
             hash = fnvByte(hash, 0xF0);
             hash = fnvLong(hash, bytes.length);
             hash = fnvUpdate(hash, bytes);
+        }
+        for (Key component : prefix) {
+            hash = hashKey(hash, component);
         }
         for (Key component : keys) {
             hash = hashKey(hash, component);
@@ -204,16 +222,64 @@ public final class Random {
     }
 
     public <T> List<T> shuffle(List<T> items, Key... keys) {
+        return permutation(items, "shuffle", keys);
+    }
+
+    private <T> List<T> permutation(List<T> items, String domain, Key[] keys) {
+        validateKeys(keys);
         List<T> values = new ArrayList<>(items);
         for (int position = values.size() - 1; position > 0; position--) {
             Key[] iterationKeys = Arrays.copyOf(keys, keys.length + 1);
             iterationKeys[keys.length] = Key.u64(position);
-            int picked = (int) bounded(keyedRaw("shuffle", iterationKeys), position + 1);
+            int picked = (int) bounded(keyedRaw(domain, iterationKeys), position + 1);
             T value = values.get(position);
             values.set(position, values.get(picked));
             values.set(picked, value);
         }
         return values;
+    }
+
+    public <T> List<T> sample(List<T> items, int count, Key... keys) {
+        if (count < 0 || count > items.size()) throw new IllegalArgumentException("count must be in [0, length]");
+        return new ArrayList<>(permutation(items, "sample-v1", keys).subList(0, count));
+    }
+
+    public <T> PreparedWeightedChoice<T> prepareWeightedChoice(List<T> items, List<Long> weights) {
+        return new PreparedWeightedChoice<>(scope(), items, weights);
+    }
+
+    public static final class PreparedWeightedChoice<T> {
+        private final Random field;
+        private final List<T> items;
+        private final BigInteger[] cumulative;
+
+        private PreparedWeightedChoice(Random field, List<T> items, List<Long> weights) {
+            if (items.isEmpty() || items.size() != weights.size())
+                throw new IllegalArgumentException("items and weights must have the same non-zero length");
+            this.field = field;
+            this.items = new ArrayList<>(items);
+            cumulative = new BigInteger[weights.size()];
+            BigInteger total = BigInteger.ZERO;
+            for (int i = 0; i < weights.size(); i++) {
+                long weight = weights.get(i);
+                if (weight < 0) throw new IllegalArgumentException("weights must be non-negative");
+                total = total.add(BigInteger.valueOf(weight));
+                if (total.compareTo(TWO_64) >= 0) throw new IllegalArgumentException("total weight exceeds uint64");
+                cumulative[i] = total;
+            }
+            if (total.signum() == 0) throw new IllegalArgumentException("total weight must be positive");
+        }
+
+        public T choose(Key... keys) {
+            BigInteger target = field.intValue(cumulative[cumulative.length - 1], keys);
+            int low = 0, high = cumulative.length;
+            while (low < high) {
+                int middle = low + (high - low) / 2;
+                if (cumulative[middle].compareTo(target) <= 0) low = middle + 1;
+                else high = middle;
+            }
+            return items.get(low);
+        }
     }
 
     public <T> T weightedChoice(List<T> items, List<Long> weights, Key... keys) {

@@ -75,12 +75,13 @@ fn hash_domain(mut hash: u64, domain: &str) -> u64 {
     fnv_update(hash, domain.as_bytes())
 }
 
-fn keyed_raw(seed: u64, keys: &[Key<'_>], domain: Option<&str>) -> u64 {
+fn keyed_raw(seed: u64, prefix: &[u8], keys: &[Key<'_>], domain: Option<&str>) -> u64 {
     let mut hash = fnv_update(FNV_OFFSET_BASIS, V1_PREFIX);
     hash = fnv_update(hash, &seed.to_le_bytes());
     if let Some(value) = domain {
         hash = hash_domain(hash, value);
     }
+    hash = fnv_update(hash, prefix);
     for key in keys {
         hash = hash_key(hash, *key);
     }
@@ -92,6 +93,7 @@ pub struct Random {
     seed: u64,
     index: u64,
     key: u64,
+    prefix: Vec<u8>,
 }
 
 impl Random {
@@ -100,6 +102,7 @@ impl Random {
             seed,
             index: 0,
             key: seed,
+            prefix: Vec::new(),
         }
     }
 
@@ -121,7 +124,30 @@ impl Random {
     }
 
     pub fn raw(&self, keys: &[Key<'_>]) -> u64 {
-        keyed_raw(self.seed, keys, None)
+        keyed_raw(self.seed, &self.prefix, keys, None)
+    }
+
+    /// Snapshot this seed and concatenate an owned copy of the typed prefix.
+    /// Stream calls on the returned field start independently at offset zero.
+    pub fn scope(&self, keys: &[Key<'_>]) -> Self {
+        let mut scoped = Self::new(self.seed);
+        scoped.prefix = self.prefix.clone();
+        for key in keys {
+            let (tag, data) = match key {
+                Key::I64(value) => (1, value.to_le_bytes().to_vec()),
+                Key::U64(value) => (2, value.to_le_bytes().to_vec()),
+                Key::Str(value) => (3, value.as_bytes().to_vec()),
+                Key::Bytes(value) => (4, value.to_vec()),
+            };
+            scoped.prefix.push(tag);
+            if tag >= 3 {
+                scoped
+                    .prefix
+                    .extend_from_slice(&(data.len() as u64).to_le_bytes());
+            }
+            scoped.prefix.extend_from_slice(&data);
+        }
+        scoped
     }
 
     pub fn int(&self, max_value: u64, keys: &[Key<'_>]) -> Result<u64, &'static str> {
@@ -154,7 +180,7 @@ impl Random {
         if let Some(value) = namespace {
             keys.push(Key::Str(value));
         }
-        keyed_raw(self.seed, &keys, Some("at2d"))
+        keyed_raw(self.seed, &self.prefix, &keys, Some("at2d"))
     }
 
     pub fn at_3d(&self, x: i64, y: i64, z: i64, namespace: Option<&str>) -> u64 {
@@ -162,7 +188,7 @@ impl Random {
         if let Some(value) = namespace {
             keys.push(Key::Str(value));
         }
-        keyed_raw(self.seed, &keys, Some("at3d"))
+        keyed_raw(self.seed, &self.prefix, &keys, Some("at3d"))
     }
 
     pub fn chance_ratio(
@@ -193,12 +219,62 @@ impl Random {
             let mut iteration_keys = keys.to_vec();
             iteration_keys.push(Key::U64(index as u64));
             let picked = bounded(
-                keyed_raw(self.seed, &iteration_keys, Some("shuffle")),
+                keyed_raw(self.seed, &self.prefix, &iteration_keys, Some("shuffle")),
                 (index + 1) as u64,
             ) as usize;
             values.swap(index, picked);
         }
         values
+    }
+
+    pub fn sample<T: Clone>(
+        &self,
+        items: &[T],
+        count: usize,
+        keys: &[Key<'_>],
+    ) -> Result<Vec<T>, &'static str> {
+        if count > items.len() {
+            return Err("count must not exceed items length");
+        }
+        let mut values = items.to_vec();
+        for index in (1..values.len()).rev() {
+            let mut iteration_keys = keys.to_vec();
+            iteration_keys.push(Key::U64(index as u64));
+            let picked = bounded(
+                keyed_raw(self.seed, &self.prefix, &iteration_keys, Some("sample-v1")),
+                (index + 1) as u64,
+            ) as usize;
+            values.swap(index, picked);
+        }
+        values.truncate(count);
+        Ok(values)
+    }
+
+    pub fn prepare_weighted_choice<T: Clone>(
+        &self,
+        items: &[T],
+        weights: &[u64],
+    ) -> Result<PreparedWeightedChoice<T>, &'static str> {
+        if items.is_empty() || items.len() != weights.len() {
+            return Err("items and weights must have the same non-zero length");
+        }
+        let mut total = 0_u64;
+        let mut cumulative = Vec::with_capacity(weights.len());
+        for weight in weights {
+            total = total
+                .checked_add(*weight)
+                .ok_or("total weight overflows uint64")?;
+            cumulative.push(total);
+        }
+        if total == 0 {
+            return Err("total weight must be positive");
+        }
+        Ok(PreparedWeightedChoice {
+            field: self.scope(&[]),
+            items: items.to_vec(),
+            cumulative,
+            total,
+        })
     }
 
     pub fn weighted_choice<'a, T>(
@@ -267,6 +343,32 @@ impl Random {
         self.key = self.key.wrapping_add(GOLDEN_GAMMA);
         self.index = self.index.wrapping_add(1);
         value
+    }
+}
+
+/// Owned item and cumulative-weight snapshots; item cloning follows `T::clone`.
+#[derive(Clone, Debug)]
+pub struct PreparedWeightedChoice<T> {
+    field: Random,
+    items: Vec<T>,
+    cumulative: Vec<u64>,
+    total: u64,
+}
+
+impl<T> PreparedWeightedChoice<T> {
+    pub fn choose(&self, keys: &[Key<'_>]) -> &T {
+        let target = bounded(self.field.raw(keys), self.total);
+        let mut low = 0;
+        let mut high = self.cumulative.len();
+        while low < high {
+            let middle = low + (high - low) / 2;
+            if self.cumulative[middle] <= target {
+                low = middle + 1;
+            } else {
+                high = middle;
+            }
+        }
+        &self.items[low]
     }
 }
 

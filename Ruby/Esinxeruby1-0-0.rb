@@ -31,6 +31,14 @@ module Esinxe
             @seed = (seed || Time.now.to_i) & Mask64
             @index = 0
             @key = @seed
+            @prefix = [].freeze
+        end
+
+        def scope(*keys)
+            result = Generator.new(@seed)
+            # Store canonical bytes, so mutable strings/typed byte tuples cannot leak in.
+            result.instance_variable_set(:@prefix, (@prefix + keys.map { |key| EncodeKey(key).freeze }).freeze)
+            result
         end
 
         def SetSeed(seed = Time.now.to_i)
@@ -104,6 +112,7 @@ module Esinxe
                 data = domain.encode(Encoding::US_ASCII).b
                 hash = FnvUpdate(hash, "\xF0".b + LittleEndian64(data.bytesize) + data)
             end
+            @prefix.each { |encoded| hash = FnvUpdate(hash, encoded) }
             keys.each { |component| hash = FnvUpdate(hash, EncodeKey(component)) }
             Mix64(hash)
         end
@@ -162,12 +171,29 @@ module Esinxe
         end
 
         def shuffle(items, *keys)
+            permutation(items, "shuffle", keys)
+        end
+
+        def permutation(items, domain, keys)
+            keys.each { |key| EncodeKey(key) }
             values = items.dup
             (values.length - 1).downto(1) do |index|
-                picked = Bounded(KeyedRaw(keys + [Esinxe.u64(index)], "shuffle"), index + 1)
+                picked = Bounded(KeyedRaw(keys + [Esinxe.u64(index)], domain), index + 1)
                 values[index], values[picked] = values[picked], values[index]
             end
             values
+        end
+        private :permutation
+
+        def sample(items, count, *keys)
+            raise TypeError, "count must be an Integer" unless count.is_a?(Integer)
+            raise RangeError, "count must be in [0, length]" unless count.between?(0, items.length)
+
+            permutation(items, "sample-v1", keys).take(count)
+        end
+
+        def prepare_weighted_choice(items, integer_weights)
+            PreparedWeightedChoice.new(scope, items, integer_weights)
         end
 
         def weightedChoice(items, integer_weights, *keys)
@@ -266,6 +292,40 @@ module Esinxe
             else
                 raise ArgumentError, "expected 1 to 4 arguments"
             end
+        end
+    end
+
+    class PreparedWeightedChoice
+        def initialize(field, items, weights)
+            if items.empty? || items.length != weights.length
+                raise ArgumentError, "items and weights must have the same non-zero length"
+            end
+            @field = field.scope
+            @items = items.dup.freeze
+            total = 0
+            @cumulative = weights.map do |weight|
+                raise TypeError, "weights must be Integers" unless weight.is_a?(Integer)
+                raise RangeError, "weights must be non-negative" if weight.negative?
+                total += weight
+                raise RangeError, "total weight exceeds uint64" if total > Mask64
+                total
+            end.freeze
+            raise RangeError, "total weight must be positive" unless total.positive?
+        end
+
+        def choose(*keys)
+            target = @field.int(@cumulative.last, *keys)
+            low = 0
+            high = @cumulative.length
+            while low < high
+                middle = low + (high - low) / 2
+                if @cumulative[middle] <= target
+                    low = middle + 1
+                else
+                    high = middle
+                end
+            end
+            @items[low]
         end
     end
 end

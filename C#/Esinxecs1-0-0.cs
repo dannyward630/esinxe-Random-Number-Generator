@@ -35,6 +35,24 @@ namespace Esinxecs
         private ulong seed = (ulong)DateTime.Now.Ticks;
         private ulong index;
         private ulong key;
+        private Key[] prefix = Array.Empty<Key>();
+
+        private static void ValidateKeys(Key[] components)
+        {
+            if (components == null) throw new ArgumentNullException(nameof(components));
+            foreach (Key component in components)
+                if (component == null) throw new ArgumentException("keys must not contain null", nameof(components));
+        }
+
+        public Random Scope(params Key[] components)
+        {
+            ValidateKeys(components);
+            Random result = new(seed);
+            result.prefix = new Key[prefix.Length + components.Length];
+            Array.Copy(prefix, result.prefix, prefix.Length);
+            Array.Copy(components, 0, result.prefix, prefix.Length, components.Length);
+            return result;
+        }
 
         public Random()
         {
@@ -111,6 +129,7 @@ namespace Esinxecs
 
         private ulong KeyedRaw(string? domain, params Key[] components)
         {
+            ValidateKeys(components);
             ulong hash = FnvUpdate(FnvOffsetBasis, V1Prefix);
             hash = FnvUInt64(hash, seed);
             if (domain != null)
@@ -119,6 +138,10 @@ namespace Esinxecs
                 hash = FnvByte(hash, 0xF0);
                 hash = FnvUInt64(hash, (ulong)data.LongLength);
                 hash = FnvUpdate(hash, data);
+            }
+            foreach (Key component in prefix)
+            {
+                hash = HashKey(hash, component);
             }
             foreach (Key component in components)
             {
@@ -199,7 +222,11 @@ namespace Esinxecs
         }
 
         public List<T> Shuffle<T>(IReadOnlyList<T> items, params Key[] components)
+            => Permutation(items, "shuffle", components);
+
+        private List<T> Permutation<T>(IReadOnlyList<T> items, string domain, Key[] components)
         {
+            ValidateKeys(components);
             List<T> values = new(items);
             for (int position = values.Count - 1; position > 0; position--)
             {
@@ -207,11 +234,56 @@ namespace Esinxecs
                 Array.Copy(components, iterationKeys, components.Length);
                 iterationKeys[^1] = Key.U64((ulong)position);
                 int picked = (int)Bounded(
-                    KeyedRaw("shuffle", iterationKeys),
+                    KeyedRaw(domain, iterationKeys),
                     (ulong)position + 1);
                 (values[position], values[picked]) = (values[picked], values[position]);
             }
             return values;
+        }
+
+        public List<T> Sample<T>(IReadOnlyList<T> items, int count, params Key[] components)
+        {
+            if (count < 0 || count > items.Count) throw new ArgumentOutOfRangeException(nameof(count));
+            return Permutation(items, "sample-v1", components).GetRange(0, count);
+        }
+
+        public PreparedWeightedChoice<T> PrepareWeightedChoice<T>(IReadOnlyList<T> items, IReadOnlyList<ulong> integerWeights)
+            => new(Scope(), items, integerWeights);
+
+        public sealed class PreparedWeightedChoice<T>
+        {
+            private readonly Random field;
+            private readonly List<T> items;
+            private readonly ulong[] cumulative;
+
+            internal PreparedWeightedChoice(Random field, IReadOnlyList<T> items, IReadOnlyList<ulong> weights)
+            {
+                if (items.Count == 0 || items.Count != weights.Count)
+                    throw new ArgumentException("items and weights must have the same non-zero length");
+                this.field = field;
+                this.items = new List<T>(items);
+                cumulative = new ulong[weights.Count];
+                ulong total = 0;
+                for (int i = 0; i < weights.Count; i++)
+                {
+                    total = checked(total + weights[i]);
+                    cumulative[i] = total;
+                }
+                if (total == 0) throw new ArgumentException("total weight must be positive");
+            }
+
+            public T Choose(params Key[] components)
+            {
+                ulong target = field.Int(cumulative[^1], components);
+                int low = 0, high = cumulative.Length;
+                while (low < high)
+                {
+                    int middle = low + (high - low) / 2;
+                    if (cumulative[middle] <= target) low = middle + 1;
+                    else high = middle;
+                }
+                return items[low];
+            }
         }
 
         public T WeightedChoice<T>(
