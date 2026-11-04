@@ -1,5 +1,37 @@
 export const WATER_LEVEL = 0;
 
+// Embedded browsers may refuse pointer lock. Continue a turn at the viewport
+// edge so mouse-look still reaches every direction without a held button.
+export function edgeLook(x, y, width, height) {
+  if (!(width > 0 && height > 0) || x < 0 || y < 0 || x > width || y > height)
+    return { x: 0, y: 0 };
+  const axis = (position, size) => {
+    const edge = Math.min(32, size / 4);
+    if (position < edge) return position / edge - 1;
+    if (position > size - edge) return 1 - (size - position) / edge;
+    return 0;
+  };
+  return { x: axis(x, width), y: axis(y, height) };
+}
+
+// The simulation stays authoritative; rendering fills the time between its
+// fixed updates. Never interpolate a respawn or mutate the saved player.
+export function interpolatePlayer(previous, current, alpha) {
+  if (
+    !previous ||
+    Math.hypot(current.x - previous.x, current.y - previous.y) > 2
+  )
+    return { ...current };
+  const t = Math.max(0, Math.min(1, Number.isFinite(alpha) ? alpha : 1));
+  return {
+    ...current,
+    x: previous.x + (current.x - previous.x) * t,
+    y: previous.y + (current.y - previous.y) * t,
+    lift:
+      (previous.lift || 0) + ((current.lift || 0) - (previous.lift || 0)) * t,
+  };
+}
+
 export function cameraHeading(yaw) {
   return ["N", "NE", "E", "SE", "S", "SW", "W", "NW"][
     ((-Math.round(yaw / (Math.PI / 4)) % 8) + 8) % 8
