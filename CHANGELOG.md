@@ -8,6 +8,9 @@ compatibility version is independent and is named explicitly.
 
 ### Added
 
+- Verdant viewport-filling game layout with a four-slot menu hotbar, item-slot
+  satchel and popup crafting, journal and settings. I/C/L/O open menus; native
+  dialog focus/Escape handling and automatic simulation pause keep play in view.
 - Verdant terrain traversal, forest concealment, swimming/strokes, diving with
   an air budget, safe shore recovery and craftable fins. Four seeded biome
   discoveries add underwater salvage, supplies and field notes. Swimming wakes,

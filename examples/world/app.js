@@ -30,11 +30,14 @@ let seed = "42",
   evidence = null;
 let pointer = null;
 function resize() {
-  canvas.width = innerWidth < 760 ? 640 : 1120;
-  canvas.height = innerWidth < 760 ? 720 : 680;
+  const bounds = canvas.getBoundingClientRect();
+  const scale = Math.min(1, 1120 / bounds.width, 960 / bounds.height);
+  canvas.width = Math.max(1, Math.round(bounds.width * scale));
+  canvas.height = Math.max(1, Math.round(bounds.height * scale));
 }
 resize();
 window.addEventListener("resize", resize);
+new ResizeObserver(resize).observe(canvas);
 let sound = false,
   audio = null,
   toastUntil = 0,
@@ -162,6 +165,68 @@ $("sound").onclick = () => {
   tone("pickup");
 };
 $("save").onclick = save;
+const pack = $("pack");
+const panelKeys = { i: "satchel", c: "crafting", l: "journal", o: "settings" };
+let activePanel = "satchel";
+function clearInput() {
+  fingers.clear();
+  keys.clear();
+  touch = { x: 0, y: 0 };
+  actions = {};
+}
+function openPanel(name, focus = true) {
+  activePanel = name;
+  clearInput();
+  placing = null;
+  hud();
+  for (const tab of document.querySelectorAll("[data-menu-tab]")) {
+    const selected = tab.dataset.menuTab === name;
+    tab.setAttribute("aria-selected", String(selected));
+    tab.tabIndex = selected ? 0 : -1;
+    $(`menu-${tab.dataset.menuTab}`).hidden = !selected;
+  }
+  if (!pack.open) pack.showModal();
+  for (const button of document.querySelectorAll("[data-open-panel]"))
+    button.setAttribute(
+      "aria-expanded",
+      String(button.dataset.openPanel === name),
+    );
+  if (focus) $(`tab-${name}`).focus();
+}
+function closePanel() {
+  if (pack.open) pack.close();
+}
+pack.addEventListener("close", () => {
+  if (pack.open) return;
+  clearInput();
+  for (const button of document.querySelectorAll("[data-open-panel]"))
+    button.setAttribute("aria-expanded", "false");
+  canvas.focus({ preventScroll: true });
+});
+$("close-pack").onclick = closePanel;
+for (const button of document.querySelectorAll("[data-open-panel]"))
+  button.onclick = () => openPanel(button.dataset.openPanel);
+for (const tab of document.querySelectorAll("[data-menu-tab]")) {
+  tab.onclick = () => openPanel(tab.dataset.menuTab);
+  tab.onkeydown = (event) => {
+    const names = Object.values(panelKeys);
+    const index = names.indexOf(activePanel);
+    const next =
+      event.key === "ArrowRight"
+        ? (index + 1) % names.length
+        : event.key === "ArrowLeft"
+          ? (index + names.length - 1) % names.length
+          : event.key === "Home"
+            ? 0
+            : event.key === "End"
+              ? names.length - 1
+              : -1;
+    if (next < 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    openPanel(names[next]);
+  };
+}
 function inputTarget(event) {
   return ["INPUT", "SELECT", "TEXTAREA", "BUTTON", "SUMMARY"].includes(
     event.target.tagName,
@@ -185,9 +250,18 @@ const actionKeys = {
   r: "dive",
 };
 document.addEventListener("keydown", (event) => {
-  if (inputTarget(event) || event.ctrlKey || event.metaKey || event.altKey)
-    return;
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
   const k = event.key.toLowerCase();
+  const editing = ["INPUT", "SELECT", "TEXTAREA"].includes(
+    event.target.tagName,
+  );
+  if (!editing && panelKeys[k] && !event.repeat) {
+    event.preventDefault();
+    if (pack.open && activePanel === panelKeys[k]) closePanel();
+    else openPanel(panelKeys[k]);
+    return;
+  }
+  if (pack.open || inputTarget(event)) return;
   if (moveKeys.has(k)) {
     event.preventDefault();
     keys.add(k);
@@ -298,6 +372,7 @@ $("cancel-place").onclick = () => {
   canvas.focus();
 };
 function selectPlacement(kind) {
+  closePanel();
   placing = kind;
   message(`Place ${kind} within reach: click the ground. Esc cancels.`);
   canvas.focus();
@@ -327,10 +402,14 @@ function hud() {
     `${state.player.x.toFixed(1)}, ${state.player.y.toFixed(1)}`;
   $("inventory").textContent =
     `Wood ${state.inventory.wood || 0} · Stone ${state.inventory.stone || 0} · Berries ${state.inventory.berries || 0}`;
+  for (const resource of ["wood", "stone", "berries"])
+    $(`${resource}-count`).textContent = state.inventory[resource] || 0;
   $("equipment").textContent =
     Object.keys(state.tools)
       .filter((k) => state.tools[k])
       .join(" · ") || "Gather wood and stone to make your first tool.";
+  $("building-kits").textContent =
+    `Campfire kits ${state.inventory.campfires || 0} · Bridge kits ${state.inventory.bridges || 0} · Place kits from Crafting.`;
   $("sigils").textContent = `${sigilCount} / 3`;
   $("objective").textContent = state.restored
     ? "The signal has answered. The island is yours to explore."
@@ -365,7 +444,6 @@ function hud() {
   $("field-compass").textContent = fieldTarget
     ? `Explore: ${fieldTarget.title} · ${Math.round(Math.hypot(fieldTarget.x - state.player.x, fieldTarget.y - state.player.y))} paces ${direction(fieldTarget.x - state.player.x, fieldTarget.y - state.player.y)}`
     : "All four field notes recovered.";
-  $("placement").hidden = !placing;
   $("cancel-place").hidden = !placing;
   for (const [id, recipe] of Object.entries(RECIPES)) {
     const button = $(`craft-${id}`);
@@ -558,7 +636,7 @@ let last = performance.now(),
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
-  if (!paused) {
+  if (!paused && !pack.open) {
     accumulator += dt;
     while (accumulator >= 1 / 60) {
       const x =

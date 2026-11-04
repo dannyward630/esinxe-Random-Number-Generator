@@ -4,12 +4,12 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
         <title>Verdant · The Drowned Signal</title>
-        <link rel="stylesheet" href="style.css" />
+        <link rel="stylesheet" href="style.css?v=4" />
         <link rel="icon" href="data:," />
     </head>
     <body>
         <main>
-            <header>
+            <header class="game-header">
                 <div>
                     <span class="eyebrow">AN ESINXE EXPEDITION</span>
                     <h1>Verdant <em>The Drowned Signal</em></h1>
@@ -75,6 +75,11 @@
                     WASD move · Space dash · J harvest/strike · E inspect · F
                     eat
                 </div>
+                <div class="placement-controls">
+                    <button id="cancel-place" hidden>
+                        Cancel placement · Esc
+                    </button>
+                </div>
                 <div id="paused" hidden>
                     <h2>Take a breath.</h2>
                     <p>The island will wait.</p>
@@ -102,77 +107,199 @@
                     </button>
                 </div>
             </nav>
-            <section class="panels">
-                <article>
+            <nav class="quickbar" aria-label="Expedition menus">
+                <button
+                    data-open-panel="satchel"
+                    aria-haspopup="dialog"
+                    aria-expanded="false"
+                >
+                    <kbd>I</kbd><span>Satchel</span>
+                </button>
+                <button
+                    data-open-panel="crafting"
+                    aria-haspopup="dialog"
+                    aria-expanded="false"
+                >
+                    <kbd>C</kbd><span>Crafting</span>
+                </button>
+                <button
+                    data-open-panel="journal"
+                    aria-haspopup="dialog"
+                    aria-expanded="false"
+                >
+                    <kbd>L</kbd><span>Journal</span>
+                </button>
+                <button
+                    data-open-panel="settings"
+                    aria-haspopup="dialog"
+                    aria-expanded="false"
+                >
+                    <kbd>O</kbd><span>Settings</span>
+                </button>
+            </nav>
+            <dialog id="pack" aria-labelledby="pack-title">
+                <header class="pack-header">
+                    <div>
+                        <span class="eyebrow">FIELD KIT · WORLD PAUSED</span>
+                        <h2 id="pack-title">Your expedition</h2>
+                    </div>
+                    <button id="close-pack" aria-label="Close menu">
+                        Close <kbd>Esc</kbd>
+                    </button>
+                </header>
+                <nav class="pack-tabs" role="tablist" aria-label="Field kit">
+                    <button
+                        id="tab-satchel"
+                        role="tab"
+                        aria-controls="menu-satchel"
+                        aria-selected="true"
+                        data-menu-tab="satchel"
+                    >
+                        Satchel
+                    </button>
+                    <button
+                        id="tab-crafting"
+                        role="tab"
+                        aria-controls="menu-crafting"
+                        aria-selected="false"
+                        tabindex="-1"
+                        data-menu-tab="crafting"
+                    >
+                        Crafting
+                    </button>
+                    <button
+                        id="tab-journal"
+                        role="tab"
+                        aria-controls="menu-journal"
+                        aria-selected="false"
+                        tabindex="-1"
+                        data-menu-tab="journal"
+                    >
+                        Journal
+                    </button>
+                    <button
+                        id="tab-settings"
+                        role="tab"
+                        aria-controls="menu-settings"
+                        aria-selected="false"
+                        tabindex="-1"
+                        data-menu-tab="settings"
+                    >
+                        Settings
+                    </button>
+                </nav>
+                <section
+                    class="pack-page"
+                    id="menu-satchel"
+                    role="tabpanel"
+                    aria-labelledby="tab-satchel"
+                    tabindex="0"
+                >
                     <h2>Your satchel</h2>
+                    <div class="item-slots" aria-label="Supplies">
+                        <div class="item-slot">
+                            <span aria-hidden="true">▰</span><span>Wood</span
+                            ><b id="wood-count">0</b>
+                        </div>
+                        <div class="item-slot">
+                            <span aria-hidden="true">◆</span><span>Stone</span
+                            ><b id="stone-count">0</b>
+                        </div>
+                        <div class="item-slot">
+                            <span aria-hidden="true">●</span><span>Berries</span
+                            ><b id="berries-count">0</b>
+                        </div>
+                    </div>
                     <p id="inventory">Wood 0 · Stone 0 · Berries 0</p>
                     <p id="equipment">No tools yet</p>
+                    <p id="building-kits" class="hint"></p>
                     <p class="hint">
                         Strike trees for wood and rocks for stone. Inspect berry
                         bushes for food. Campfires restore you.
                     </p>
                     <button id="save">Save expedition</button
                     ><span id="save-status"></span>
-                </article>
-                <article>
+                </section>
+                <section
+                    class="pack-page"
+                    id="menu-crafting"
+                    role="tabpanel"
+                    aria-labelledby="tab-crafting"
+                    tabindex="0"
+                    hidden
+                >
                     <h2>Make something useful</h2>
-                    <div id="recipes"></div>
-                    <button id="cancel-place" hidden>Cancel placement</button>
-                    <p id="placement" hidden>
-                        Choose a nearby spot on the map. Esc cancels.
+                    <p class="hint">
+                        Craft equipment here. Placing a kit returns you to the
+                        world.
                     </p>
-                </article>
-                <article>
+                    <div id="recipes"></div>
+                </section>
+                <section
+                    class="pack-page"
+                    id="menu-journal"
+                    role="tabpanel"
+                    aria-labelledby="tab-journal"
+                    tabindex="0"
+                    hidden
+                >
                     <h2>Island journal <span id="sigils">0 / 3</span></h2>
                     <p class="hint">
                         The trails lead to three places the sea could not erase.
                         Follow them in any order, or build your own life here.
                     </p>
                     <div id="journal"></div>
-                </article>
-            </section>
-            <details class="lab">
-                <summary>Field lab · settings and reproducibility</summary>
-                <div class="settings">
-                    <label
-                        >Seed<input
-                            id="seed"
-                            value="42"
-                            inputmode="numeric" /></label
-                    ><label
-                        >Workers<select id="workers">
-                            <option value="0">Main thread</option>
-                            <option value="1">1 worker</option>
-                            <option value="4" selected>4 workers</option>
-                        </select></label
-                    ><label
-                        >Loading order<select id="order">
-                            <option>normal</option>
-                            <option>reverse</option>
-                            <option>shuffled</option>
-                        </select></label
-                    ><label
-                        ><input id="grass" type="checkbox" checked />
-                        Grass</label
-                    ><button id="apply">Apply loading settings</button
-                    ><button id="new">New expedition</button>
-                </div>
-                <p>
-                    New expedition resets this seed's saved progress. Loading
-                    settings preserve the expedition. The proof checks the
-                    frozen v1 base terrain; the survival overlay has separate
-                    automated tests.
-                </p>
-                <button id="prove">Verify base reproducibility</button
-                ><button id="export" disabled>Export evidence</button>
-                <p id="proof" role="status"></p>
-            </details>
-            <footer>
-                Progress saves locally on this device.
-                <a href="README.md">Controls and field notes</a> · Content:
-                verdant-expedition-3
-            </footer>
+                </section>
+                <section
+                    class="pack-page lab"
+                    id="menu-settings"
+                    role="tabpanel"
+                    aria-labelledby="tab-settings"
+                    tabindex="0"
+                    hidden
+                >
+                    <h2>Field lab</h2>
+                    <div class="settings">
+                        <label
+                            >Seed<input
+                                id="seed"
+                                value="42"
+                                inputmode="numeric" /></label
+                        ><label
+                            >Workers<select id="workers">
+                                <option value="0">Main thread</option>
+                                <option value="1">1 worker</option>
+                                <option value="4" selected>4 workers</option>
+                            </select></label
+                        ><label
+                            >Loading order<select id="order">
+                                <option>normal</option>
+                                <option>reverse</option>
+                                <option>shuffled</option>
+                            </select></label
+                        ><label
+                            ><input id="grass" type="checkbox" checked />
+                            Grass</label
+                        ><button id="apply">Apply loading settings</button
+                        ><button id="new">New expedition</button>
+                    </div>
+                    <p>
+                        New expedition resets this seed's saved progress.
+                        Loading settings preserve the expedition. The proof
+                        checks the frozen v1 base terrain; the survival overlay
+                        has separate automated tests.
+                    </p>
+                    <button id="prove">Verify base reproducibility</button
+                    ><button id="export" disabled>Export evidence</button>
+                    <p id="proof" role="status"></p>
+                    <footer>
+                        Progress saves locally on this device.
+                        <a href="README.md">Controls and field notes</a> ·
+                        Content: verdant-expedition-3
+                    </footer>
+                </section>
+            </dialog>
         </main>
-        <script type="module" src="app.js?v=3"></script>
+        <script type="module" src="app.js?v=4"></script>
     </body>
 </html>

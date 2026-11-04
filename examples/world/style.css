@@ -412,3 +412,367 @@ a {
 #air-panel b {
     color: #a9e7ef;
 }
+
+/* Keep the expedition in the viewport; menus live in the native modal layer. */
+html,
+body {
+    height: 100%;
+    overflow: hidden;
+}
+main {
+    height: 100vh;
+    height: 100dvh;
+    max-width: none;
+    padding: 12px 18px;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    gap: 10px;
+}
+.game-header {
+    margin: 0;
+    gap: 12px;
+}
+.game-header h1 {
+    font-size: 30px;
+    margin: 2px 0;
+}
+.game-header h1 em {
+    font-size: 15px;
+}
+.game-header .eyebrow {
+    font-size: 8px;
+}
+.toolbar {
+    margin: 0;
+}
+.toolbar button {
+    font-size: 12px;
+    padding: 8px 10px;
+}
+.game {
+    min-height: 0;
+}
+.game canvas {
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+}
+.touch {
+    padding: 0;
+    justify-content: center;
+    gap: 18px;
+    flex-direction: row;
+}
+.touch button {
+    padding: 7px 11px;
+    font-size: 12px;
+}
+.quickbar {
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+}
+.quickbar button {
+    min-width: 108px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    border: 2px solid #718473;
+    border-radius: 2px;
+    background: #203b32;
+    box-shadow:
+        inset 2px 2px #a5ae8a40,
+        inset -3px -3px #091e20;
+    padding: 10px 15px;
+    font-size: 12px;
+}
+.quickbar button:hover,
+.quickbar button[aria-expanded="true"] {
+    background: #49604a;
+    border-color: #e6d8a6;
+}
+kbd {
+    font:
+        11px ui-monospace,
+        monospace;
+    color: #e2d4a6;
+    border: 1px solid #819078;
+    border-radius: 2px;
+    padding: 2px 5px;
+}
+dialog {
+    width: min(760px, calc(100% - 24px));
+    max-width: none;
+    max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
+    padding: 0;
+    margin: auto;
+    color: #e5e9d7;
+    background: #19362f;
+    border: 3px solid #8b9b7f;
+    border-radius: 3px;
+    box-shadow:
+        inset 3px 3px #d4d6ad26,
+        inset -3px -3px #071c1a,
+        0 20px 90px #0009;
+    overflow: hidden;
+}
+dialog::backdrop {
+    background: #061815aa;
+    backdrop-filter: blur(2px);
+}
+.pack-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0;
+    padding: 18px 22px;
+    background: #213f35;
+    border-bottom: 2px solid #102a25;
+}
+.pack-header h2 {
+    font:
+        26px Georgia,
+        serif;
+    margin: 5px 0 0;
+}
+.pack-header .eyebrow {
+    font-size: 8px;
+    letter-spacing: 2px;
+}
+.pack-header button {
+    font-size: 12px;
+    white-space: nowrap;
+}
+.pack-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 8px 14px 0;
+    background: #132f29;
+}
+.pack-tabs button {
+    flex: 1;
+    border-radius: 2px 2px 0 0;
+    border-bottom: 0;
+    padding: 10px 6px;
+    font-size: 12px;
+}
+.pack-tabs button[aria-selected="true"] {
+    color: #f6e7b6;
+    background: #345044;
+    border-color: #bbc097;
+    box-shadow: inset 0 2px #e7dab0;
+}
+.pack-page {
+    max-height: calc(100vh - 174px);
+    max-height: calc(100dvh - 174px);
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding: 22px;
+    scrollbar-color: #73886d #142e27;
+}
+.pack-page h2 {
+    margin-bottom: 12px;
+}
+.item-slots {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 18px 0;
+}
+.item-slot {
+    position: relative;
+    min-height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 5px;
+    border: 2px solid #879377;
+    background: #102c27;
+    box-shadow:
+        inset 3px 3px #061b1b,
+        inset -2px -2px #b4b99150;
+    font-size: 12px;
+}
+.item-slot > span:first-child {
+    font:
+        35px Georgia,
+        serif;
+    color: #cbb788;
+    text-shadow: 2px 2px #0008;
+}
+.item-slot:nth-child(2) > span:first-child {
+    color: #b5c4bb;
+}
+.item-slot:nth-child(3) > span:first-child {
+    color: #d6857b;
+}
+.item-slot b {
+    position: absolute;
+    bottom: 8px;
+    right: 10px;
+    font:
+        bold 18px ui-monospace,
+        monospace;
+    text-shadow: 2px 2px #000;
+}
+#inventory {
+    font-size: 12px;
+    color: #acbd9f;
+}
+#recipes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+.recipe {
+    align-items: start;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid #657c61;
+    border-radius: 2px;
+    background: #234135;
+}
+.recipe button {
+    align-self: center;
+}
+.lab {
+    margin: 0;
+    border: 0;
+}
+.lab footer {
+    padding-bottom: 0;
+}
+.placement-controls {
+    position: absolute;
+    right: 16px;
+    bottom: 46px;
+    text-align: right;
+}
+.placement-controls button {
+    background: #19382eee;
+    font-size: 12px;
+}
+@media (max-width: 760px) {
+    main {
+        padding: 7px;
+        gap: 7px;
+    }
+    .game-header {
+        display: flex;
+    }
+    .game-header h1 {
+        font-size: 25px;
+    }
+    .game-header h1 em,
+    .game-header .eyebrow {
+        display: none;
+    }
+    .toolbar {
+        gap: 4px;
+    }
+    .toolbar button {
+        font-size: 10px;
+        padding: 7px;
+    }
+    .touch {
+        flex-wrap: wrap;
+        gap: 5px 12px;
+    }
+    .touch div {
+        gap: 4px;
+    }
+    .touch button {
+        min-width: 34px;
+        padding: 8px;
+        font-size: 11px;
+    }
+    .quickbar {
+        gap: 4px;
+    }
+    .quickbar button {
+        flex: 1;
+        min-width: 0;
+        padding: 8px 4px;
+        gap: 5px;
+        font-size: 11px;
+    }
+    .quickbar kbd {
+        font-size: 10px;
+        padding: 2px 3px;
+    }
+    .pack-header {
+        padding: 13px 14px;
+    }
+    .pack-header h2 {
+        font-size: 22px;
+    }
+    .pack-header button {
+        padding: 8px;
+    }
+    .pack-tabs {
+        padding: 7px 8px 0;
+        gap: 3px;
+    }
+    .pack-tabs button {
+        font-size: 11px;
+    }
+    .pack-page {
+        padding: 15px;
+    }
+    .item-slots {
+        gap: 8px;
+    }
+    .item-slot {
+        min-height: 100px;
+    }
+    #recipes {
+        grid-template-columns: 1fr;
+    }
+    .quest {
+        top: 65px;
+        max-width: 160px;
+    }
+    .quest .eyebrow,
+    .quest p {
+        display: none;
+    }
+    .placement-controls {
+        right: 8px;
+        bottom: 48px;
+    }
+}
+@media (max-height: 480px) {
+    main {
+        padding: 4px 8px;
+        gap: 4px;
+    }
+    .game-header h1 {
+        font-size: 22px;
+    }
+    .game-header .eyebrow,
+    .game-header h1 em {
+        display: none;
+    }
+    .touch button,
+    .quickbar button {
+        padding-top: 4px;
+        padding-bottom: 4px;
+    }
+    .quest {
+        display: none;
+    }
+    .pack-header {
+        padding-top: 8px;
+        padding-bottom: 8px;
+    }
+    .pack-header h2 {
+        font-size: 20px;
+    }
+    .pack-page {
+        max-height: calc(100dvh - 145px);
+    }
+}

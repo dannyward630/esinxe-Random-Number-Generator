@@ -6,7 +6,11 @@ A dependency-free survival expedition built on esinxe. Run `python -m http.serve
 
 Move with WASD/arrows or hold the on-screen arrows. Space dashes, J strikes or
 harvests, E gathers/inspects/rests, F eats berries, M opens the survey map and P
-pauses. Facing matters when striking. Harvest by hand to get started; an axe
+pauses. The game fills the screen; the bottom hotbar opens Satchel (I), Crafting
+(C), Journal (L) and Settings (O) as popups. Menus pause the world, including
+survival timers. Escape or Close returns to play; a manual pause stays paused.
+Use left/right arrows to switch menu tabs. Long menu content scrolls within
+the popup on small screens. Facing matters when striking. Harvest by hand to get started; an axe
 increases the yield. Craft buttons show exact costs and missing materials.
 Campfire/bridge kits must be placed on nearby valid ground; click the map to
 place or use Cancel placement. A bridge extends a crossing one water tile at a
