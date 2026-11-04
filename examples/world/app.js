@@ -9,28 +9,79 @@ import {
   RECIPES,
   serializeGame,
   restoreGame,
-} from "./game.js?v=3";
+} from "./game.js?v=5";
 import { landmarksForSeed, biomeSitesForSeed } from "./expedition.js?v=3";
 import { ChunkStream, prove } from "./stream.js?v=3";
 import { Renderer } from "./render.js?v=3";
-const $ = (id) => document.getElementById(id),
-  canvas = $("world"),
-  renderer = new Renderer(canvas);
+const $ = (id) => document.getElementById(id);
+let canvas = $("world"),
+  renderer,
+  renderNotice = "";
+let preferredView = new URLSearchParams(location.search).get("view");
+try {
+  preferredView ||= localStorage.getItem("verdant-view");
+} catch {}
+if (preferredView !== "2d") {
+  try {
+    const { Renderer3D } = await import("./render3d.js?v=5");
+    renderer = new Renderer3D(canvas);
+  } catch (error) {
+    console.warn("3D view unavailable:", error.message);
+    const replacement = canvas.cloneNode(false);
+    canvas.replaceWith(replacement);
+    canvas = replacement;
+    renderNotice =
+      "3D could not start on this device. The 2D view is ready; you can retry 3D in Settings.";
+  }
+}
+renderer ||= new Renderer(canvas);
+canvas.setAttribute(
+  "aria-label",
+  renderer.is3D
+    ? "Verdant 3D world. WASD moves, Space jumps or swims, Shift dashes, J harvests or strikes, E interacts, R dives. Right-drag or Q and T orbit; wheel zooms."
+    : "Verdant 2D world. WASD moves, Space dashes or swims, J harvests or strikes, E interacts, R dives.",
+);
+$("view-mode").value = renderer.is3D ? "3d" : "2d";
+$("render-mode").textContent = renderer.is3D ? "3D ADVENTURE" : "2D VIEW";
+$("camera-tools").hidden = !renderer.is3D;
+$("jump-action").hidden = !renderer.is3D;
+$("render-notice").textContent = renderNotice;
+let quality = "balanced";
+try {
+  quality = localStorage.getItem("verdant-quality") || quality;
+} catch {}
+$("quality").value = ["low", "balanced", "high"].includes(quality)
+  ? quality
+  : "balanced";
+renderer.setQuality?.($("quality").value);
+$("quality").disabled = !renderer.is3D;
+if (!renderer.is3D)
+  $("view-help").textContent =
+    "2D view: WASD moves, Space dashes or swims, J harvests or strikes, E interacts, F eats and R dives. M opens the survey; I / C / L / O open menus.";
+const cameraPointers = new Map();
+let pinchDistance = 0;
 let seed = "42",
   state,
   stream,
   sites,
   biomes,
   paused = false,
+  arrival = false,
   hiddenPause = false,
   showMap = false,
   placing = null,
   center = "",
   revision = 0,
   evidence = null;
-let pointer = null;
+let pointer = null,
+  pointerClient = null,
+  placementTouch = false;
 function resize() {
   const bounds = canvas.getBoundingClientRect();
+  if (renderer.is3D) {
+    renderer.resize(bounds.width, bounds.height);
+    return;
+  }
   const scale = Math.min(1, 1120 / bounds.width, 960 / bounds.height);
   canvas.width = Math.max(1, Math.round(bounds.width * scale));
   canvas.height = Math.max(1, Math.round(bounds.height * scale));
@@ -58,7 +109,11 @@ function tone(type) {
       g = audio.createGain();
     o.type = "sine";
     o.frequency.setValueAtTime(
-      type === "hurt" ? 150 : type === "discovery" ? 720 : 440,
+      type === "hurt" || type === "damage"
+        ? 150
+        : type === "discovery"
+          ? 720
+          : 440,
       audio.currentTime,
     );
     o.frequency.exponentialRampToValueAtTime(220, audio.currentTime + 0.16);
@@ -136,11 +191,24 @@ async function load() {
   center = `${Math.floor(state.player.x / 16)},${Math.floor(state.player.y / 16)}`;
   try {
     await stream.ensureAround(state.player.x, state.player.y);
+    if (ticket === revision) hud();
   } catch (error) {
     if (ticket === revision) message(error.message);
   }
 }
 function setPause(value) {
+  if (!value && arrival) {
+    arrival = false;
+    try {
+      localStorage.setItem("verdant-3d-intro", "seen");
+    } catch {}
+    $("pause-title").textContent = "Take a breath.";
+    $("pause-copy").textContent = "The island will wait.";
+    $("arrival-controls").hidden = true;
+    $("resume").textContent = "Resume expedition";
+  }
+  cameraPointers.clear();
+  pinchDistance = 0;
   fingers.clear();
   paused = value;
   keys.clear();
@@ -154,10 +222,60 @@ $("resume").onclick = () => {
   setPause(false);
   canvas.focus();
 };
-$("map").onclick = () => {
+function toggleMap() {
   showMap = !showMap;
+  clearInput();
+  placing = null;
+  hud();
+  canvas.focus();
+}
+$("map").onclick = toggleMap;
+$("camera-left").onclick = () => {
+  renderer.orbit?.(-0.25);
   canvas.focus();
 };
+$("camera-right").onclick = () => {
+  renderer.orbit?.(0.25);
+  canvas.focus();
+};
+$("camera-near").onclick = () => {
+  renderer.zoom?.(-1.5);
+  canvas.focus();
+};
+$("camera-far").onclick = () => {
+  renderer.zoom?.(1.5);
+  canvas.focus();
+};
+$("camera-home").onclick = () => {
+  renderer.resetCamera?.();
+  canvas.focus();
+};
+$("view-mode").onchange = () => {
+  save();
+  const view = $("view-mode").value;
+  try {
+    localStorage.setItem("verdant-view", view);
+  } catch {}
+  const url = new URL(location.href);
+  url.searchParams.set("view", view);
+  location.assign(url);
+};
+$("quality").onchange = () => {
+  renderer.setQuality?.($("quality").value);
+  try {
+    localStorage.setItem("verdant-quality", $("quality").value);
+  } catch {}
+};
+canvas.addEventListener("webglcontextlost", (event) => {
+  event.preventDefault();
+  setPause(true);
+  $("render-notice").textContent =
+    "3D paused after the graphics context was lost. Select 2D in Settings or reload to retry.";
+  message(
+    "Graphics paused. Open Settings to switch views, or reload to retry.",
+  );
+});
+canvas.addEventListener("webglcontextrestored", () => location.reload());
 $("sound").onclick = () => {
   sound = !sound;
   $("sound").textContent = sound ? "Sound on" : "Sound off";
@@ -169,6 +287,8 @@ const pack = $("pack");
 const panelKeys = { i: "satchel", c: "crafting", l: "journal", o: "settings" };
 let activePanel = "satchel";
 function clearInput() {
+  cameraPointers.clear();
+  pinchDistance = 0;
   fingers.clear();
   keys.clear();
   touch = { x: 0, y: 0 };
@@ -176,6 +296,7 @@ function clearInput() {
 }
 function openPanel(name, focus = true) {
   activePanel = name;
+  showMap = false;
   clearInput();
   placing = null;
   hud();
@@ -243,7 +364,7 @@ const moveKeys = new Set([
   "arrowright",
 ]);
 const actionKeys = {
-  " ": "dash",
+  shift: "dash",
   j: "attack",
   e: "interact",
   f: "eat",
@@ -262,6 +383,35 @@ document.addEventListener("keydown", (event) => {
     return;
   }
   if (pack.open || inputTarget(event)) return;
+  if (k === "m" && !event.repeat) {
+    toggleMap();
+    return;
+  }
+  if (k === "escape" && showMap) {
+    toggleMap();
+    return;
+  }
+  if (showMap) return;
+  if (k === "e" && placing && placementTouch && pointer) {
+    event.preventDefault();
+    if (!event.repeat) commitPlacement(pointer);
+    return;
+  }
+  if (renderer.is3D && ["q", "t", "h", "=", "+", "-"].includes(k)) {
+    event.preventDefault();
+    if (k === "q") renderer.orbit(-0.12);
+    if (k === "t") renderer.orbit(0.12);
+    if (k === "h") renderer.resetCamera();
+    if (k === "=" || k === "+") renderer.zoom(-0.5);
+    if (k === "-") renderer.zoom(0.5);
+    return;
+  }
+  if (k === " ") {
+    event.preventDefault();
+    if (!event.repeat)
+      actions[renderer.is3D && !state.player.swimming ? "jump" : "dash"] = true;
+    return;
+  }
   if (moveKeys.has(k)) {
     event.preventDefault();
     keys.add(k);
@@ -270,7 +420,6 @@ document.addEventListener("keydown", (event) => {
     event.preventDefault();
     if (!event.repeat) actions[actionKeys[k]] = true;
   }
-  if (k === "m" && !event.repeat) showMap = !showMap;
   if (k === "escape") {
     placing = null;
     setPause(false);
@@ -281,6 +430,8 @@ document.addEventListener("keyup", (event) =>
   keys.delete(event.key.toLowerCase()),
 );
 window.addEventListener("blur", () => {
+  cameraPointers.clear();
+  pinchDistance = 0;
   fingers.clear();
   keys.clear();
   touch = { x: 0, y: 0 };
@@ -319,53 +470,108 @@ for (const button of document.querySelectorAll("[data-direction]")) {
 }
 for (const button of document.querySelectorAll("[data-action]"))
   button.onclick = () => {
-    actions[button.dataset.action] = true;
+    const action = button.dataset.action;
+    actions[action === "jump" && state.player.swimming ? "dash" : action] =
+      true;
     canvas.focus();
   };
-canvas.onpointermove = (event) => {
-  const r = canvas.getBoundingClientRect();
-  pointer = {
-    x: Math.floor(
-      renderer.camera.x +
-        0.5 +
-        ((event.clientX - r.left - r.width / 2) * canvas.width) / r.width / 32,
-    ),
-    y: Math.floor(
-      renderer.camera.y +
-        0.5 +
-        ((event.clientY - r.top - r.height / 2) * canvas.height) /
-          r.height /
-          32,
-    ),
-  };
-};
-canvas.onpointerdown = (event) => {
-  canvas.focus();
-  if (!placing) return;
+function pointerTile(event) {
+  if (renderer.is3D) return renderer.pick(event.clientX, event.clientY);
   const rect = canvas.getBoundingClientRect();
-  const x = Math.floor(
+  return {
+    x: Math.floor(
       renderer.camera.x +
         0.5 +
         ((event.clientX - rect.left - rect.width / 2) * canvas.width) /
           rect.width /
           32,
     ),
-    y = Math.floor(
+    y: Math.floor(
       renderer.camera.y +
         0.5 +
         ((event.clientY - rect.top - rect.height / 2) * canvas.height) /
           rect.height /
           32,
+    ),
+  };
+}
+canvas.oncontextmenu = (event) => event.preventDefault();
+canvas.onpointermove = (event) => {
+  pointerClient = { x: event.clientX, y: event.clientY };
+  if (event.pointerType === "mouse") placementTouch = false;
+  const prior = cameraPointers.get(event.pointerId);
+  if (prior && renderer.is3D) {
+    cameraPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    renderer.orbit(
+      -(event.clientX - prior.x) * 0.006,
+      -(event.clientY - prior.y) * 0.004,
     );
-  const result = place(state, placing, x, y, world());
+    if (cameraPointers.size === 2) {
+      const [a, b] = [...cameraPointers.values()];
+      const distance = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinchDistance) renderer.zoom((pinchDistance - distance) * 0.03);
+      pinchDistance = distance;
+    }
+  }
+  pointer = pointerTile(event);
+  if (placing && event.pointerType === "touch") hud();
+};
+canvas.onpointerdown = (event) => {
+  canvas.focus();
+  if (
+    renderer.is3D &&
+    !placing &&
+    (event.button === 2 || event.pointerType === "touch")
+  ) {
+    event.preventDefault();
+    canvas.setPointerCapture(event.pointerId);
+    cameraPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    return;
+  }
+  if (!placing || paused || showMap || event.button === 2) return;
+  pointer = pointerTile(event);
+  if (!pointer) return;
+  if (renderer.is3D && event.pointerType === "touch") {
+    event.preventDefault();
+    placementTouch = true;
+    pointerClient = { x: event.clientX, y: event.clientY };
+    hud();
+    return;
+  }
+  commitPlacement(pointer);
+};
+function commitPlacement(point) {
+  if (!placing || !point) return;
+  const result = place(state, placing, point.x, point.y, world());
   message(result.message);
   if (result.ok) {
-    renderer.burst(x, y);
+    renderer.burst(point.x, point.y);
     placing = null;
+    placementTouch = false;
     save();
   }
   hud();
+}
+$("confirm-place").onclick = () => {
+  commitPlacement(pointer);
+  canvas.focus();
 };
+canvas.onpointerup =
+  canvas.onpointercancel =
+  canvas.onlostpointercapture =
+    (event) => {
+      cameraPointers.delete(event.pointerId);
+      pinchDistance = 0;
+    };
+canvas.addEventListener(
+  "wheel",
+  (event) => {
+    if (!renderer.is3D || pack.open || showMap) return;
+    event.preventDefault();
+    renderer.zoom(event.deltaY * 0.012);
+  },
+  { passive: false },
+);
 $("cancel-place").onclick = () => {
   placing = null;
   hud();
@@ -373,6 +579,10 @@ $("cancel-place").onclick = () => {
 };
 function selectPlacement(kind) {
   closePanel();
+  showMap = false;
+  pointer = null;
+  pointerClient = null;
+  placementTouch = false;
   placing = kind;
   message(`Place ${kind} within reach: click the ground. Esc cancels.`);
   canvas.focus();
@@ -387,6 +597,12 @@ function hud() {
   $("air-value").textContent = Math.round(habitat.air);
   $("dive-action").textContent = habitat.diving ? "Surface · R" : "Dive · R";
   $("dive-action").disabled = !habitat.swimming;
+  $("jump-action").textContent = habitat.swimming
+    ? "Stroke · Space"
+    : "Jump · Space";
+  $("dash-action").textContent = renderer.is3D
+    ? "Dash · Shift"
+    : "Dash · Space";
   const sigilCount = sites.filter((site) =>
     state.discoveries.includes(site.id),
   ).length;
@@ -445,6 +661,12 @@ function hud() {
     ? `Explore: ${fieldTarget.title} · ${Math.round(Math.hypot(fieldTarget.x - state.player.x, fieldTarget.y - state.player.y))} paces ${direction(fieldTarget.x - state.player.x, fieldTarget.y - state.player.y)}`
     : "All four field notes recovered.";
   $("cancel-place").hidden = !placing;
+  $("confirm-place").hidden = !(placing && placementTouch && pointer);
+  $("confirm-place").disabled = !(
+    placing &&
+    pointer &&
+    canPlace(state, placing, pointer.x, pointer.y, world()).ok
+  );
   for (const [id, recipe] of Object.entries(RECIPES)) {
     const button = $(`craft-${id}`);
     if (!button) continue;
@@ -496,7 +718,9 @@ function hud() {
             ? "J · Harvest nearby resources"
             : nearby.some((e) => e.type === "berry" || e.type === "cache")
               ? "E · Gather supplies"
-              : "WASD move · Space dash · J strike · E inspect · F eat";
+              : renderer.is3D
+                ? "WASD move · Space jump · Shift dash · J harvest · E inspect"
+                : "WASD move · Space dash · J strike · E inspect · F eat";
 }
 function direction(x, y) {
   return `${y < -3 ? "N" : y > 3 ? "S" : ""}${x > 3 ? "E" : x < -3 ? "W" : ""}`;
@@ -636,7 +860,7 @@ let last = performance.now(),
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
-  if (!paused && !pack.open) {
+  if (!paused && !pack.open && !showMap) {
     accumulator += dt;
     while (accumulator >= 1 / 60) {
       const x =
@@ -649,7 +873,8 @@ function frame(now) {
           Number(keys.has("w") || keys.has("arrowup"));
       const environment = world();
       if (environment.loaded) {
-        stepGame(state, { x, y, ...actions }, 1 / 60, environment);
+        const direction = renderer.is3D ? renderer.movement(x, y) : { x, y };
+        stepGame(state, { ...direction, ...actions }, 1 / 60, environment);
         actions = {};
       }
       accumulator -= 1 / 60;
@@ -658,10 +883,13 @@ function frame(now) {
     if (next !== center) load();
     for (const event of state.events.splice(0)) {
       if (event.text) message(event.text);
+      renderer.feedback?.(event);
       renderer.burst(
         event.x ?? state.player.x,
         event.y ?? state.player.y,
-        event.type === "hurt" ? "#e9856b" : "#e4d48e",
+        event.type === "hurt" || event.type === "damage"
+          ? "#e9856b"
+          : "#e4d48e",
       );
       tone(event.type);
     }
@@ -686,8 +914,18 @@ function frame(now) {
       save();
     }
   } else accumulator = 0;
-  renderer.draw(state, stream, sites, dt, now, showMap, biomes);
-  if (placing && pointer) {
+  if (renderer.is3D && placing && pointerClient && !placementTouch)
+    pointer = renderer.pick(pointerClient.x, pointerClient.y);
+  renderer.draw(state, stream, sites, dt, now, showMap, biomes, {
+    kind: placing,
+    point: pointer,
+    valid: Boolean(
+      placing &&
+      pointer &&
+      canPlace(state, placing, pointer.x, pointer.y, world()).ok,
+    ),
+  });
+  if (!renderer.is3D && placing && pointer) {
     const g = renderer.ctx,
       r = Math.hypot(pointer.x - state.player.x, pointer.y - state.player.y);
     g.strokeStyle = canPlace(state, placing, pointer.x, pointer.y, world()).ok
@@ -705,9 +943,27 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 start();
+if (renderNotice) message(renderNotice);
+let seenArrival = false;
+try {
+  seenArrival = localStorage.getItem("verdant-3d-intro") === "seen";
+} catch {}
+if (renderer.is3D && !seenArrival) {
+  arrival = true;
+  setPause(true);
+  $("pause-title").textContent = "Step into Verdant.";
+  $("pause-copy").textContent =
+    "Wander, gather, build, and follow the lights. Your expedition is ready when you are.";
+  $("arrival-controls").hidden = false;
+  $("resume").textContent = "Enter the island";
+}
 journal();
 requestAnimationFrame(frame);
 window.addEventListener("pagehide", () => {
   save();
   stream.dispose();
+  renderer.dispose?.();
+});
+window.addEventListener("pageshow", (event) => {
+  if (event.persisted) location.reload();
 });

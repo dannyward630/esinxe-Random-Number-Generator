@@ -8,6 +8,13 @@ compatibility version is independent and is named explicitly.
 
 ### Added
 
+- Verdant 3D adventure: a third-person orbit camera, camera-relative movement,
+  physical jumping, raised faceted terrain, animated explorer/sentinels, distinct
+  ruins, water and underwater views, sky/clouds, soft shadows and warm lights.
+  Instanced foliage fades around the player; streamed GPU resources are bounded
+  and disposed on eviction. Menus remain in view, touch building gains aim/confirm,
+  and self-hosted rendering has quality controls plus a 2D compatibility option.
+
 - Verdant viewport-filling game layout with a four-slot menu hotbar, item-slot
   satchel and popup crafting, journal and settings. I/C/L/O open menus; native
   dialog focus/Escape handling and automatic simulation pause keep play in view.

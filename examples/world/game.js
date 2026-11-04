@@ -17,6 +17,10 @@ const DASH_SPEED = 10.5;
 const DASH_TIME = 0.16;
 const DASH_COOLDOWN = 1.25;
 const DASH_COST = 8;
+const JUMP_SPEED = 6.6;
+const JUMP_GRAVITY = 18;
+const ROCK_CLEARANCE = 0.8;
+const JUMP_PHYSICS_STEP = 1 / 60;
 const PLAYER_ATTACK_WINDUP = 0.12;
 const PLAYER_ATTACK_COOLDOWN = 0.42;
 const INTERACTION_RANGE = 1.8;
@@ -107,6 +111,11 @@ export function createGame(seed = "1") {
     player: {
       x: 0,
       y: 0,
+      lift: 0,
+      verticalVelocity: 0,
+      jumpHeld: false,
+      jumpTakeoffX: 0,
+      jumpTakeoffY: 0,
       hp: 100,
       energy: 100,
       facing: { x: 0, y: -1 },
@@ -342,9 +351,78 @@ function canOccupy(state, world, x, y) {
       entity.type !== "sentinel"
     )
       continue;
+    if (
+      entity.type === "rock" &&
+      finiteNumber(state.player.lift) &&
+      state.player.lift >= ROCK_CLEARANCE
+    )
+      continue;
     if (distance(x, y, entity.x, entity.y) < 0.48) return false;
   }
   return true;
+}
+
+function resetJumpMotion(player) {
+  player.lift = 0;
+  player.verticalVelocity = 0;
+  player.jumpTakeoffX = player.x;
+  player.jumpTakeoffY = player.y;
+}
+
+function startJump(state) {
+  const player = state.player;
+  player.lift = 0;
+  player.verticalVelocity = JUMP_SPEED;
+  player.jumpTakeoffX = player.x;
+  player.jumpTakeoffY = player.y;
+  pushEvent(state, "jump", "You leap over the trail.");
+  pushEffect(state, "jump", player.x, player.y, 0.3);
+}
+
+function landJump(state, world) {
+  const player = state.player;
+  player.lift = 0;
+  player.verticalVelocity = 0;
+  if (!canOccupy(state, world, player.x, player.y)) {
+    const takeoffX = player.jumpTakeoffX;
+    const takeoffY = player.jumpTakeoffY;
+    if (
+      finiteNumber(takeoffX) &&
+      finiteNumber(takeoffY) &&
+      canOccupy(state, world, takeoffX, takeoffY)
+    ) {
+      player.x = takeoffX;
+      player.y = takeoffY;
+    }
+  }
+  player.jumpTakeoffX = player.x;
+  player.jumpTakeoffY = player.y;
+  pushEvent(state, "land", "You land safely on the trail.");
+  pushEffect(state, "land", player.x, player.y, 0.24);
+}
+
+function advanceJump(state, dt, world) {
+  const player = state.player;
+  if (dt <= 0 || (player.verticalVelocity <= 0 && player.lift <= 0)) return;
+
+  const impactTime =
+    (player.verticalVelocity +
+      Math.sqrt(
+        player.verticalVelocity ** 2 + 2 * JUMP_GRAVITY * player.lift,
+      )) /
+    JUMP_GRAVITY;
+  if (impactTime <= dt + 1e-12) {
+    landJump(state, world);
+    return;
+  }
+
+  player.lift = Math.max(
+    0,
+    player.lift +
+      player.verticalVelocity * dt -
+      0.5 * JUMP_GRAVITY * dt * dt,
+  );
+  player.verticalVelocity -= JUMP_GRAVITY * dt;
 }
 
 function moveWithCollision(state, world, dx, dy) {
@@ -447,6 +525,38 @@ function movePlayer(state, inputX, inputY, dt, world) {
   if (player.dashQueued && player.dashCooldown <= 0)
     startDash(state, direction, world);
 
+  if (player.lift > 0 || player.verticalVelocity > 0) {
+    let remaining = dt;
+    while (remaining > 0) {
+      const slice = Math.min(remaining, JUMP_PHYSICS_STEP);
+      advanceJump(state, slice / 2, world);
+      const dashTime = Math.min(slice, Math.max(0, player.dashRemaining));
+      if (dashTime > 0) {
+        moveDash(state, world, player.dashX, player.dashY, dashTime);
+        player.dashRemaining = Math.max(0, player.dashRemaining - dashTime);
+      }
+      const remainingTime = slice - dashTime;
+      if (remainingTime > 0 && (direction.x || direction.y)) {
+        const currentTerrain = getTerrainStatus(state, world);
+        const currentSpeed =
+          PLAYER_SPEED *
+          currentTerrain.speed *
+          (state.tools.boots && currentTerrain.terrain === "meadow" ? 1.2 : 1) *
+          (player.energy <= 0 ? 0.75 : 1);
+        moveWithCollision(
+          state,
+          world,
+          direction.x * currentSpeed * remainingTime,
+          direction.y * currentSpeed * remainingTime,
+        );
+      }
+      if (getTerrainStatus(state, world).swimming) resetJumpMotion(player);
+      advanceJump(state, slice / 2, world);
+      remaining -= slice;
+    }
+    return Math.hypot(player.x - beforeX, player.y - beforeY) > 1e-9;
+  }
+
   const terrain = getTerrainStatus(state, world);
   const speed =
     PLAYER_SPEED *
@@ -495,7 +605,11 @@ function isDryWalkable(state, world, x, y) {
 
 function rememberShore(state, world) {
   const player = state.player;
-  if (isDryWalkable(state, world, player.x, player.y)) {
+  if (
+    player.lift <= 0 &&
+    player.verticalVelocity <= 0 &&
+    isDryWalkable(state, world, player.x, player.y)
+  ) {
     player.lastShore = { x: player.x, y: player.y };
   }
 }
@@ -523,6 +637,7 @@ function rescueFromWater(state, world, reason) {
   player.diving = false;
   player.dashRemaining = 0;
   player.dashQueued = false;
+  resetJumpMotion(player);
   player.invulnerability = Math.max(player.invulnerability, 1.5);
   pushEvent(
     state,
@@ -550,6 +665,7 @@ function updateWaterState(state, controls, dt, world, moved) {
   const status = getTerrainStatus(state, world);
   if (status.terrain === "unknown") return;
   player.swimming = status.swimming;
+  if (player.swimming) resetJumpMotion(player);
   if (!player.swimming) player.diving = false;
 
   const diveHeld = Boolean(controls.dive);
@@ -1416,6 +1532,7 @@ function respawn(state) {
   state.player.attackCooldown = 0;
   state.player.attackWindup = 0;
   state.player.dashQueued = false;
+  resetJumpMotion(state.player);
   state.enemies = [];
   pushEvent(
     state,
@@ -1465,6 +1582,20 @@ export function stepGame(state, input = {}, dt = 1 / 60, world = {}) {
   }
   if (player.dashCooldown > 0 && controls.dash) player.dashQueued = true;
   if (player.dashCooldown <= 0 && controls.dash) player.dashQueued = true;
+
+  const jumpHeld = Boolean(controls.jump);
+  const jumpPressed = jumpHeld && !player.jumpHeld;
+  player.jumpHeld = jumpHeld;
+  const jumpTerrain = getTerrainStatus(state, world);
+  if (
+    jumpPressed &&
+    player.lift <= 0 &&
+    player.verticalVelocity <= 0 &&
+    !jumpTerrain.swimming
+  ) {
+    rememberShore(state, world);
+    startJump(state);
+  }
 
   const rawX = finiteNumber(controls.x) ? clamp(controls.x, -1, 1) : 0;
   const rawY = finiteNumber(controls.y) ? clamp(controls.y, -1, 1) : 0;
@@ -1633,12 +1764,21 @@ function validatePersistentState(state) {
 
 export function serializeGame(state) {
   validatePersistentState(state);
+  const airborne = state.player.lift > 0 || state.player.verticalVelocity > 0;
+  const saveX = airborne ? state.player.jumpTakeoffX : state.player.x;
+  const saveY = airborne ? state.player.jumpTakeoffY : state.player.y;
+  if (
+    !boundedNumber(saveX, -MAX_COORDINATE, MAX_COORDINATE) ||
+    !boundedNumber(saveY, -MAX_COORDINATE, MAX_COORDINATE)
+  ) {
+    throw new TypeError("player save position is invalid");
+  }
   const payload = {
     seed: state.seed,
     version: VERSION,
     player: {
-      x: state.player.x,
-      y: state.player.y,
+      x: saveX,
+      y: saveY,
       hp: state.player.hp,
       energy: state.player.energy,
       facing: { x: state.player.facing.x, y: state.player.facing.y },
