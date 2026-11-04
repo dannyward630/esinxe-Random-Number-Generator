@@ -13,6 +13,7 @@ import {
 import { landmarksForSeed, biomeSitesForSeed } from "./expedition.js?v=3";
 import { ChunkStream, prove } from "./stream.js?v=3";
 import { Renderer } from "./render.js?v=3";
+import { interpolatePlayer, edgeLook } from "./spatial.js?v=6";
 const $ = (id) => document.getElementById(id);
 let canvas = $("world"),
   renderer,
@@ -23,7 +24,7 @@ try {
 } catch {}
 if (preferredView !== "2d") {
   try {
-    const { Renderer3D } = await import("./render3d.js?v=5");
+    const { Renderer3D } = await import("./render3d.js?v=6");
     renderer = new Renderer3D(canvas);
   } catch (error) {
     console.warn("3D view unavailable:", error.message);
@@ -38,7 +39,7 @@ renderer ||= new Renderer(canvas);
 canvas.setAttribute(
   "aria-label",
   renderer.is3D
-    ? "Verdant 3D world. WASD moves, Space jumps or swims, Shift dashes, J harvests or strikes, E interacts, R dives. Right-drag or Q and T orbit; wheel zooms."
+    ? "Verdant 3D world. WASD moves, Space jumps or swims, Shift dashes, J harvests or strikes, E interacts, R dives. Click the world for mouse-look; Escape releases it. Right-drag or Q and T orbit; wheel zooms."
     : "Verdant 2D world. WASD moves, Space dashes or swims, J harvests or strikes, E interacts, R dives.",
 );
 $("view-mode").value = renderer.is3D ? "3d" : "2d";
@@ -62,6 +63,7 @@ const cameraPointers = new Map();
 let pinchDistance = 0;
 let seed = "42",
   state,
+  previousPlayer,
   stream,
   sites,
   biomes,
@@ -76,6 +78,85 @@ let seed = "42",
 let pointer = null,
   pointerClient = null,
   placementTouch = false;
+let wantsMouseLook = false,
+  mouseLocked = false,
+  hoverLook = false,
+  expectedUnlock = false,
+  lastLookPoint = null,
+  lastEscapeUnlock = -Infinity;
+function canMouseLook() {
+  return renderer.is3D && !paused && !pack.open && !showMap && !placing;
+}
+function mouseLookUI() {
+  const active = mouseLocked || hoverLook;
+  canvas.dataset.mouseLook = mouseLocked
+    ? "locked"
+    : hoverLook
+      ? "hover"
+      : "off";
+  $("mouse-look").textContent = active ? "Mouse look on" : "Mouse look";
+  $("mouse-look").setAttribute("aria-pressed", String(active));
+}
+function releaseMouseLook() {
+  wantsMouseLook = false;
+  hoverLook = false;
+  lastLookPoint = null;
+  if (document.pointerLockElement === canvas) {
+    expectedUnlock = true;
+    document.exitPointerLock();
+  }
+  mouseLookUI();
+}
+function hoverMouseLook() {
+  if (!wantsMouseLook || !canMouseLook() || mouseLocked || hoverLook) return;
+  hoverLook = true;
+  lastLookPoint = null;
+  mouseLookUI();
+  message(
+    "Mouse look is on. Move to look; hold near an edge to keep turning. Esc pauses.",
+  );
+}
+function requestMouseLook() {
+  if (!canMouseLook() || mouseLocked) return;
+  wantsMouseLook = true;
+  lastLookPoint = null;
+  if (!canvas.requestPointerLock) {
+    hoverMouseLook();
+    return;
+  }
+  try {
+    const pending = canvas.requestPointerLock();
+    pending?.catch(hoverMouseLook);
+  } catch {
+    hoverMouseLook();
+  }
+}
+document.addEventListener("pointerlockerror", hoverMouseLook);
+document.addEventListener("pointerlockchange", () => {
+  const wasLocked = mouseLocked;
+  mouseLocked = document.pointerLockElement === canvas;
+  if (mouseLocked && (!wantsMouseLook || !canMouseLook())) {
+    releaseMouseLook();
+    return;
+  }
+  if (mouseLocked) hoverLook = false;
+  if (wasLocked && !mouseLocked && !expectedUnlock) {
+    lastEscapeUnlock = performance.now();
+    setPause(true);
+  }
+  expectedUnlock = false;
+  clearInput();
+  mouseLookUI();
+});
+document.addEventListener("mousemove", (event) => {
+  if (mouseLocked && canMouseLook())
+    renderer.orbit(-event.movementX * 0.003, event.movementY * 0.003);
+});
+$("mouse-look").onclick = () => {
+  if (wantsMouseLook) releaseMouseLook();
+  else requestMouseLook();
+  canvas.focus();
+};
 function resize() {
   const bounds = canvas.getBoundingClientRect();
   if (renderer.is3D) {
@@ -151,6 +232,7 @@ function start(reset = false) {
         restoreGame(localStorage.getItem(`verdant-expedition-2:${seed}`), seed);
     } catch {}
   state = saved || createGame(seed);
+  previousPlayer = { ...state.player };
   sites = landmarksForSeed(seed);
   biomes = biomeSitesForSeed(seed);
   stream = new ChunkStream(
@@ -211,6 +293,7 @@ function setPause(value) {
   pinchDistance = 0;
   fingers.clear();
   paused = value;
+  if (value) releaseMouseLook();
   keys.clear();
   touch = { x: 0, y: 0 };
   actions = {};
@@ -221,9 +304,11 @@ $("pause").onclick = () => setPause(!paused);
 $("resume").onclick = () => {
   setPause(false);
   canvas.focus();
+  if (matchMedia("(pointer: fine)").matches) requestMouseLook();
 };
 function toggleMap() {
   showMap = !showMap;
+  if (showMap) releaseMouseLook();
   clearInput();
   placing = null;
   hud();
@@ -307,6 +392,7 @@ function openPanel(name, focus = true) {
     $(`menu-${tab.dataset.menuTab}`).hidden = !selected;
   }
   if (!pack.open) pack.showModal();
+  releaseMouseLook();
   for (const button of document.querySelectorAll("[data-open-panel]"))
     button.setAttribute(
       "aria-expanded",
@@ -392,6 +478,12 @@ document.addEventListener("keydown", (event) => {
     return;
   }
   if (showMap) return;
+  if (k === "escape" && (mouseLocked || hoverLook)) {
+    event.preventDefault();
+    setPause(true);
+    return;
+  }
+  if (k === "escape" && performance.now() - lastEscapeUnlock < 200) return;
   if (k === "e" && placing && placementTouch && pointer) {
     event.preventDefault();
     if (!event.repeat) commitPlacement(pointer);
@@ -430,6 +522,7 @@ document.addEventListener("keyup", (event) =>
   keys.delete(event.key.toLowerCase()),
 );
 window.addEventListener("blur", () => {
+  if (mouseLocked || hoverLook) setPause(true);
   cameraPointers.clear();
   pinchDistance = 0;
   fingers.clear();
@@ -497,14 +590,24 @@ function pointerTile(event) {
 }
 canvas.oncontextmenu = (event) => event.preventDefault();
 canvas.onpointermove = (event) => {
+  if (mouseLocked) return;
   pointerClient = { x: event.clientX, y: event.clientY };
   if (event.pointerType === "mouse") placementTouch = false;
+  if (hoverLook && event.pointerType === "mouse" && canMouseLook()) {
+    if (lastLookPoint)
+      renderer.orbit(
+        -(event.clientX - lastLookPoint.x) * 0.003,
+        (event.clientY - lastLookPoint.y) * 0.003,
+      );
+    lastLookPoint = { x: event.clientX, y: event.clientY };
+    return;
+  }
   const prior = cameraPointers.get(event.pointerId);
   if (prior && renderer.is3D) {
     cameraPointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
     renderer.orbit(
       -(event.clientX - prior.x) * 0.006,
-      -(event.clientY - prior.y) * 0.004,
+      (event.clientY - prior.y) * 0.004,
     );
     if (cameraPointers.size === 2) {
       const [a, b] = [...cameraPointers.values()];
@@ -518,6 +621,15 @@ canvas.onpointermove = (event) => {
 };
 canvas.onpointerdown = (event) => {
   canvas.focus();
+  if (
+    !placing &&
+    event.button === 0 &&
+    event.pointerType === "mouse" &&
+    canMouseLook()
+  ) {
+    requestMouseLook();
+    return;
+  }
   if (
     renderer.is3D &&
     !placing &&
@@ -539,6 +651,9 @@ canvas.onpointerdown = (event) => {
     return;
   }
   commitPlacement(pointer);
+};
+canvas.onpointerleave = () => {
+  lastLookPoint = null;
 };
 function commitPlacement(point) {
   if (!placing || !point) return;
@@ -578,6 +693,7 @@ $("cancel-place").onclick = () => {
   canvas.focus();
 };
 function selectPlacement(kind) {
+  releaseMouseLook();
   closePanel();
   showMap = false;
   pointer = null;
@@ -860,6 +976,16 @@ let last = performance.now(),
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
+  if (hoverLook && lastLookPoint && canMouseLook()) {
+    const bounds = canvas.getBoundingClientRect();
+    const edge = edgeLook(
+      lastLookPoint.x - bounds.left,
+      lastLookPoint.y - bounds.top,
+      bounds.width,
+      bounds.height,
+    );
+    renderer.orbit(-edge.x * dt * 2.2, edge.y * dt * 1.2);
+  }
   if (!paused && !pack.open && !showMap) {
     accumulator += dt;
     while (accumulator >= 1 / 60) {
@@ -874,6 +1000,7 @@ function frame(now) {
       const environment = world();
       if (environment.loaded) {
         const direction = renderer.is3D ? renderer.movement(x, y) : { x, y };
+        previousPlayer = { ...state.player };
         stepGame(state, { ...direction, ...actions }, 1 / 60, environment);
         actions = {};
       }
@@ -913,10 +1040,23 @@ function frame(now) {
       priorDiscoveries = discoveries;
       save();
     }
-  } else accumulator = 0;
+  } else {
+    accumulator = 0;
+    previousPlayer = { ...state.player };
+  }
   if (renderer.is3D && placing && pointerClient && !placementTouch)
     pointer = renderer.pick(pointerClient.x, pointerClient.y);
-  renderer.draw(state, stream, sites, dt, now, showMap, biomes, {
+  const presentation = renderer.is3D
+    ? {
+        ...state,
+        player: interpolatePlayer(
+          previousPlayer,
+          state.player,
+          paused || pack.open || showMap ? 1 : accumulator * 60,
+        ),
+      }
+    : state;
+  renderer.draw(presentation, stream, sites, dt, now, showMap, biomes, {
     kind: placing,
     point: pointer,
     valid: Boolean(
@@ -960,6 +1100,7 @@ if (renderer.is3D && !seenArrival) {
 journal();
 requestAnimationFrame(frame);
 window.addEventListener("pagehide", () => {
+  releaseMouseLook();
   save();
   stream.dispose();
   renderer.dispose?.();

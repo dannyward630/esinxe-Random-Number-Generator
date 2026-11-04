@@ -4,7 +4,7 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
         <title>Verdant · The Drowned Signal</title>
-        <link rel="stylesheet" href="style.css?v=5" />
+        <link rel="stylesheet" href="style.css?v=6" />
         <link rel="icon" href="data:," />
     </head>
     <body>
@@ -57,6 +57,13 @@
                             ⌂
                         </button>
                     </div>
+                    <button
+                        id="mouse-look"
+                        aria-pressed="false"
+                        title="Move the mouse to look; Escape releases it"
+                    >
+                        Mouse look
+                    </button>
                     <span id="camera-heading">Q / T orbit · wheel zoom</span>
                 </div>
                 <div class="hud">
@@ -122,8 +129,9 @@
                         <span><kbd>E</kbd> Gather / discover</span>
                         <span><kbd>I / C</kbd> Satchel / craft</span>
                         <p>
-                            Right-drag or Q / T to orbit · wheel to zoom<br />Touch:
-                            arrows to walk, drag the world to look.
+                            Click the world for mouse-look · Esc releases<br />Q
+                            / T orbit · wheel to zoom<br />Touch: arrows to
+                            walk, drag the world to look.
                         </p>
                     </div>
                     <button id="resume">Resume expedition</button>
@@ -326,10 +334,11 @@
                         >
                     </div>
                     <p id="view-help" class="hint">
-                        Right-drag or Q / T to orbit. Wheel or + / − to zoom. H
-                        resets the camera. On touch, drag the world or use the
-                        camera buttons. Space jumps on land and strokes in
-                        water; Shift dashes.
+                        Click the world for mouse-look; Escape releases it and
+                        pauses. Right-drag or Q / T also orbit. Wheel or + / −
+                        to zoom. H resets the camera. On touch, drag the world
+                        or use the camera buttons. Space jumps on land and
+                        strokes in water; Shift dashes.
                     </p>
                     <p id="render-notice" role="status"></p>
                     <h2>Field lab</h2>
@@ -379,6 +388,6 @@
                 </section>
             </dialog>
         </main>
-        <script type="module" src="app.js?v=5"></script>
+        <script type="module" src="app.js?v=6"></script>
     </body>
 </html>

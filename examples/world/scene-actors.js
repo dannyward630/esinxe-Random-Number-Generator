@@ -216,13 +216,34 @@ export function animatePlayer(model, player = {}, timeSeconds = 0, speed = 0, re
   if (!pose) return;
 
   const time = finite(timeSeconds);
-  const moveSpeed = clamp(finite(speed), 0, 4);
+  const delta = pose.lastTime === undefined ? 0 : clamp(time - pose.lastTime, 0, 0.05);
+  pose.lastTime = time;
+  const targetSpeed = clamp(finite(speed), 0, 4);
+  const oldSpeed = pose.moveSpeed || 0;
+  const decay = Math.exp(-delta * 14);
+  const moveSpeed = targetSpeed + (oldSpeed - targetSpeed) * decay;
+  pose.moveSpeed = moveSpeed;
   const motionScale = reducedMotion ? 0.38 : 1;
   const walking = moveSpeed / 4;
-  const phase = time * (3.1 + moveSpeed * 1.35);
+  // Integrate cadence and the speed blend, rather than multiplying absolute
+  // time by changing speed. The exact integral also agrees across refresh rates.
+  const travel = targetSpeed * delta + (oldSpeed - targetSpeed) * (1 - decay) / 14;
+  pose.phase = ((pose.phase || 0) + delta * 3.1 + travel * 1.35) % (Math.PI * 40);
+  const phase = pose.phase;
   const swimming = Boolean(player?.swimming);
   const diving = swimming && Boolean(player?.diving);
   const lift = clamp(finite(player?.lift), 0, 2.5);
+  const mode = swimming ? (diving ? "dive" : "swim") : lift > 0.02 ? "air" : "ground";
+  const parts = [pose.body, pose.leftArm, pose.rightArm, pose.leftLeg, pose.rightLeg];
+  if (pose.mode !== undefined && pose.mode !== mode && !reducedMotion) {
+    pose.transition = {
+      elapsed: 0,
+      rotations: parts.map(part => ({ x: part.rotation.x, y: part.rotation.y, z: part.rotation.z })),
+      bodyY: pose.body.position.y,
+    };
+  }
+  pose.mode = mode;
+  if (reducedMotion) pose.transition = null;
   const dash = clamp(finite(player?.dashRemaining) / 0.24, 0, 1);
   const attack = clamp(finite(player?.attackWindup) / 0.16, 0, 1);
   const gait = Math.sin(phase) * walking * motionScale;
@@ -271,6 +292,20 @@ export function animatePlayer(model, player = {}, timeSeconds = 0, speed = 0, re
     pose.rightArm.rotation.x = 0.32 + 0.95 * attack;
     pose.rightArm.rotation.z = -0.2 * attack;
     pose.body.rotation.z = -0.055 * attack;
+  }
+
+  if (pose.transition) {
+    const transition = pose.transition;
+    const progress = clamp(transition.elapsed / 0.16, 0, 1);
+    const blend = progress * progress * (3 - 2 * progress);
+    parts.forEach((part, index) => {
+      const from = transition.rotations[index];
+      for (const axis of ["x", "y", "z"])
+        part.rotation[axis] = from[axis] + (part.rotation[axis] - from[axis]) * blend;
+    });
+    pose.body.position.y = transition.bodyY + (pose.body.position.y - transition.bodyY) * blend;
+    transition.elapsed += delta;
+    if (progress >= 1) pose.transition = null;
   }
 
   pose.scarf.rotation.z = Math.sin(time * (swimming ? 5 : 6.5))

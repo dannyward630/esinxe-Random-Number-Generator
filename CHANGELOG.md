@@ -6,6 +6,13 @@ compatibility version is independent and is named explicitly.
 
 ## Unreleased
 
+### Fixed
+
+- Verdant walking now interpolates between simulation updates and integrates
+  its stride phase continuously, preventing snapping at high refresh rates or
+  after long play sessions. Mouse-look works with a click, releases on Escape
+  and menus, and supports embedded browsers without cursor capture.
+
 ### Added
 
 - Verdant 3D adventure: a third-person orbit camera, camera-relative movement,

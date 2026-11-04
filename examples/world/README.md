@@ -7,8 +7,12 @@ renderer and an optional 2D compatibility view. Run `python -m http.server
 
 Move with WASD/arrows or the on-screen arrows. In 3D, movement follows the
 camera; Space jumps on land or strokes in water, Shift dashes, J strikes or
-harvests, E gathers/inspects/rests, F eats berries and R dives/surfaces. Orbit with
-right-drag or Q/T, zoom with the wheel or +/-, and press H to reset the camera.
+harvests, E gathers/inspects/rests, F eats berries and R dives/surfaces. Click the
+world or Mouse look to look around without holding a button. Escape releases
+the mouse and pauses; menus, the map and building placement release it too.
+Browsers that cannot capture the cursor use mouse movement over the world;
+leave the pointer near an edge to continue turning in that direction.
+Right-drag or Q/T also orbit; zoom with the wheel or +/- and H resets the camera.
 On touch, drag the world to orbit or use the camera buttons. M opens the survey
 map and P pauses. Foreground trees fade when they obscure the explorer.
 

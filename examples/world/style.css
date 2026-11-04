@@ -938,3 +938,19 @@ dialog::backdrop {
 #toast:empty {
     display: none;
 }
+#mouse-look {
+    width: auto;
+    height: 28px;
+    margin-top: 5px;
+    padding: 4px 9px;
+    font-size: 11px;
+}
+#mouse-look[aria-pressed="true"] {
+    background: #c7dbaa;
+    color: #14352b;
+}
+@media (pointer: coarse) {
+    #mouse-look {
+        display: none;
+    }
+}

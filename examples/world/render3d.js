@@ -8,7 +8,7 @@ import {
   createLandmark,
   createBeacon,
   createStructure,
-} from "./scene-actors.js";
+} from "./scene-actors.js?v=6";
 import {
   heightFromStream,
   movementForCamera,
@@ -475,7 +475,7 @@ export class Renderer3D {
   }
   orbit(horizontal, vertical = 0) {
     this.yaw += horizontal;
-    this.pitch = clamp(this.pitch + vertical, 0.18, 1.15);
+    this.pitch = clamp(this.pitch + vertical, 0.05, 1.35);
   }
   zoom(amount) {
     this.distance = clamp(this.distance + amount, 5.5, 23);
@@ -977,11 +977,11 @@ export class Renderer3D {
       hit.style.opacity = showMap
         ? "0"
         : String(Math.max(0, ((this.hurtUntil || 0) - now) / 350) * 0.55);
+    this.updateActors(state, stream, time, dt);
     if (showMap) {
       this.drawMap(state, stream, sites, biomes);
       return;
     }
-    this.updateActors(state, stream, time, dt);
     this.updateCamera(state, stream, dt);
     this.updateOcclusion(state, stream, dt);
     this.updateSky(state, time);
@@ -1020,7 +1020,12 @@ export class Renderer3D {
     }
     const compass = document.querySelector("#camera-heading");
     if (compass)
-      compass.textContent = cameraHeading(this.yaw) + " · Q / T orbit";
+      compass.textContent =
+        cameraHeading(this.yaw) +
+        (this.canvas.dataset.mouseLook !== "off" &&
+        this.canvas.dataset.mouseLook
+          ? " · Mouse look · Esc releases"
+          : " · Click world to look · Q / T orbit");
   }
   metrics() {
     return {

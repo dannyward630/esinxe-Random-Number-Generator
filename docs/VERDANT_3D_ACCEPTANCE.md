@@ -4,6 +4,38 @@ Tested 2026-11-03/04 in the Windows in-app Chromium browser, using the generated
 site and isolated localhost save fixtures. These are desktop browser observations,
 including phone-size viewport emulation, not physical phone hardware results.
 
+## Movement and mouse-look follow-up (2026-11-04)
+
+- 104 Node tests, TypeScript, six site-build tests and repository checks pass.
+
+- Reproduced a one-radian limb snap with the previous animation at a simulated
+  144 Hz after an hour of play. Its phase multiplied absolute uptime by changing
+  frame-sampled speed. The new stride integrates time continuously, blends speed
+  with an exact exponential integral and agrees at 30, 60 and 144 Hz. Renderer
+  positions interpolate the 60 Hz simulation, including negative coordinates,
+  without changing authoritative state or saves. Respawns snap immediately.
+- A separate regression reproduced 1.372-radian snaps when switching between
+  walking, jumping, landing and swimming. These states now blend from the last
+  displayed pose; reduced-motion mode retains immediate poses.
+- Actual browser walking, turning and stopping over 244 sampled rendered frames
+  had a maximum adjacent leg-angle change of 0.130 radians. Walked, changed
+  direction and jumped in another recorded canvas playtest; this is real game
+  capture, not generated animation. These measurements are from one host.
+- Click-to-look responds to button-free mouse movement. The in-app browser's
+  native capture request rejects with WrongDocumentError, so the tested fallback
+  uses mouse movement over the world and continues turning near its edges.
+  Walking while leaving the pointer at an edge turned through 7.22 radians,
+  more than a full revolution, with no mouse button held. Escape disabled look
+  and paused; inventory released look and froze simulation.
+- Native pointer-lock permission could not be granted in this embedded test
+  environment. Separately exercised the actual app's captured-input handlers
+  with a test-only permission boundary: relative mouse movement, menu release,
+  unexpected unlock/pause, immediate Escape handling, and a late grant after a
+  menu opened. This validates routing, not an actual standalone-browser grant.
+  Temporary instrumentation and permission doubles were removed by reload.
+- Existing right-drag, camera buttons and keyboard orbit remain available.
+  The saved expedition and the 2D compatibility path retain their identities.
+
 ## Play and presentation
 
 - Actual WebGL renders faceted raised terrain, forests, flowers, shallow/deep
