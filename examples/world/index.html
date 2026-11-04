@@ -4,14 +4,17 @@
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width,initial-scale=1" />
         <title>Verdant · The Drowned Signal</title>
-        <link rel="stylesheet" href="style.css?v=4" />
+        <link rel="stylesheet" href="style.css?v=5" />
         <link rel="icon" href="data:," />
     </head>
     <body>
         <main>
             <header class="game-header">
                 <div>
-                    <span class="eyebrow">AN ESINXE EXPEDITION</span>
+                    <span class="eyebrow"
+                        >THE DROWNED SIGNAL ·
+                        <span id="render-mode">3D ADVENTURE</span></span
+                    >
                     <h1>Verdant <em>The Drowned Signal</em></h1>
                 </div>
                 <div class="toolbar">
@@ -26,8 +29,36 @@
                     width="1120"
                     height="680"
                     tabindex="0"
-                    aria-label="Verdant world. WASD or arrows move, Space dashes, J attacks or harvests, E interacts, F eats. R dives or surfaces in water."
+                    aria-label="Verdant world. WASD or arrows move, Space jumps or strokes in water, Shift dashes, J attacks or harvests, E interacts, F eats. R dives or surfaces in water."
                 ></canvas>
+                <canvas
+                    id="survey"
+                    aria-label="Overhead island survey"
+                    hidden
+                ></canvas>
+                <div id="hit-veil" aria-hidden="true"></div>
+                <div class="camera-tools" id="camera-tools">
+                    <div>
+                        <button
+                            id="camera-left"
+                            aria-label="Rotate camera left"
+                        >
+                            ↶</button
+                        ><button
+                            id="camera-right"
+                            aria-label="Rotate camera right"
+                        >
+                            ↷</button
+                        ><button id="camera-near" aria-label="Zoom camera in">
+                            +</button
+                        ><button id="camera-far" aria-label="Zoom camera out">
+                            −</button
+                        ><button id="camera-home" aria-label="Reset camera">
+                            ⌂
+                        </button>
+                    </div>
+                    <span id="camera-heading">Q / T orbit · wheel zoom</span>
+                </div>
                 <div class="hud">
                     <span
                         >HEALTH <b id="health">100</b
@@ -72,17 +103,29 @@
                     ><span id="terrain-hint"></span>
                 </div>
                 <div id="context">
-                    WASD move · Space dash · J harvest/strike · E inspect · F
-                    eat
+                    WASD move · Space jump · Shift dash · J harvest · E inspect
                 </div>
                 <div class="placement-controls">
+                    <button id="confirm-place" hidden>Place here · E</button>
                     <button id="cancel-place" hidden>
                         Cancel placement · Esc
                     </button>
                 </div>
                 <div id="paused" hidden>
-                    <h2>Take a breath.</h2>
-                    <p>The island will wait.</p>
+                    <h2 id="pause-title">Take a breath.</h2>
+                    <p id="pause-copy">The island will wait.</p>
+                    <div id="arrival-controls" class="arrival-controls" hidden>
+                        <span><kbd>WASD</kbd> Explore</span>
+                        <span><kbd>Space</kbd> Jump / swim</span>
+                        <span><kbd>Shift</kbd> Dash</span>
+                        <span><kbd>J</kbd> Harvest / strike</span>
+                        <span><kbd>E</kbd> Gather / discover</span>
+                        <span><kbd>I / C</kbd> Satchel / craft</span>
+                        <p>
+                            Right-drag or Q / T to orbit · wheel to zoom<br />Touch:
+                            arrows to walk, drag the world to look.
+                        </p>
+                    </div>
                     <button id="resume">Resume expedition</button>
                 </div>
             </section>
@@ -98,7 +141,10 @@
                     </button>
                 </div>
                 <div>
-                    <button data-action="dash">Dash</button
+                    <button id="jump-action" data-action="jump">
+                        Jump · Space</button
+                    ><button id="dash-action" data-action="dash">
+                        Dash · Shift</button
                     ><button data-action="attack">Harvest / Strike</button
                     ><button data-action="interact">Inspect</button
                     ><button data-action="eat">Eat</button
@@ -258,6 +304,34 @@
                     tabindex="0"
                     hidden
                 >
+                    <h2>Your view</h2>
+                    <div class="settings view-settings">
+                        <label
+                            >View<select id="view-mode">
+                                <option value="3d">3D adventure</option>
+                                <option value="2d">2D compatibility</option>
+                            </select></label
+                        ><label
+                            >Detail<select id="quality">
+                                <option value="low">
+                                    Light · fewer shadows
+                                </option>
+                                <option value="balanced" selected>
+                                    Balanced
+                                </option>
+                                <option value="high">
+                                    Rich · sharper shadows
+                                </option>
+                            </select></label
+                        >
+                    </div>
+                    <p id="view-help" class="hint">
+                        Right-drag or Q / T to orbit. Wheel or + / − to zoom. H
+                        resets the camera. On touch, drag the world or use the
+                        camera buttons. Space jumps on land and strokes in
+                        water; Shift dashes.
+                    </p>
+                    <p id="render-notice" role="status"></p>
                     <h2>Field lab</h2>
                     <div class="settings">
                         <label
@@ -294,12 +368,17 @@
                     <p id="proof" role="status"></p>
                     <footer>
                         Progress saves locally on this device.
-                        <a href="README.md">Controls and field notes</a> ·
-                        Content: verdant-expedition-3
+                        <a
+                            href="https://github.com/dannyward630/esinxe-Random-Number-Generator/tree/main/examples/world#readme"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            >Controls and field notes</a
+                        >
+                        · Content: verdant-expedition-3
                     </footer>
                 </section>
             </dialog>
         </main>
-        <script type="module" src="app.js?v=4"></script>
+        <script type="module" src="app.js?v=5"></script>
     </body>
 </html>

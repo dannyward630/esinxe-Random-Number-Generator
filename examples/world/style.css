@@ -331,7 +331,7 @@ a {
         padding: 0 8px;
     }
     #toast {
-        bottom: 45px;
+        bottom: 88px;
         width: max-content;
         max-width: 95%;
     }
@@ -775,4 +775,166 @@ dialog::backdrop {
     .pack-page {
         max-height: calc(100dvh - 145px);
     }
+}
+
+#survey {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+}
+.camera-tools {
+    position: absolute;
+    right: 16px;
+    top: 66px;
+    text-align: right;
+    z-index: 1;
+}
+.camera-tools div {
+    display: flex;
+    justify-content: flex-end;
+    gap: 4px;
+}
+.camera-tools button {
+    width: 34px;
+    height: 32px;
+    padding: 4px;
+    font-size: 17px;
+    background: #173e36c9;
+    border-color: #a4b89475;
+}
+#camera-heading {
+    display: block;
+    font-size: 9px;
+    color: #ecf0d0;
+    text-shadow: 0 1px 3px #102e2a;
+    margin-top: 5px;
+}
+#render-notice:empty {
+    display: none;
+}
+#render-notice {
+    color: #f2d194;
+}
+.view-settings {
+    margin-bottom: 10px;
+    padding: 0;
+}
+#menu-settings h2:not(:first-child) {
+    margin-top: 24px;
+}
+@media (max-width: 760px) {
+    .camera-tools {
+        top: 59px;
+        right: 8px;
+    }
+    .camera-tools button {
+        width: 27px;
+        height: 28px;
+        font-size: 16px;
+    }
+    #camera-heading {
+        font-size: 8px;
+    }
+    .touch button {
+        font-size: 10px;
+        padding: 7px;
+    }
+    .quest {
+        max-width: 150px;
+    }
+}
+@media (max-height: 480px) {
+    .camera-tools {
+        top: 52px;
+    }
+}
+
+#paused {
+    z-index: 4;
+    text-align: center;
+    padding: 24px;
+    background: #102925b8;
+    backdrop-filter: blur(3px);
+}
+#pause-copy {
+    max-width: 440px;
+    color: #d0dcc3;
+}
+.arrival-controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px 20px;
+    padding: 18px 22px;
+    margin: 10px 0 25px;
+    border: 1px solid #80977966;
+    background: #16392fd9;
+    border-radius: 5px;
+}
+.arrival-controls span {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    color: #d1ddc4;
+}
+.arrival-controls kbd {
+    align-self: center;
+    padding: 5px 10px;
+}
+.arrival-controls p {
+    grid-column: 1/-1;
+    margin: 3px 0 0;
+    font-size: 11px;
+    line-height: 1.7;
+    color: #b9cdbb;
+}
+@media (max-width: 760px) {
+    #paused h2 {
+        font-size: 32px;
+    }
+    .arrival-controls {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+        padding: 14px;
+        margin-bottom: 16px;
+    }
+    .arrival-controls span {
+        font-size: 11px;
+    }
+    #paused {
+        padding: 15px;
+    }
+}
+@media (max-height: 480px) {
+    .arrival-controls {
+        gap: 5px 15px;
+        margin: 4px 0 10px;
+        padding: 8px;
+    }
+    .arrival-controls p {
+        display: none;
+    }
+    #pause-copy {
+        margin: 8px 0;
+    }
+    #paused h2 {
+        font-size: 28px;
+    }
+}
+#hit-veil {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 3;
+    opacity: 0;
+    background: radial-gradient(
+        ellipse at center,
+        transparent 45%,
+        #c64d32 100%
+    );
+}
+#toast:empty {
+    display: none;
 }

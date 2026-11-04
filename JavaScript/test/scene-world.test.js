@@ -6,29 +6,69 @@ import { groundHeight, surfaceHeight } from "../../examples/world/spatial.js";
 
 function makeChunk(cx = -2, cy = -1) {
   const tiles = [];
-  for (let dy = 0; dy < 16; dy++) for (let dx = 0; dx < 16; dx++) {
-    tiles.push({
-      id: `tile:${cx * 16 + dx}:${cy * 16 + dy}`,
-      x: cx * 16 + dx,
-      y: cy * 16 + dy,
-      terrain: "meadow",
-      elevation: 0.5,
-      moisture: 0.5,
-      texture: 0.5,
-    });
-  }
+  for (let dy = 0; dy < 16; dy++)
+    for (let dx = 0; dx < 16; dx++) {
+      tiles.push({
+        id: `tile:${cx * 16 + dx}:${cy * 16 + dy}`,
+        x: cx * 16 + dx,
+        y: cy * 16 + dy,
+        terrain: "meadow",
+        elevation: 0.5,
+        moisture: 0.5,
+        texture: 0.5,
+      });
+    }
   const at = (dx, dy) => tiles[dy * 16 + dx];
   Object.assign(at(3, 4), { terrain: "hill", elevation: 0.91, texture: 0.52 });
-  Object.assign(at(2, 2), { terrain: "forest", elevation: 0.64, texture: 0.68 });
+  Object.assign(at(2, 2), {
+    terrain: "forest",
+    elevation: 0.64,
+    texture: 0.68,
+  });
   Object.assign(at(8, 9), { terrain: "water", elevation: 0.2, texture: 0.4 });
   const entities = [
-    { id: `tree:${at(2, 2).x}:${at(2, 2).y}`, type: "tree", x: at(2, 2).x, y: at(2, 2).y },
-    { id: `tree:${at(12, 12).x}:${at(12, 12).y}`, type: "tree", x: at(12, 12).x, y: at(12, 12).y },
-    { id: `rock:${at(4, 5).x}:${at(4, 5).y}`, type: "rock", x: at(4, 5).x, y: at(4, 5).y },
-    { id: `berry:${at(6, 7).x}:${at(6, 7).y}`, type: "berry", x: at(6, 7).x, y: at(6, 7).y },
-    { id: `cache:${at(8, 9).x}:${at(8, 9).y}`, type: "cache", x: at(8, 9).x, y: at(8, 9).y },
-    { id: `sentinel:${at(10, 10).x}:${at(10, 10).y}`, type: "sentinel", x: at(10, 10).x, y: at(10, 10).y },
-    { id: `ruin:${at(11, 11).x}:${at(11, 11).y}`, type: "ruin", x: at(11, 11).x, y: at(11, 11).y },
+    {
+      id: `tree:${at(2, 2).x}:${at(2, 2).y}`,
+      type: "tree",
+      x: at(2, 2).x,
+      y: at(2, 2).y,
+    },
+    {
+      id: `tree:${at(12, 12).x}:${at(12, 12).y}`,
+      type: "tree",
+      x: at(12, 12).x,
+      y: at(12, 12).y,
+    },
+    {
+      id: `rock:${at(4, 5).x}:${at(4, 5).y}`,
+      type: "rock",
+      x: at(4, 5).x,
+      y: at(4, 5).y,
+    },
+    {
+      id: `berry:${at(6, 7).x}:${at(6, 7).y}`,
+      type: "berry",
+      x: at(6, 7).x,
+      y: at(6, 7).y,
+    },
+    {
+      id: `cache:${at(8, 9).x}:${at(8, 9).y}`,
+      type: "cache",
+      x: at(8, 9).x,
+      y: at(8, 9).y,
+    },
+    {
+      id: `sentinel:${at(10, 10).x}:${at(10, 10).y}`,
+      type: "sentinel",
+      x: at(10, 10).x,
+      y: at(10, 10).y,
+    },
+    {
+      id: `ruin:${at(11, 11).x}:${at(11, 11).y}`,
+      type: "ruin",
+      x: at(11, 11).x,
+      y: at(11, 11).y,
+    },
   ];
   return { cx, cy, key: `${cx},${cy}`, tiles, entities, grass: [] };
 }
@@ -54,8 +94,12 @@ test("chunk terrain has finite faceted geometry and raycasts exact negative-coor
   assert.equal(group.position.x, -32);
   assert.equal(group.position.z, -16);
   assert.ok(ground.geometry.getAttribute("color").count > 16 * 16 * 4);
-  assert.ok([...ground.geometry.getAttribute("position").array].every(Number.isFinite));
-  assert.ok([...ground.geometry.getAttribute("color").array].every(Number.isFinite));
+  assert.ok(
+    [...ground.geometry.getAttribute("position").array].every(Number.isFinite),
+  );
+  assert.ok(
+    [...ground.geometry.getAttribute("color").array].every(Number.isFinite),
+  );
   assert.ok(ground.geometry.boundingBox.min.y < -1.39);
   assert.ok(ground.geometry.boundingBox.max.y > 1.5);
 
@@ -71,15 +115,21 @@ test("chunk terrain has finite faceted geometry and raycasts exact negative-coor
   assert.ok(Math.abs(hit.point.z - hill.y) < 1e-5);
   assert.ok(Math.abs(hit.point.y - expectedHeight) < 1e-5);
 
-  const localSampler = (x, y) => chunk.tiles.find((tile) => tile.x === x && tile.y === y);
+  const localSampler = (x, y) =>
+    chunk.tiles.find((tile) => tile.x === x && tile.y === y);
   const sampleX = hill.x + 0.28;
   const sampleZ = hill.y - 0.13;
   const expectedFanHeight = groundHeight(localSampler, sampleX, sampleZ);
-  raycaster.set(new THREE.Vector3(sampleX, expectedFanHeight + 8, sampleZ), new THREE.Vector3(0, -1, 0));
+  raycaster.set(
+    new THREE.Vector3(sampleX, expectedFanHeight + 8, sampleZ),
+    new THREE.Vector3(0, -1, 0),
+  );
   const fanHit = raycaster.intersectObject(ground, false)[0];
   assert.ok(fanHit);
-  assert.ok(Math.abs(fanHit.point.y - expectedFanHeight) < 1e-5,
-    "raycast terrain must follow the same four-face fan used by actor foot heights");
+  assert.ok(
+    Math.abs(fanHit.point.y - expectedFanHeight) < 1e-5,
+    "raycast terrain must follow the same four-face fan used by actor foot heights",
+  );
   visual.dispose();
 });
 
@@ -115,19 +165,35 @@ test("positive and negative neighboring chunks share canonical corner heights wi
       moisture: 0.4,
       texture: x < cutX ? 0.44 : 0.56,
     });
-    const left = createChunkVisual(THREE, makeBiomeChunk(leftCx, sampleTile), sampleTile);
-    const right = createChunkVisual(THREE, makeBiomeChunk(leftCx + 1, sampleTile), sampleTile);
+    const left = createChunkVisual(
+      THREE,
+      makeBiomeChunk(leftCx, sampleTile),
+      sampleTile,
+    );
+    const right = createChunkVisual(
+      THREE,
+      makeBiomeChunk(leftCx + 1, sampleTile),
+      sampleTile,
+    );
     const edgeX = cutX - 0.5;
     assert.equal(edgeHeights(left, edgeX, -0.5).length, 1);
     assert.equal(edgeHeights(right, edgeX, -0.5).length, 1);
     assert.equal(edgeHeights(left, edgeX, 0.5).length, 1);
     assert.equal(edgeHeights(right, edgeX, 0.5).length, 1);
-    assert.ok(Math.abs(edgeHeights(left, edgeX, -0.5)[0]
-      - edgeHeights(right, edgeX, -0.5)[0]) < 1e-6);
-    assert.ok(Math.abs(edgeHeights(left, edgeX, 0.5)[0]
-      - edgeHeights(right, edgeX, 0.5)[0]) < 1e-6);
-    assert.ok(left.ground.geometry.boundingBox.min.y > -1.39,
-      "known neighbors should prevent temporary chunk perimeter skirts");
+    assert.ok(
+      Math.abs(
+        edgeHeights(left, edgeX, -0.5)[0] - edgeHeights(right, edgeX, -0.5)[0],
+      ) < 1e-6,
+    );
+    assert.ok(
+      Math.abs(
+        edgeHeights(left, edgeX, 0.5)[0] - edgeHeights(right, edgeX, 0.5)[0],
+      ) < 1e-6,
+    );
+    assert.ok(
+      left.ground.geometry.boundingBox.min.y > -1.39,
+      "known neighbors should prevent temporary chunk perimeter skirts",
+    );
     assert.ok(right.ground.geometry.boundingBox.min.y > -1.39);
     left.dispose();
     right.dispose();
@@ -138,33 +204,60 @@ test("harvested tree, rock, berry bush and cache hide and can be restored", () =
   const chunk = makeChunk();
   const visual = createChunkVisual(THREE, chunk);
   const ids = ["tree:-30:-14", "rock:-28:-11", "berry:-26:-9", "cache:-24:-7"];
-  const affected = () => visual.group.children
-    .filter((child) => child instanceof THREE.InstancedMesh)
-    .flatMap((mesh) => mesh.userData.entityIds
-      .map((id, index) => ({ id, mesh, index }))
-      .filter((record) => ids.includes(record.id)));
+  const affected = () =>
+    visual.group.children
+      .filter((child) => child instanceof THREE.InstancedMesh)
+      .flatMap((mesh) =>
+        mesh.userData.entityIds
+          .map((id, index) => ({ id, mesh, index }))
+          .filter((record) => ids.includes(record.id)),
+      );
   const records = affected();
-  assert.ok(records.length >= 12, "all resource pieces should be represented by batched instances");
-  assert.ok(records.every(({ mesh, index }) => matrixScale(THREE, mesh, index).length() > 0));
+  assert.ok(
+    records.length >= 12,
+    "all resource pieces should be represented by batched instances",
+  );
+  assert.ok(
+    records.every(
+      ({ mesh, index }) => matrixScale(THREE, mesh, index).length() > 0,
+    ),
+  );
 
   const waterTile = chunk.tiles.find((tile) => tile.terrain === "water");
-  const chestMeshes = visual.group.children.filter((child) => child instanceof THREE.InstancedMesh
-    && child.userData.instancePart.startsWith("chest"));
+  const chestMeshes = visual.group.children.filter(
+    (child) =>
+      child instanceof THREE.InstancedMesh &&
+      child.userData.instancePart.startsWith("chest"),
+  );
   assert.equal(chestMeshes.length, 5);
   for (const mesh of chestMeshes) {
     mesh.geometry.computeBoundingBox();
     const matrix = new THREE.Matrix4();
     mesh.getMatrixAt(0, matrix);
     const chestBounds = mesh.geometry.boundingBox.clone().applyMatrix4(matrix);
-    assert.ok(chestBounds.min.y > surfaceHeight(waterTile), "submerged chest clears the lake floor");
-    assert.ok(chestBounds.max.y < 0, "submerged chest stays below the water surface");
+    assert.ok(
+      chestBounds.min.y > surfaceHeight(waterTile),
+      "submerged chest clears the lake floor",
+    );
+    assert.ok(
+      chestBounds.max.y < 0,
+      "submerged chest stays below the water surface",
+    );
   }
 
   visual.updateHarvested(new Set(ids));
-  assert.ok(records.every(({ mesh, index }) => matrixScale(THREE, mesh, index).length() === 0));
+  assert.ok(
+    records.every(
+      ({ mesh, index }) => matrixScale(THREE, mesh, index).length() === 0,
+    ),
+  );
 
   visual.updateHarvested(new Set());
-  assert.ok(records.every(({ mesh, index }) => matrixScale(THREE, mesh, index).length() > 0));
+  assert.ok(
+    records.every(
+      ({ mesh, index }) => matrixScale(THREE, mesh, index).length() > 0,
+    ),
+  );
 
   const includedEntities = visual.group.children
     .filter((child) => child instanceof THREE.InstancedMesh)
@@ -177,24 +270,52 @@ test("harvested tree, rock, berry bush and cache hide and can be restored", () =
 test("tree occlusion uses independent instanced dither fades and restores only requested IDs", () => {
   const visual = createChunkVisual(THREE, makeChunk());
   const treeParts = new Set(["trunk", "pine", "canopy"]);
-  const treeMeshes = visual.group.children.filter((child) => child instanceof THREE.InstancedMesh
-    && treeParts.has(child.userData.instancePart));
+  const treeMeshes = visual.group.children.filter(
+    (child) =>
+      child instanceof THREE.InstancedMesh &&
+      treeParts.has(child.userData.instancePart),
+  );
   const targetId = "tree:-30:-14";
   const otherId = "tree:-20:-4";
-  const targetInstances = treeMeshes.flatMap((mesh) => mesh.userData.entityIds
-    .map((id, index) => ({ mesh, id, index, attribute: mesh.geometry.getAttribute("instanceFade") }))
-    .filter((entry) => entry.id === targetId));
-  const otherInstances = treeMeshes.flatMap((mesh) => mesh.userData.entityIds
-    .map((id, index) => ({ mesh, id, index, attribute: mesh.geometry.getAttribute("instanceFade") }))
-    .filter((entry) => entry.id === otherId));
-  assert.ok(targetInstances.length >= 2, "tree trunk and crown should both support fading");
+  const targetInstances = treeMeshes.flatMap((mesh) =>
+    mesh.userData.entityIds
+      .map((id, index) => ({
+        mesh,
+        id,
+        index,
+        attribute: mesh.geometry.getAttribute("instanceFade"),
+      }))
+      .filter((entry) => entry.id === targetId),
+  );
+  const otherInstances = treeMeshes.flatMap((mesh) =>
+    mesh.userData.entityIds
+      .map((id, index) => ({
+        mesh,
+        id,
+        index,
+        attribute: mesh.geometry.getAttribute("instanceFade"),
+      }))
+      .filter((entry) => entry.id === otherId),
+  );
+  assert.ok(
+    targetInstances.length >= 2,
+    "tree trunk and crown should both support fading",
+  );
   assert.ok(otherInstances.length >= 2);
-  const originalMatrices = treeMeshes.map((mesh) => mesh.instanceMatrix.array.slice());
-  assert.ok(treeMeshes.every((mesh) => {
-    const attribute = mesh.geometry.getAttribute("instanceFade");
-    return attribute?.isInstancedBufferAttribute && attribute.count === mesh.count
-      && [...attribute.array].every((value) => value === 1);
-  }), "every dithered instanced tree batch has one fade value per instance");
+  const originalMatrices = treeMeshes.map((mesh) =>
+    mesh.instanceMatrix.array.slice(),
+  );
+  assert.ok(
+    treeMeshes.every((mesh) => {
+      const attribute = mesh.geometry.getAttribute("instanceFade");
+      return (
+        attribute?.isInstancedBufferAttribute &&
+        attribute.count === mesh.count &&
+        [...attribute.array].every((value) => value === 1)
+      );
+    }),
+    "every dithered instanced tree batch has one fade value per instance",
+  );
 
   const treeShader = targetInstances[0].mesh.material;
   const shader = {
@@ -207,26 +328,58 @@ test("tree occlusion uses independent instanced dither fades and restores only r
   assert.match(shader.fragmentShader, /sceneWorldFadeHash\(gl_FragCoord\.xy\)/);
   assert.match(shader.fragmentShader, /discard/);
 
-  const rock = visual.group.children.find((child) => child instanceof THREE.InstancedMesh
-    && child.userData.instancePart === "rock");
-  assert.equal(rock.geometry.getAttribute("instanceFade"), undefined,
-    "non-tree instances do not acquire or use the tree dither attribute");
+  const rock = visual.group.children.find(
+    (child) =>
+      child instanceof THREE.InstancedMesh &&
+      child.userData.instancePart === "rock",
+  );
+  assert.equal(
+    rock.geometry.getAttribute("instanceFade"),
+    undefined,
+    "non-tree instances do not acquire or use the tree dither attribute",
+  );
 
   visual.setOccluded(new Set([targetId]), 0.05, false);
-  assert.ok(targetInstances.every(({ attribute, index }) => attribute.array[index] < 1
-    && attribute.array[index] > 0.18), "normal motion eases toward the translucent target");
-  assert.ok(otherInstances.every(({ attribute, index }) => attribute.array[index] === 1),
-    "unrequested tree instances stay fully visible");
-  assert.ok(treeMeshes.every((mesh, index) => mesh.instanceMatrix.array.every(
-    (value, offset) => value === originalMatrices[index][offset],
-  )), "occlusion changes only the fade attribute, never instance transforms");
+  assert.ok(
+    targetInstances.every(
+      ({ attribute, index }) =>
+        attribute.array[index] < 1 && attribute.array[index] > 0.18,
+    ),
+    "normal motion eases toward the translucent target",
+  );
+  assert.ok(
+    otherInstances.every(
+      ({ attribute, index }) => attribute.array[index] === 1,
+    ),
+    "unrequested tree instances stay fully visible",
+  );
+  assert.ok(
+    treeMeshes.every((mesh, index) =>
+      mesh.instanceMatrix.array.every(
+        (value, offset) => value === originalMatrices[index][offset],
+      ),
+    ),
+    "occlusion changes only the fade attribute, never instance transforms",
+  );
 
   visual.setOccluded(new Set([targetId]), 0.05, true);
-  assert.ok(targetInstances.every(({ attribute, index }) => Math.abs(attribute.array[index] - 0.18) < 1e-6));
+  assert.ok(
+    targetInstances.every(
+      ({ attribute, index }) => Math.abs(attribute.array[index] - 0.18) < 1e-6,
+    ),
+  );
   visual.setOccluded(new Set(), 0.05, true);
-  assert.ok(targetInstances.every(({ attribute, index }) => attribute.array[index] === 1),
-    "clearing the occlusion set restores all requested tree parts");
-  assert.ok(otherInstances.every(({ attribute, index }) => attribute.array[index] === 1));
+  assert.ok(
+    targetInstances.every(
+      ({ attribute, index }) => attribute.array[index] === 1,
+    ),
+    "clearing the occlusion set restores all requested tree parts",
+  );
+  assert.ok(
+    otherInstances.every(
+      ({ attribute, index }) => attribute.array[index] === 1,
+    ),
+  );
   visual.dispose();
 });
 
@@ -237,20 +390,31 @@ test("chunks stay batched and dispose all owned resources idempotently", () => {
   parent.add(group);
   const meshes = group.children.slice();
   const ownedGeometries = new Set(meshes.map((mesh) => mesh.geometry));
-  const ownedMaterials = new Set(meshes.flatMap((mesh) => Array.isArray(mesh.material)
-    ? mesh.material : [mesh.material]));
-  const instanceMeshes = meshes.filter((mesh) => mesh instanceof THREE.InstancedMesh);
+  const ownedMaterials = new Set(
+    meshes.flatMap((mesh) =>
+      Array.isArray(mesh.material) ? mesh.material : [mesh.material],
+    ),
+  );
+  const instanceMeshes = meshes.filter(
+    (mesh) => mesh instanceof THREE.InstancedMesh,
+  );
   let geometryDisposals = 0;
   let materialDisposals = 0;
   let instanceDisposals = 0;
-  for (const geometry of ownedGeometries) geometry.addEventListener("dispose", () => geometryDisposals++);
-  for (const material of ownedMaterials) material.addEventListener("dispose", () => materialDisposals++);
-  for (const mesh of instanceMeshes) mesh.addEventListener("dispose", () => instanceDisposals++);
+  for (const geometry of ownedGeometries)
+    geometry.addEventListener("dispose", () => geometryDisposals++);
+  for (const material of ownedMaterials)
+    material.addEventListener("dispose", () => materialDisposals++);
+  for (const mesh of instanceMeshes)
+    mesh.addEventListener("dispose", () => instanceDisposals++);
   const sibling = createChunkVisual(THREE, makeChunk(-1, -1));
   let siblingDisposals = 0;
   sibling.ground.geometry.addEventListener("dispose", () => siblingDisposals++);
 
-  assert.ok(meshes.length < 30, `chunk should use a small number of batched draw calls (got ${meshes.length})`);
+  assert.ok(
+    meshes.length < 30,
+    `chunk should use a small number of batched draw calls (got ${meshes.length})`,
+  );
   assert.ok(meshes.some((mesh) => mesh instanceof THREE.InstancedMesh));
   visual.dispose();
   visual.dispose();
@@ -258,10 +422,59 @@ test("chunks stay batched and dispose all owned resources idempotently", () => {
   assert.equal(parent.children.length, 0);
   assert.equal(geometryDisposals, ownedGeometries.size);
   assert.equal(materialDisposals, ownedMaterials.size);
-  assert.equal(instanceDisposals, instanceMeshes.length,
-    "each instance mesh releases its GPU instance buffers exactly once");
-  assert.equal(siblingDisposals, 0, "disposing one chunk does not release a sibling chunk's geometry");
+  assert.equal(
+    instanceDisposals,
+    instanceMeshes.length,
+    "each instance mesh releases its GPU instance buffers exactly once",
+  );
+  assert.equal(
+    siblingDisposals,
+    0,
+    "disposing one chunk does not release a sibling chunk's geometry",
+  );
   assert.ok(sibling.ground.geometry.getAttribute("position").count > 0);
   sibling.dispose();
   assert.ok(ground.geometry.getAttribute("position").count > 0);
+});
+
+test("ambient forest canopies expose stable visual occluders without becoming game resources", () => {
+  const chunk = makeChunk();
+  chunk.entities = [];
+  for (const tile of chunk.tiles) tile.terrain = "forest";
+  const visual = createChunkVisual(THREE, chunk);
+  const sibling = createChunkVisual(THREE, chunk);
+  assert.ok(visual.occluders.length > 0);
+  assert.deepEqual(visual.occluders, sibling.occluders);
+  const target = visual.occluders[0];
+  assert.ok(target.id.startsWith("visual-tree:"));
+  assert.ok(
+    target.x < 0 && target.y < 0,
+    "metadata uses global negative coordinates",
+  );
+  visual.setOccluded(new Set([target.id]), 0.05, true);
+  const parts = visual.group.children.filter(
+    (mesh) => mesh.isInstancedMesh && mesh.userData.instanceFade,
+  );
+  let faded = 0;
+  for (const mesh of parts)
+    for (let i = 0; i < mesh.count; i++) {
+      const expected = mesh.userData.entityIds[i] === target.id ? 0.18 : 1;
+      assert.ok(
+        Math.abs(mesh.userData.instanceFade.array[i] - expected) < 1e-6,
+      );
+      if (expected < 1) faded++;
+    }
+  assert.ok(faded >= 2, "trunk and crown both reveal the explorer");
+  assert.equal(
+    chunk.entities.length,
+    0,
+    "ambient trees never enter the simulation",
+  );
+  visual.setOccluded(new Set(), 0.05, true);
+  for (const mesh of parts)
+    assert.ok(
+      [...mesh.userData.instanceFade.array].every((value) => value === 1),
+    );
+  visual.dispose();
+  sibling.dispose();
 });

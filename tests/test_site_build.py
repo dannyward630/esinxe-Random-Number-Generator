@@ -16,6 +16,27 @@ spec.loader.exec_module(builder)
 
 
 class SiteBuildTests(unittest.TestCase):
+    def test_3d_modules_and_pinned_vendor_ship_with_the_game(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            output = builder.build(Path(temporary).resolve() / "site")
+            for name in (
+                "render3d.js",
+                "spatial.js",
+                "scene-world.js",
+                "scene-actors.js",
+                "vendor/three/three.module.js",
+                "vendor/three/three.core.js",
+                "vendor/three/LICENSE",
+            ):
+                path = Path("examples/world") / name
+                self.assertEqual(
+                    (output / path).read_bytes(), (ROOT / path).read_bytes()
+                )
+            module = (output / "examples/world/vendor/three/three.module.js").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn("./three.core.js", module)
+
     def test_generated_documentation_links_resolve_within_site(self):
         with tempfile.TemporaryDirectory() as temporary:
             output = builder.build(Path(temporary).resolve() / "site")
