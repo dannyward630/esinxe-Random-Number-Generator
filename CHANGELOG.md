@@ -8,6 +8,11 @@ compatibility version is independent and is named explicitly.
 
 ### Added
 
+- Verdant terrain traversal, forest concealment, swimming/strokes, diving with
+  an air budget, safe shore recovery and craftable fins. Four seeded biome
+  discoveries add underwater salvage, supplies and field notes. Swimming wakes,
+  underwater effects and terrain/air HUD make traversal visible; existing
+  expedition saves migrate with their progress preserved.
 - Verdant survival expedition: continuous movement/dash, active sentinels,
   harvesting and crafting, placeable campfires/bridges, day/night, local saves,
   three seeded story ruins and an optional beacon ending. Incremental chunk

@@ -336,3 +336,79 @@ a {
         max-width: 95%;
     }
 }
+
+.hud {
+    flex-wrap: wrap;
+}
+.hud #air {
+    width: 90px;
+}
+#terrain-panel {
+    position: absolute;
+    left: 16px;
+    bottom: 45px;
+    max-width: 220px;
+    background: #102b29d9;
+    border-radius: 5px;
+    padding: 8px 11px;
+    pointer-events: none;
+}
+#habitat {
+    display: block;
+    font-size: 12px;
+    color: #a9e5da;
+}
+#terrain-hint {
+    display: block;
+    font-size: 11px;
+    color: #c0d1ba;
+    line-height: 1.4;
+    margin-top: 3px;
+}
+#journal h3 {
+    font:
+        18px Georgia,
+        serif;
+    color: #abd6cd;
+    margin-top: 24px;
+}
+.touch div {
+    flex-wrap: wrap;
+    justify-content: center;
+}
+@media (max-width: 760px) {
+    .hud {
+        gap: 8px;
+    }
+    .hud #air {
+        width: 65px;
+    }
+    .quest {
+        top: 90px;
+        max-width: 180px;
+    }
+    #terrain-panel {
+        left: 10px;
+        bottom: 52px;
+        padding: 5px 8px;
+        max-width: 135px;
+    }
+    #terrain-hint {
+        display: none;
+    }
+    .touch button {
+        font-size: 12px;
+        padding: 10px;
+    }
+}
+
+#field-compass {
+    display: block;
+    margin-top: 7px;
+    color: #9ed5df;
+    font-size: 11px;
+    line-height: 1.4;
+}
+#air-panel b {
+    color: #a9e7ef;
+}

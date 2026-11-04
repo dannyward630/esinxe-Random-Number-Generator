@@ -1,5 +1,23 @@
 # Verdant expedition acceptance notes — 2026-11-03
 
+## Terrain and water follow-up
+
+- On the generated local seed 42, walked from camp to Tideglass Lake, entered
+  open water and observed swimming posture, wakes and the air HUD. Swam to the
+  submerged cache, dove with R and recovered one stone, two berries and one
+  field note; story sigils remained zero. Surfacing restored air.
+- Automated coverage checks terrain speeds and energy, boots/fins, bridges,
+  forest concealment, sentinel water boundaries, air/exhaustion rescue, v2 save
+  migration, save round trips and generated biome placement/rewards.
+- Review fixes preserve diving while terrain loads and preserve the recorded
+  shore when its chunk has been evicted. Simulation waits for the current tile
+  to load, preventing underwater saves from advancing against missing terrain.
+- Browser automation became unavailable in Work settings before the final
+  underwater reload observation. Save/resume is covered by automated tests;
+  that final browser observation is not claimed here.
+
+## Original expedition
+
 Tested local generated site in the in-app Chromium browser on Windows.
 
 - Held movement: a one-second right input moved about 3.3 tiles; a 9.3-second

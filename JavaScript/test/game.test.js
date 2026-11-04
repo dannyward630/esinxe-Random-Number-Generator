@@ -1,6 +1,31 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+test("recorded shore remains the rescue target after its chunk is unloaded", () => {
+  const state = createGame("42");
+  state.player.x = 80;
+  state.player.y = 5;
+  state.player.lastShore = { x: 40, y: 5 };
+  state.player.energy = 0;
+  const world = makeWorld({
+    terrain: (x, y) => (x === 40 && y === 5 ? undefined : "water"),
+  });
+  stepGame(state, {}, 1 / 60, world);
+  assert.equal(state.player.x, 40);
+  assert.equal(state.player.y, 5);
+});
+
+test("temporarily unknown terrain does not erase a saved dive", () => {
+  const state = createGame("42");
+  state.player.swimming = true;
+  state.player.diving = true;
+  state.player.air = 37;
+  stepGame(state, {}, 1 / 60, makeWorld({ terrain: () => undefined }));
+  assert.equal(state.player.diving, true);
+  assert.equal(state.player.swimming, true);
+  assert.equal(state.player.air, 37);
+});
+
 test("placement stops at the save format building limit without spending a kit", () => {
   const state = createGame("42");
   state.inventory.campfires = 1;
@@ -83,7 +108,9 @@ test("water is swimmable, resources still block movement, and boots enable mount
   assert.ok(blocked.player.x < 1);
 
   const climber = createGame("42");
-  const mountain = makeWorld({ terrain: (x) => (x >= 1 ? "mountain" : "meadow") });
+  const mountain = makeWorld({
+    terrain: (x) => (x >= 1 ? "mountain" : "meadow"),
+  });
   stepGame(climber, { x: 1, y: 0 }, 0.5, mountain);
   assert.ok(climber.player.x < 1);
   climber.tools.boots = true;
@@ -117,8 +144,14 @@ test("terrain status reports movement modifiers, concealment, swimming, and brid
   const forest = makeWorld({ terrain: () => "forest" });
   assert.equal(getTerrainStatus(state, forest).speed, 0.9);
   assert.equal(getTerrainStatus(state, forest).concealed, true);
-  assert.equal(getTerrainStatus(state, makeWorld({ terrain: () => "path" })).label, "Old trail");
-  assert.equal(getTerrainStatus(state, makeWorld({ terrain: () => "path" })).speed, 1.05);
+  assert.equal(
+    getTerrainStatus(state, makeWorld({ terrain: () => "path" })).label,
+    "Old trail",
+  );
+  assert.equal(
+    getTerrainStatus(state, makeWorld({ terrain: () => "path" })).speed,
+    1.05,
+  );
   const hill = makeWorld({ terrain: () => "hill" });
   assert.equal(getTerrainStatus(state, hill).speed, 0.8);
   state.tools.boots = true;
@@ -165,7 +198,12 @@ test("dive toggles only on a press, consumes air underwater, and restores it at 
   assert.equal(state.player.diving, false);
   assert.ok(state.player.air > submergedAir);
 
-  stepGame(state, { x: 1, y: 0 }, 1, makeWorld({ terrain: (x) => (x < 1 ? "water" : "meadow") }));
+  stepGame(
+    state,
+    { x: 1, y: 0 },
+    1,
+    makeWorld({ terrain: (x) => (x < 1 ? "water" : "meadow") }),
+  );
   assert.equal(state.player.diving, false);
 });
 
@@ -178,14 +216,36 @@ test("entering water, marsh, and forest explains their effects once per tile tra
   assert.equal(waterEvents.length, 1);
   assert.match(waterEvents[0].text, /press R to dive/i);
   stepGame(state, { x: 1, y: 0 }, 0.1, world);
-  assert.equal(state.events.filter((event) => event.type === "terrain").length, 1);
+  assert.equal(
+    state.events.filter((event) => event.type === "terrain").length,
+    1,
+  );
 
   state.player.x = 0.49;
-  stepGame(state, { x: 1, y: 0 }, 0.1, makeWorld({ terrain: (x) => (x >= 1 ? "marsh" : "meadow") }));
-  assert.ok(state.events.some((event) => event.type === "terrain" && /marsh slows/i.test(event.text)));
+  stepGame(
+    state,
+    { x: 1, y: 0 },
+    0.1,
+    makeWorld({ terrain: (x) => (x >= 1 ? "marsh" : "meadow") }),
+  );
+  assert.ok(
+    state.events.some(
+      (event) => event.type === "terrain" && /marsh slows/i.test(event.text),
+    ),
+  );
   state.player.x = 0.49;
-  stepGame(state, { x: 1, y: 0 }, 0.1, makeWorld({ terrain: (x) => (x >= 1 ? "forest" : "meadow") }));
-  assert.ok(state.events.some((event) => event.type === "terrain" && /harder for sentinels/i.test(event.text)));
+  stepGame(
+    state,
+    { x: 1, y: 0 },
+    0.1,
+    makeWorld({ terrain: (x) => (x >= 1 ? "forest" : "meadow") }),
+  );
+  assert.ok(
+    state.events.some(
+      (event) =>
+        event.type === "terrain" && /harder for sentinels/i.test(event.text),
+    ),
+  );
 });
 
 test("swim strokes use the slower dash speed and a land dash slows when it enters water", () => {
@@ -197,8 +257,12 @@ test("swim strokes use the slower dash speed and a land dash slows when it enter
 
   const shoreline = createGame("42");
   shoreline.player.facing = { x: 1, y: 0 };
-  stepGame(shoreline, { x: 1, y: 0, dash: true }, 0.16,
-    makeWorld({ terrain: (x) => (x >= 1 ? "water" : "meadow") }));
+  stepGame(
+    shoreline,
+    { x: 1, y: 0, dash: true },
+    0.16,
+    makeWorld({ terrain: (x) => (x >= 1 ? "water" : "meadow") }),
+  );
   assert.ok(shoreline.player.x < 1.5);
 });
 
@@ -218,12 +282,24 @@ test("underwater caches require a dive and award their exact reward and separate
 
   state.player.swimming = true;
   assert.equal(interact(state, world).ok, false);
-  assert.deepEqual(state.inventory, { wood: 0, stone: 0, berries: 0, campfires: 0, bridges: 0 });
+  assert.deepEqual(state.inventory, {
+    wood: 0,
+    stone: 0,
+    berries: 0,
+    campfires: 0,
+    bridges: 0,
+  });
   assert.deepEqual(state.finds, []);
 
   state.player.diving = true;
   assert.equal(interact(state, world).ok, true);
-  assert.deepEqual(state.inventory, { wood: 2, stone: 4, berries: 1, campfires: 0, bridges: 0 });
+  assert.deepEqual(state.inventory, {
+    wood: 2,
+    stone: 4,
+    berries: 1,
+    campfires: 0,
+    bridges: 0,
+  });
   assert.deepEqual(state.finds, ["note:lake"]);
   assert.match(state.events.at(-1).text, /brass marker/i);
   state.player.x = -3;
@@ -235,13 +311,18 @@ test("underwater caches require a dive and award their exact reward and separate
   fullNotes.player.diving = true;
   fullNotes.finds = Array.from({ length: 32 }, (_, index) => `note:${index}`);
   const secondCache = { ...cache, id: "cache:lake:2", noteId: "note:extra" };
-  assert.equal(interact(fullNotes, makeWorld({ entities: [secondCache] })).ok, true);
+  assert.equal(
+    interact(fullNotes, makeWorld({ entities: [secondCache] })).ok,
+    true,
+  );
   assert.equal(fullNotes.finds.length, 32);
   assert.equal(fullNotes.finds.includes("note:extra"), false);
 });
 
 test("air or swimming-energy exhaustion rescues to the last dry shore with one damage penalty", () => {
-  const shoreline = makeWorld({ terrain: (x) => (x >= 1 ? "water" : "meadow") });
+  const shoreline = makeWorld({
+    terrain: (x) => (x >= 1 ? "water" : "meadow"),
+  });
   const airState = createGame("42");
   airState.player.x = 1;
   airState.player.swimming = true;
@@ -250,10 +331,14 @@ test("air or swimming-energy exhaustion rescues to the last dry shore with one d
   airState.player.hp = 60;
   airState.player.lastShore = { x: 0, y: 0 };
   stepGame(airState, {}, 0.1, shoreline);
-  assert.deepEqual({ x: airState.player.x, y: airState.player.y }, { x: 0, y: 0 });
+  assert.deepEqual(
+    { x: airState.player.x, y: airState.player.y },
+    { x: 0, y: 0 },
+  );
   assert.equal(airState.player.hp, 45);
   assert.ok(airState.player.invulnerability > 0);
-  for (let index = 0; index < 5; index += 1) stepGame(airState, {}, 0.1, shoreline);
+  for (let index = 0; index < 5; index += 1)
+    stepGame(airState, {}, 0.1, shoreline);
   assert.equal(airState.player.hp, 45);
 
   const tired = createGame("42");
@@ -270,24 +355,44 @@ test("forest concealment reduces sentinel notice and enemies cannot cross or app
   const forest = createGame("42");
   forest.player.x = 0;
   const distant = {
-    id: "sentinel:-4:0", type: "sentinel", x: -4, y: 0, blocking: true,
+    id: "sentinel:-4:0",
+    type: "sentinel",
+    x: -4,
+    y: 0,
+    blocking: true,
   };
-  stepGame(forest, {}, 0.1, makeWorld({ terrain: () => "forest", entities: [distant] }));
+  stepGame(
+    forest,
+    {},
+    0.1,
+    makeWorld({ terrain: () => "forest", entities: [distant] }),
+  );
   assert.equal(forest.enemies[0]?.mode, "patrol");
 
   const swimmer = createGame("42");
   swimmer.player.x = 0;
   const waterWorld = makeWorld({
     terrain: (x) => (x >= 0 ? "water" : "meadow"),
-    entities: [{ id: "sentinel:0:0", type: "sentinel", x: 0, y: 0, blocking: true }],
+    entities: [
+      { id: "sentinel:0:0", type: "sentinel", x: 0, y: 0, blocking: true },
+    ],
   });
   stepGame(swimmer, {}, 0.1, waterWorld);
   assert.deepEqual(swimmer.enemies, []);
 
-  const shoreEnemy = { id: "sentinel:-2:0", type: "sentinel", x: -2, y: 0, blocking: true };
-  waterWorld.entitiesNear = (x, y, radius) => [shoreEnemy]
-    .filter((entity) => Math.hypot(entity.x - x, entity.y - y) <= radius);
-  for (let index = 0; index < 20; index += 1) stepGame(swimmer, {}, 0.1, waterWorld);
+  const shoreEnemy = {
+    id: "sentinel:-2:0",
+    type: "sentinel",
+    x: -2,
+    y: 0,
+    blocking: true,
+  };
+  waterWorld.entitiesNear = (x, y, radius) =>
+    [shoreEnemy].filter(
+      (entity) => Math.hypot(entity.x - x, entity.y - y) <= radius,
+    );
+  for (let index = 0; index < 20; index += 1)
+    stepGame(swimmer, {}, 0.1, waterWorld);
   assert.ok(swimmer.enemies.every((enemy) => enemy.x < 0));
   assert.equal(swimmer.player.hp, 100);
 });

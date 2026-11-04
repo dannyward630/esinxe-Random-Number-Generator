@@ -1,3 +1,4 @@
+import { getTerrainStatus } from "./game.js?v=3";
 const TILE = 32;
 const palette = {
   water: "#244c60",
@@ -17,6 +18,8 @@ export class Renderer {
     this.backgrounds = new WeakMap();
     this.camera = { x: 0, y: 0 };
     this.particles = [];
+    this.steps = [];
+    this.lastStep = { x: 0, y: 0 };
     this.reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
   }
   burst(x, y, color = "#f7d58b") {
@@ -49,10 +52,60 @@ export class Renderer {
       g.fillStyle = "#172e2310";
       g.fillRect(x + 19, y + 20, 5, 3);
     }
+    for (const t of chunk.tiles) {
+      const x = (t.x - chunk.cx * 16) * TILE,
+        y = (t.y - chunk.cy * 16) * TILE;
+      if (t.terrain === "sand") {
+        g.strokeStyle = "#aa955454";
+        g.beginPath();
+        g.arc(x + 12, y + 18, 10, 0.2, 2.2);
+        g.stroke();
+      }
+      if (t.terrain === "marsh") {
+        g.fillStyle = "#254d4544";
+        g.beginPath();
+        g.ellipse(x + 16, y + 20, 12, 7, 0, 0, 7);
+        g.fill();
+        g.strokeStyle = "#a4ad64";
+        for (let i = 0; i < 3; i++) {
+          g.beginPath();
+          g.moveTo(x + 8 + i * 6, y + 25);
+          g.lineTo(x + 5 + i * 6, y + 8);
+          g.stroke();
+        }
+      }
+      if (t.terrain === "hill" || t.terrain === "mountain") {
+        g.strokeStyle = t.terrain === "mountain" ? "#d1d6bd77" : "#d9c69c55";
+        g.lineWidth = 2;
+        g.beginPath();
+        g.moveTo(x + 2, y + 25);
+        g.lineTo(x + 14, y + (t.terrain === "mountain" ? 3 : 14));
+        g.lineTo(x + 30, y + 24);
+        g.stroke();
+      }
+      if (t.terrain === "forest" && (t.texture || 0) > 0.45) {
+        g.fillStyle = "#183f2d30";
+        g.beginPath();
+        g.arc(
+          x + 7 + (t.texture || 0) * 11,
+          y + 6 + (t.texture || 0) * 9,
+          6 + (t.texture || 0) * 6,
+          0,
+          7,
+        );
+        g.fill();
+      }
+      if (t.terrain === "shallows") {
+        g.fillStyle = "#8db4a455";
+        g.beginPath();
+        g.ellipse(x + 13, y + 24, 9, 3, 0, 0, 7);
+        g.fill();
+      }
+    }
     this.backgrounds.set(chunk, c);
     return c;
   }
-  draw(state, stream, sites, dt, time, showMap = false) {
+  draw(state, stream, sites, dt, time, showMap = false, biomes = []) {
     const { canvas, ctx: g } = this,
       w = canvas.width,
       h = canvas.height;
@@ -105,6 +158,68 @@ export class Renderer {
         g.lineTo(blade.x * TILE + 10 + bend, blade.y * TILE + 16);
         g.stroke();
       }
+    }
+    const habitat = getTerrainStatus(state, {
+      tileAt: (x, y) => stream.tileAt(x, y),
+    });
+    if (
+      !this.reduced &&
+      Math.hypot(
+        state.player.x - this.lastStep.x,
+        state.player.y - this.lastStep.y,
+      ) > 0.25
+    ) {
+      this.steps.push({
+        x: state.player.x,
+        y: state.player.y,
+        life: habitat.swimming ? 0.8 : 1.5,
+        wet: habitat.swimming || habitat.terrain === "shallows",
+      });
+      this.steps = this.steps.slice(-40);
+      this.lastStep = { x: state.player.x, y: state.player.y };
+    }
+    for (const step of this.steps) {
+      step.life -= dt;
+      g.globalAlpha = Math.max(0, step.life * 0.35);
+      if (step.wet) {
+        g.strokeStyle = "#b4efe6";
+        g.lineWidth = 1.5;
+        g.beginPath();
+        g.ellipse(
+          (step.x + 0.5) * TILE,
+          (step.y + 0.5) * TILE,
+          12 + (1 - step.life) * 10,
+          5 + (1 - step.life) * 4,
+          0,
+          0,
+          7,
+        );
+        g.stroke();
+      } else {
+        g.fillStyle = "#233d29";
+        g.fillRect((step.x + 0.5) * TILE, (step.y + 0.5) * TILE, 3, 5);
+      }
+    }
+    this.steps = this.steps.filter((step) => step.life > 0);
+    g.globalAlpha = 1;
+    for (const site of biomes) {
+      const x = (site.x + 0.5) * TILE,
+        y = (site.y + 0.5) * TILE;
+      if (site.x < minX || site.x > maxX || site.y < minY || site.y > maxY)
+        continue;
+      g.strokeStyle = site.color || "#a5d3bc";
+      g.lineWidth = 2;
+      g.beginPath();
+      g.ellipse(x, y, 22, 10, 0, 0, 7);
+      g.stroke();
+      g.font = "11px system-ui";
+      g.textAlign = "center";
+      g.fillStyle = site.color || "#cce2b5";
+      g.fillText(
+        (state.finds || []).includes(site.id) ? "✦ " + site.title : site.title,
+        x,
+        y - 25,
+      );
     }
     const dead = new Set(state.harvested);
     const objects = [];
@@ -317,15 +432,51 @@ export class Renderer {
     g.fill();
     g.globalAlpha =
       p.invulnerability > 0 && Math.floor(time / 90) % 2 ? 0.4 : 1;
-    g.fillStyle = "#eadfb8";
-    g.fillRect(x - 6, y - 14, 12, 10);
-    g.fillStyle = "#d69b68";
-    g.fillRect(x - 5, y - 4, 10, 11);
-    g.fillStyle = "#284744";
-    g.fillRect(x - 6, y + 7, 4, 5);
-    g.fillRect(x + 2, y + 7, 4, 5);
-    g.fillStyle = "#6bbeb8";
-    g.fillRect(x - 8, y - 4, 4, 10);
+    if (habitat.swimming) {
+      g.globalAlpha = habitat.diving ? 0.55 : 1;
+      g.strokeStyle = "#b3eee5";
+      g.lineWidth = 2;
+      g.beginPath();
+      g.ellipse(x, y + 3, 14, 6, 0, 0, 7);
+      g.stroke();
+      g.fillStyle = habitat.diving ? "#81b9bd" : "#eadfb8";
+      g.beginPath();
+      g.arc(x, y - 5, 6, 0, 7);
+      g.fill();
+      g.strokeStyle = "#d3b18b";
+      g.lineWidth = 4;
+      const stroke = this.reduced ? 0 : Math.sin(time * 0.012) * 6;
+      g.beginPath();
+      g.moveTo(x - 5, y + 1);
+      g.lineTo(x - 14, y - 3 + stroke);
+      g.moveTo(x + 5, y + 1);
+      g.lineTo(x + 14, y - 3 - stroke);
+      g.stroke();
+      if (habitat.diving) {
+        g.fillStyle = "#d2f8f3";
+        for (let i = 0; i < 3; i++) {
+          g.beginPath();
+          g.arc(
+            x + 9 + i * 4,
+            y - 10 - ((time * 0.03 + i * 7) % 27),
+            1.5,
+            0,
+            7,
+          );
+          g.fill();
+        }
+      }
+    } else {
+      g.fillStyle = "#eadfb8";
+      g.fillRect(x - 6, y - 14, 12, 10);
+      g.fillStyle = "#d69b68";
+      g.fillRect(x - 5, y - 4, 10, 11);
+      g.fillStyle = "#284744";
+      g.fillRect(x - 6, y + 7, 4, 5);
+      g.fillRect(x + 2, y + 7, 4, 5);
+      g.fillStyle = "#6bbeb8";
+      g.fillRect(x - 8, y - 4, 4, 10);
+    }
     g.globalAlpha = 1;
     for (const particle of this.particles) {
       particle.life -= dt;
@@ -361,6 +512,17 @@ export class Renderer {
         g.fillRect(a, b, 2, 2);
       }
     }
+    if (habitat.diving) {
+      g.fillStyle = "#164d7240";
+      g.fillRect(0, 0, w, h);
+      g.strokeStyle = "#a3e4d922";
+      for (let i = 0; i < 6; i++) {
+        const y = (i * 139 + (this.reduced ? 0 : time * 0.018)) % h;
+        g.beginPath();
+        g.ellipse(w / 2, y, 140, 16, 0, 0, 7);
+        g.stroke();
+      }
+    }
     if (showMap) {
       g.fillStyle = "#102e2ee8";
       g.fillRect(w - 230, 18, 210, 190);
@@ -379,6 +541,10 @@ export class Renderer {
         g.beginPath();
         g.arc(mx + s.x * scale, my + s.y * scale, 5, 0, 7);
         g.fill();
+      }
+      for (const site of biomes) {
+        g.fillStyle = site.color || "#72d6d1";
+        g.fillRect(mx + site.x * scale - 2, my + site.y * scale - 2, 4, 4);
       }
       g.fillStyle = "#fff5ce";
       g.beginPath();
