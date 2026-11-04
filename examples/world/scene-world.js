@@ -19,6 +19,7 @@ const FOLIAGE = ["#3d704d", "#4c8052", "#5b8b58", "#6a925c"];
 const PINE = ["#285746", "#32664a", "#3b704d", "#46784f"];
 const ROCK = ["#858d82", "#92978a", "#a19f8b", "#777f7d"];
 const BLOOM = ["#f2d177", "#efb6a1", "#e9e1be", "#d7b7d8"];
+const TREE_INSTANCE_PARTS = new Set(["trunk", "pine", "canopy"]);
 
 function hash01(x, y, salt = 0) {
   let h = 2166136261;
@@ -262,6 +263,19 @@ function mat(THREE, color, options = {}) {
   });
 }
 
+function addTreeDitherShader(material) {
+  material.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", "#include <common>\nattribute float instanceFade;\nvarying float vInstanceFade;")
+      .replace("#include <begin_vertex>", "#include <begin_vertex>\nvInstanceFade = instanceFade;");
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", "#include <common>\nvarying float vInstanceFade;\nfloat sceneWorldFadeHash(vec2 pixel) { return fract(sin(dot(floor(pixel), vec2(12.9898, 78.233))) * 43758.5453); }")
+      .replace("#include <clipping_planes_fragment>", "#include <clipping_planes_fragment>\nif (vInstanceFade < 0.999 && sceneWorldFadeHash(gl_FragCoord.xy) > vInstanceFade) discard;");
+  };
+  material.customProgramCacheKey = () => "scene-world-tree-instance-dither-v1";
+  material.needsUpdate = true;
+}
+
 function hashOffset(x, y, salt, amount) {
   return (hash01(x, y, salt) - 0.5) * amount;
 }
@@ -288,6 +302,7 @@ export function createChunkVisual(THREE, chunk, sampleTile) {
   const entityByCoord = new Map((chunk.entities || []).map((entity) => [`${entity.x},${entity.y}`, entity]));
   const grassByCoord = new Map((chunk.grass || []).map((blade) => [`${blade.x},${blade.y}`, blade]));
   const harvestRecords = [];
+  const fadeRecords = [];
   const meshes = [];
 
   const geometry = (key) => {
@@ -298,6 +313,10 @@ export function createChunkVisual(THREE, chunk, sampleTile) {
     if (materialMap.has(key)) return materialMap.get(key);
     let value;
     if (key === "ground") value = mat(THREE, 0xffffff, { vertexColors: true, roughness: 1 });
+    else if (TREE_INSTANCE_PARTS.has(key)) {
+      value = mat(THREE, 0xffffff);
+      addTreeDitherShader(value);
+    }
     else if (key === "bark") value = mat(THREE, "#74543b");
     else if (key === "pine") value = mat(THREE, 0xffffff);
     else if (key === "leaf") value = mat(THREE, 0xffffff);
@@ -534,15 +553,31 @@ export function createChunkVisual(THREE, chunk, sampleTile) {
 
   for (const [key, batch] of batchMap) {
     if (!batch.items.length) continue;
-    const mesh = new THREE.InstancedMesh(batch.geometry, batch.material, batch.items.length);
+    let instanceGeometry = batch.geometry;
+    let fadeAttribute = null;
+    if (TREE_INSTANCE_PARTS.has(key)) {
+      // A per-batch clone keeps the instanced fade values independent from
+      // source geometry and from every other chunk's geometry attributes.
+      instanceGeometry = batch.geometry.clone();
+      batch.geometry.dispose();
+      batch.geometry = instanceGeometry;
+      geometryMap.set(key, instanceGeometry);
+      fadeAttribute = new THREE.InstancedBufferAttribute(new Float32Array(batch.items.length).fill(1), 1);
+      fadeAttribute.setUsage(THREE.DynamicDrawUsage);
+      instanceGeometry.setAttribute("instanceFade", fadeAttribute);
+    }
+    const mesh = new THREE.InstancedMesh(instanceGeometry, batch.material, batch.items.length);
     mesh.name = `chunk-${cx}-${cy}-${key}`;
     mesh.userData.instancePart = key;
     mesh.userData.entityIds = batch.items.map((item) => item.entityId);
+    if (fadeAttribute) mesh.userData.instanceFade = fadeAttribute;
     for (let i = 0; i < batch.items.length; i++) {
       const item = batch.items[i];
       mesh.setMatrixAt(i, item.matrix);
       mesh.setColorAt(i, item.color);
       if (item.entityId) harvestRecords.push({ mesh, index: i, entityId: item.entityId, matrix: item.matrix.clone() });
+      if (fadeAttribute && item.entityId)
+        fadeRecords.push({ mesh, index: i, entityId: item.entityId, attribute: fadeAttribute });
     }
     mesh.instanceMatrix.needsUpdate = true;
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
@@ -582,10 +617,31 @@ export function createChunkVisual(THREE, chunk, sampleTile) {
       : 0.56 + (0.5 + Math.sin((Number.isFinite(timeSeconds) ? timeSeconds : 0) * 2.3) * 0.5) * 0.42;
   }
 
+  function setOccluded(ids, dt, reducedMotion = false) {
+    if (disposed) return;
+    const occluded = ids && typeof ids.has === "function" ? ids : new Set();
+    const seconds = Number.isFinite(dt) ? Math.max(0, Math.min(dt, 0.1)) : 0;
+    const easing = reducedMotion ? 1 : 1 - Math.exp(-seconds * 12);
+    const dirty = new Set();
+    for (const record of fadeRecords) {
+      const values = record.attribute.array;
+      const current = values[record.index];
+      const target = occluded.has(record.entityId) ? 0.18 : 1;
+      const next = reducedMotion ? target : current + (target - current) * easing;
+      const value = Math.abs(target - next) < 0.001 ? target : next;
+      if (Math.abs(value - current) <= 0.0001) continue;
+      values[record.index] = value;
+      dirty.add(record.attribute);
+    }
+    for (const attribute of dirty) attribute.needsUpdate = true;
+  }
+
   function dispose() {
     if (disposed) return;
     disposed = true;
     group.parent?.remove(group);
+    for (const mesh of meshes)
+      if (mesh instanceof THREE.InstancedMesh) mesh.dispose();
     group.clear();
     for (const value of geometryMap.values()) value.dispose();
     for (const value of materialMap.values()) value.dispose();
@@ -594,8 +650,9 @@ export function createChunkVisual(THREE, chunk, sampleTile) {
     batchMap.clear();
     meshes.length = 0;
     harvestRecords.length = 0;
+    fadeRecords.length = 0;
   }
 
   updateHarvested(new Set());
-  return { group, ground, updateHarvested, animate, dispose };
+  return { group, ground, updateHarvested, setOccluded, animate, dispose };
 }
