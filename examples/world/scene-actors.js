@@ -232,7 +232,8 @@ export function animatePlayer(model, player = {}, timeSeconds = 0, speed = 0, re
   const idleBob = lift > 0.02 || reducedMotion
     ? 0
     : Math.sin(time * 3.4) * 0.018 * (1 - walking);
-  pose.animated.position.y = lift + idleBob;
+  // The renderer applies physical lift to the model root; child motion stays decorative.
+  pose.animated.position.y = idleBob;
   pose.body.position.y = 0.62 - (diving ? 0.11 : swimming ? 0.035 : 0);
   pose.body.rotation.set(0, 0, 0);
   pose.leftArm.rotation.set(0, 0, 0);

@@ -69,12 +69,24 @@ test("player animation changes child poses and leaves root placement to the rend
   const runningArm = pose.leftArm.rotation.x;
   animatePlayer(player, { swimming: true, diving: true, lift: 0.3 }, 1.8, 2, false);
   assert.notEqual(pose.body.rotation.x, 0);
-  assert.ok(pose.animated.position.y >= 0.3);
+  assert.equal(pose.animated.position.y, 0);
   animatePlayer(player, { attackWindup: 0.12, dashRemaining: 0.18 }, 2, 0, true);
   assert.notEqual(pose.rightArm.rotation.x, 0);
   assert.notEqual(runningArm, pose.leftArm.rotation.x);
   assert.deepEqual(player.position.toArray(), rootPosition.toArray());
   assert.deepEqual(player.rotation.toArray(), rootRotation.toArray());
+
+  // Simulate the renderer owning the jump translation on the model root.
+  player.position.set(0, 0.45, 0);
+  animatePlayer(player, {}, 0, 0, true);
+  const groundedMaxY = new THREE.Box3().setFromObject(player).max.y;
+  animatePlayer(player, { lift: 0.3 }, 0, 0, true);
+  assert.equal(pose.animated.position.y, 0);
+  assert.ok(pose.leftLeg.rotation.x < 0, "lift still selects the airborne tuck pose");
+  assert.equal(player.position.y, 0.45, "animation leaves root altitude to the renderer");
+  player.position.y += 0.3;
+  const liftedMaxY = new THREE.Box3().setFromObject(player).max.y;
+  assert.ok(Math.abs((liftedMaxY - groundedMaxY) - 0.3) < 1e-9);
   assertFiniteTransforms(player);
 });
 
