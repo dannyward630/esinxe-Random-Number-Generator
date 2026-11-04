@@ -1,5 +1,24 @@
 # Verdant expedition acceptance notes — 2026-11-03
 
+## Popup menu follow-up
+
+- Browser-tested viewport layout at 1280x720, 390x844 and 844x390. Page width and
+  height matched the viewport with no outer overflow; menus remained bounded
+  and long content scrolled inside the popup.
+- Opened all four menus by hotbar or I/C/L/O; switched tabs by arrow key and
+  closed by Escape, Close and the active shortcut. Focus returned to the canvas.
+  Typing `i` in the seed input stayed in Settings instead of opening Satchel.
+- Crafted a campfire from a stocked local fixture. The popup closed into world
+  placement; Cancel retained the kit. Reopened Crafting, placed that kit and
+  observed the recipe return from Place to Craft. Satchel lists building kits.
+- Manual pause remained active after opening and closing a menu. In a diving
+  fixture, air stayed at 49, energy at 100, position at (-11, 9) and the clock
+  stayed unchanged while the menu remained open through other checks. Movement
+  input in the popup did not move the player. Original local save was restored
+  after fixture testing; public progress was not modified for these tests.
+- 77 Node tests, TypeScript, five site tests, metadata and formatting checks
+  passed. The simulation, save format and world content remain unchanged.
+
 ## Terrain and water follow-up
 
 - On the generated local seed 42, walked from camp to Tideglass Lake, entered
