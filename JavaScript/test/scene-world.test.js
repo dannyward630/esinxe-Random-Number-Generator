@@ -343,9 +343,9 @@ test("tree occlusion uses independent instanced dither fades and restores only r
   assert.ok(
     targetInstances.every(
       ({ attribute, index }) =>
-        attribute.array[index] < 1 && attribute.array[index] > 0.18,
+        attribute.array[index] < 1 && attribute.array[index] > 0,
     ),
-    "normal motion eases toward the translucent target",
+    "normal motion eases toward the hidden target",
   );
   assert.ok(
     otherInstances.every(
@@ -365,7 +365,7 @@ test("tree occlusion uses independent instanced dither fades and restores only r
   visual.setOccluded(new Set([targetId]), 0.05, true);
   assert.ok(
     targetInstances.every(
-      ({ attribute, index }) => Math.abs(attribute.array[index] - 0.18) < 1e-6,
+      ({ attribute, index }) => Math.abs(attribute.array[index]) < 1e-6,
     ),
   );
   visual.setOccluded(new Set(), 0.05, true);
@@ -458,7 +458,7 @@ test("ambient forest canopies expose stable visual occluders without becoming ga
   let faded = 0;
   for (const mesh of parts)
     for (let i = 0; i < mesh.count; i++) {
-      const expected = mesh.userData.entityIds[i] === target.id ? 0.18 : 1;
+      const expected = mesh.userData.entityIds[i] === target.id ? 0 : 1;
       assert.ok(
         Math.abs(mesh.userData.instanceFade.array[i] - expected) < 1e-6,
       );

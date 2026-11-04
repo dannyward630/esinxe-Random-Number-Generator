@@ -964,7 +964,7 @@ export function createChunkVisual(THREE, chunk, sampleTile) {
     for (const record of fadeRecords) {
       const values = record.attribute.array;
       const current = values[record.index];
-      const target = occluded.has(record.entityId) ? 0.18 : 1;
+      const target = occluded.has(record.entityId) ? 0 : 1;
       const next = reducedMotion
         ? target
         : current + (target - current) * easing;
