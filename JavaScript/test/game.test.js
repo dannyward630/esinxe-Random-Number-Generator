@@ -159,6 +159,47 @@ test("jumps clear low rocks and return to a safe takeoff point when landing over
   assert.ok(Math.hypot(state.player.x - 0.8, state.player.y) >= 0.48);
 });
 
+test("airborne rock clearance does not overwrite the last grounded shore", () => {
+  const state = createGame("42");
+  state.player.x = -1;
+  const rockWorld = makeWorld({
+    entities: [
+      { id: "rock:0:0", type: "rock", x: -0.2, y: 0, blocking: true },
+    ],
+  });
+
+  stepGame(state, { jump: true, x: 1 }, 0.25, rockWorld);
+
+  assert.ok(state.player.lift > 0.8);
+  assert.ok(state.player.x > -0.5);
+  assert.deepEqual(state.player.lastShore, { x: -1, y: 0 });
+});
+
+test("saving during a rock-clearing jump restores at its grounded takeoff point", () => {
+  const state = createGame("42");
+  const rockWorld = makeWorld({
+    entities: [
+      { id: "rock:1:0", type: "rock", x: 0.8, y: 0, blocking: true },
+    ],
+  });
+
+  stepGame(state, { jump: true, x: 1 }, 0.25, rockWorld);
+  assert.ok(state.player.x > 0.6);
+  assert.ok(state.player.lift > 0.8);
+
+  const payload = JSON.parse(serializeGame(state));
+  assert.equal(payload.player.x, 0);
+  assert.equal(payload.player.y, 0);
+  const restored = restoreGame(JSON.stringify(payload), "42");
+  assert.equal(restored.player.x, 0);
+  assert.equal(restored.player.y, 0);
+  assert.equal(restored.player.lift, 0);
+  assert.equal(restored.player.verticalVelocity, 0);
+
+  stepGame(restored, { x: 1 }, 0.5, rockWorld);
+  assert.ok(restored.player.x < 0.4);
+});
+
 test("trees, sentinels, and mountains without boots still block a jump", () => {
   for (const type of ["tree", "sentinel"]) {
     const state = createGame("42");
@@ -208,6 +249,7 @@ test("respawn and save restoration clear transient vertical motion without chang
   state.player.lift = 0.9;
   state.player.verticalVelocity = -2;
   state.player.jumpHeld = true;
+  state.player.jumpTakeoffX = 12;
   state.inventory.wood = 7;
   state.discoveries.push("glass-grove");
 

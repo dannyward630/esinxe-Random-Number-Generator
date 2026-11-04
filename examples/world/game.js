@@ -605,7 +605,11 @@ function isDryWalkable(state, world, x, y) {
 
 function rememberShore(state, world) {
   const player = state.player;
-  if (isDryWalkable(state, world, player.x, player.y)) {
+  if (
+    player.lift <= 0 &&
+    player.verticalVelocity <= 0 &&
+    isDryWalkable(state, world, player.x, player.y)
+  ) {
     player.lastShore = { x: player.x, y: player.y };
   }
 }
@@ -1589,6 +1593,7 @@ export function stepGame(state, input = {}, dt = 1 / 60, world = {}) {
     player.verticalVelocity <= 0 &&
     !jumpTerrain.swimming
   ) {
+    rememberShore(state, world);
     startJump(state);
   }
 
@@ -1759,12 +1764,21 @@ function validatePersistentState(state) {
 
 export function serializeGame(state) {
   validatePersistentState(state);
+  const airborne = state.player.lift > 0 || state.player.verticalVelocity > 0;
+  const saveX = airborne ? state.player.jumpTakeoffX : state.player.x;
+  const saveY = airborne ? state.player.jumpTakeoffY : state.player.y;
+  if (
+    !boundedNumber(saveX, -MAX_COORDINATE, MAX_COORDINATE) ||
+    !boundedNumber(saveY, -MAX_COORDINATE, MAX_COORDINATE)
+  ) {
+    throw new TypeError("player save position is invalid");
+  }
   const payload = {
     seed: state.seed,
     version: VERSION,
     player: {
-      x: state.player.x,
-      y: state.player.y,
+      x: saveX,
+      y: saveY,
       hp: state.player.hp,
       energy: state.player.energy,
       facing: { x: state.player.facing.x, y: state.player.facing.y },
