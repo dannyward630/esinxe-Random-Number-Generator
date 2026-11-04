@@ -26,7 +26,7 @@
                     width="1120"
                     height="680"
                     tabindex="0"
-                    aria-label="Verdant world. WASD or arrows move, Space dashes, J attacks or harvests, E interacts, F eats."
+                    aria-label="Verdant world. WASD or arrows move, Space dashes, J attacks or harvests, E interacts, F eats. R dives or surfaces in water."
                 ></canvas>
                 <div class="hud">
                     <span
@@ -45,6 +45,14 @@
                             max="100"
                             value="100"
                         ></meter></span
+                    ><span id="air-panel" hidden
+                        >AIR <b id="air-value">100</b
+                        ><meter
+                            id="air"
+                            min="0"
+                            max="100"
+                            value="100"
+                        ></meter></span
                     ><span id="clock">Dawn · Day 1</span
                     ><span id="coordinates">0, 0</span>
                 </div>
@@ -54,10 +62,14 @@
                         Make camp. Follow the old trails. Find what the island
                         remembers.
                     </p>
-                    <span id="compass"></span>
+                    <span id="compass"></span><span id="field-compass"></span>
                 </div>
                 <div id="toast" role="status" aria-live="polite">
                     Preparing your expedition…
+                </div>
+                <div id="terrain-panel">
+                    <strong id="habitat">Meadow</strong
+                    ><span id="terrain-hint"></span>
                 </div>
                 <div id="context">
                     WASD move · Space dash · J harvest/strike · E inspect · F
@@ -84,7 +96,10 @@
                     <button data-action="dash">Dash</button
                     ><button data-action="attack">Harvest / Strike</button
                     ><button data-action="interact">Inspect</button
-                    ><button data-action="eat">Eat</button>
+                    ><button data-action="eat">Eat</button
+                    ><button id="dive-action" data-action="dive">
+                        Dive · R
+                    </button>
                 </div>
             </nav>
             <section class="panels">
@@ -155,9 +170,9 @@
             <footer>
                 Progress saves locally on this device.
                 <a href="README.md">Controls and field notes</a> · Content:
-                verdant-expedition-2
+                verdant-expedition-3
             </footer>
         </main>
-        <script type="module" src="app.js"></script>
+        <script type="module" src="app.js?v=3"></script>
     </body>
 </html>

@@ -12,18 +12,19 @@ function api() {
   assert.ok(expedition, "the expedition content module must exist");
   assert.equal(typeof expedition.landmarksForSeed, "function");
   assert.equal(typeof expedition.decorateChunk, "function");
-  assert.equal(expedition.EXPEDITION_VERSION, "verdant-expedition-2");
+  assert.equal(expedition.EXPEDITION_VERSION, "verdant-expedition-3");
   return expedition;
 }
 
 function coordKey(x, y) { return `${x},${y}`; }
 
 function makeDecoratedWorld(seed, landmarks) {
-  const margin = 4;
-  const minX = Math.min(0, ...landmarks.map((site) => site.x)) - margin;
-  const maxX = Math.max(0, ...landmarks.map((site) => site.x)) + margin;
-  const minY = Math.min(0, ...landmarks.map((site) => site.y)) - margin;
-  const maxY = Math.max(0, ...landmarks.map((site) => site.y)) + margin;
+  const margin = 7;
+  const sites = [...landmarks, ...api().biomeSitesForSeed(seed)];
+  const minX = Math.min(0, ...sites.map((site) => site.x)) - margin;
+  const maxX = Math.max(0, ...sites.map((site) => site.x)) + margin;
+  const minY = Math.min(0, ...sites.map((site) => site.y)) - margin;
+  const maxY = Math.max(0, ...sites.map((site) => site.y)) + margin;
   const minCx = Math.floor(minX / CHUNK_SIZE);
   const maxCx = Math.floor(maxX / CHUNK_SIZE);
   const minCy = Math.floor(minY / CHUNK_SIZE);
@@ -59,6 +60,138 @@ function pathTiles(site) {
   }
   return result;
 }
+
+function destinationTiles(site, radius) {
+  const result = new Set();
+  for (let dy = -radius; dy <= radius; dy++) {
+    for (let dx = -radius; dx <= radius; dx++) {
+      result.add(coordKey(site.x + dx, site.y + dy));
+    }
+  }
+  return result;
+}
+
+function reachableTiles(tiles, blocking, start = [0, 0]) {
+  const seen = new Set([coordKey(...start)]);
+  const queue = [start];
+  for (let index = 0; index < queue.length; index++) {
+    const [x, y] = queue[index];
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const next = [x + dx, y + dy];
+      const key = coordKey(...next);
+      const tile = tiles.get(key);
+      if (!tile || ["water", "mountain"].includes(tile.terrain)
+          || blocking.has(key) || seen.has(key)) continue;
+      seen.add(key);
+      queue.push(next);
+    }
+  }
+  return seen;
+}
+
+test("four nearby biome sites are seeded, typed, and independent of story landmarks", () => {
+  assert.equal(typeof expedition?.biomeSitesForSeed, "function");
+  const { biomeSitesForSeed, landmarksForSeed } = expedition;
+  const kinds = ["marsh-herb-garden", "rocky-bluff", "tidal-lake", "woodland-grove"];
+  const first = biomeSitesForSeed(41);
+  assert.deepEqual(first.map((site) => site.kind).sort(), kinds);
+  assert.deepEqual(biomeSitesForSeed("41"), first);
+  assert.notDeepEqual(biomeSitesForSeed(42).map(({ x, y }) => [x, y]), first.map(({ x, y }) => [x, y]));
+  assert.equal(new Set(first.map((site) => site.id)).size, 4);
+  assert.equal(new Set(first.map(({ x, y }) => coordKey(x, y))).size, 4);
+
+  for (const site of first) {
+    assert.deepEqual(Object.keys(site).sort(), ["color", "id", "kind", "terrain", "text", "title", "x", "y"]);
+    assert.ok(Number.isSafeInteger(site.x) && Number.isSafeInteger(site.y));
+    assert.ok(Math.abs(site.x) >= 8 && Math.abs(site.x) <= 24);
+    assert.ok(Math.abs(site.y) >= 8 && Math.abs(site.y) <= 24);
+    assert.ok(site.title.length > 0 && site.text.length > 40 && site.color.length > 0);
+    assert.ok(!landmarksForSeed(41).some((landmark) => landmark.id === site.id));
+  }
+});
+
+test("biome destinations keep old routes clear and place differentiated caches in their owner chunks", () => {
+  const { biomeSitesForSeed, landmarksForSeed } = api();
+  for (const seed of [1, 2, 3, 41, 20261103, -20261103]) {
+    const landmarks = landmarksForSeed(seed);
+    const sites = biomeSitesForSeed(seed);
+    const world = makeDecoratedWorld(seed, landmarks);
+    const allEntities = world.chunks.flatMap((chunk) => chunk.entities);
+    const allBiomeSites = world.chunks.flatMap((chunk) => chunk.biomeSites ?? []);
+    const storyTrail = new Set(landmarks.flatMap((landmark) => [...pathTiles(landmark)]));
+    assert.deepEqual(allBiomeSites.map((site) => site.id).sort(), sites.map((site) => site.id).sort());
+    assert.equal(new Set(allBiomeSites.map((site) => site.id)).size, 4);
+
+    for (const site of sites) {
+      const owner = chunkForTile(site.x, site.y);
+      const ownerChunk = world.chunks.find((chunk) => chunk.cx === owner.cx && chunk.cy === owner.cy);
+      assert.ok(ownerChunk?.biomeSites?.some((owned) => owned.id === site.id));
+      assert.ok(!landmarks.some((landmark) => landmark.id === site.id));
+
+      const radius = site.kind === "tidal-lake" ? 5 : 4;
+      const footprint = destinationTiles(site, radius);
+      for (const key of footprint) {
+        assert.ok(!storyTrail.has(key), `${site.kind} overlaps an old trail at ${key} for seed ${seed}`);
+        assert.ok(!allEntities.some((entity) => entity.campResource && coordKey(entity.x, entity.y) === key),
+          `${site.kind} overlaps a starter resource at ${key} for seed ${seed}`);
+      }
+
+      const cache = allEntities.find((entity) => entity.type === "cache" && entity.noteId === site.id);
+      assert.ok(cache, `missing ${site.kind} cache for seed ${seed}`);
+      assert.equal(cache.note, site.text);
+      assert.equal(cache.requiresDive, site.kind === "tidal-lake");
+      assert.deepEqual(Object.keys(cache.reward).sort(), ["berries", "stone", "wood"]);
+      assert.ok(Object.values(cache.reward).every((amount) => Number.isInteger(amount) && amount >= 0));
+      assert.ok(Object.values(cache.reward).some((amount) => amount > 0));
+      const cacheOwner = chunkForTile(cache.x, cache.y);
+      const cacheOwnerChunk = world.chunks.find((chunk) => chunk.cx === cacheOwner.cx && chunk.cy === cacheOwner.cy);
+      assert.ok(cacheOwnerChunk?.entities.some((entity) => entity.id === cache.id));
+    }
+
+    const cacheRewards = Object.fromEntries(sites.map((site) => [
+      site.kind,
+      allEntities.find((entity) => entity.type === "cache" && entity.noteId === site.id).reward,
+    ]));
+    assert.deepEqual(cacheRewards, {
+      "tidal-lake": { wood: 0, stone: 1, berries: 2 },
+      "marsh-herb-garden": { wood: 0, stone: 0, berries: 3 },
+      "rocky-bluff": { wood: 0, stone: 3, berries: 0 },
+      "woodland-grove": { wood: 2, stone: 0, berries: 2 },
+    });
+
+    const lake = sites.find((site) => site.kind === "tidal-lake");
+    const lakeCache = allEntities.find((entity) => entity.type === "cache" && entity.noteId === lake.id);
+    assert.equal(world.tiles.get(coordKey(lakeCache.x, lakeCache.y))?.terrain, "water");
+    for (let dy = -5; dy <= 5; dy++) {
+      for (let dx = -5; dx <= 5; dx++) {
+        if (Math.hypot(dx, dy) > 5) continue;
+        const tile = world.tiles.get(coordKey(lake.x + dx, lake.y + dy));
+        assert.ok(tile, `missing lake tile at ${dx},${dy} for seed ${seed}`);
+        if (Math.max(Math.abs(dx), Math.abs(dy)) <= 1) {
+          assert.notEqual(tile.terrain, "water", `lake islet flooded at ${dx},${dy} for seed ${seed}`);
+        } else {
+          assert.equal(tile.terrain, "water", `lake ring is dry at ${dx},${dy} for seed ${seed}`);
+        }
+      }
+    }
+
+    const reachable = reachableTiles(world.tiles, world.blocking);
+    const shoreApproaches = [
+      [lake.x - 6, lake.y], [lake.x + 6, lake.y],
+      [lake.x, lake.y - 6], [lake.x, lake.y + 6],
+    ];
+    assert.ok(shoreApproaches.some(([x, y]) => reachable.has(coordKey(x, y))),
+      `no walkable camp-to-shore landing for seed ${seed}`);
+
+    const marsh = sites.find((site) => site.kind === "marsh-herb-garden");
+    const bluff = sites.find((site) => site.kind === "rocky-bluff");
+    const grove = sites.find((site) => site.kind === "woodland-grove");
+    assert.equal(world.tiles.get(coordKey(marsh.x, marsh.y))?.terrain, "marsh");
+    assert.equal(world.tiles.get(coordKey(bluff.x, bluff.y))?.terrain, "hill");
+    assert.equal(world.tiles.get(coordKey(bluff.x + 3, bluff.y))?.terrain, "mountain");
+    assert.equal(world.tiles.get(coordKey(grove.x, grove.y))?.terrain, "forest");
+  }
+});
 
 test("expedition landmarks are seeded, distinct, and carry original site lore", () => {
   const { landmarksForSeed } = api();
@@ -107,6 +240,7 @@ test("decorated core is invariant to optional grass", () => {
   assert.deepEqual(bare.tiles, grassy.tiles);
   assert.deepEqual(bare.entities, grassy.entities);
   assert.deepEqual(bare.landmarks, grassy.landmarks);
+  assert.deepEqual(bare.biomeSites, grassy.biomeSites);
   assert.ok(Array.isArray(grassy.grass) && grassy.grass.length > 0);
 });
 

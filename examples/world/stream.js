@@ -3,7 +3,7 @@ import {
   orderChunkCoordinates,
   canonicalizeWorld,
 } from "./generator.js";
-import { decorateChunk } from "./expedition.js";
+import { decorateChunk } from "./expedition.js?v=3";
 
 export class ChunkStream {
   constructor(seed, workers = 4, order = "normal", grass = true) {
@@ -118,9 +118,10 @@ export class ChunkStream {
       iy = Math.floor(y),
       cx = Math.floor(ix / 16),
       cy = Math.floor(iy / 16);
-    return this.cache.get(`${cx},${cy}`)?.tiles[
+    const tile = this.cache.get(`${cx},${cy}`)?.tiles[
       (iy - cy * 16) * 16 + ix - cx * 16
-    ]?.terrain;
+    ];
+    return tile?.trail ? "path" : tile?.terrain;
   }
   entitiesNear(x, y, r) {
     const out = [];
