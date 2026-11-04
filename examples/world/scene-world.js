@@ -1,4 +1,4 @@
-import { surfaceHeight } from "./spatial.js";
+import { cornerHeight, surfaceHeight } from "./spatial.js";
 
 const CHUNK_SIZE = 16;
 const GROUND_BOTTOM = -1.4;
@@ -59,36 +59,22 @@ function tileColor(THREE, tile) {
   return scaledRgb(THREE, palette, shade);
 }
 
-function localCorners(tile, tileByCoord, baseX, baseZ) {
+function localCorners(tile, sampleTile, baseX, baseZ) {
   const left = tile.x - 0.5;
   const right = tile.x + 0.5;
   const north = tile.y - 0.5;
   const south = tile.y + 0.5;
-  const sampleCorner = (x, z) => {
-    const xs = [Math.floor(x), Math.floor(x) + 1];
-    const zs = [Math.floor(z), Math.floor(z) + 1];
-    let total = 0;
-    let count = 0;
-    for (const sampleX of xs) for (const sampleZ of zs) {
-      const adjacent = tileByCoord.get(`${sampleX},${sampleZ}`);
-      if (!adjacent) continue;
-      total += surfaceHeight(adjacent);
-      count++;
-    }
-    return count ? total / count : surfaceHeight(tile);
-  };
   return [
-    { x: tile.x - baseX - 0.5, z: tile.y - baseZ - 0.5, y: sampleCorner(left, north) },
-    { x: tile.x - baseX + 0.5, z: tile.y - baseZ - 0.5, y: sampleCorner(right, north) },
-    { x: tile.x - baseX + 0.5, z: tile.y - baseZ + 0.5, y: sampleCorner(right, south) },
-    { x: tile.x - baseX - 0.5, z: tile.y - baseZ + 0.5, y: sampleCorner(left, south) },
+    { x: tile.x - baseX - 0.5, z: tile.y - baseZ - 0.5, y: cornerHeight(sampleTile, left, north) },
+    { x: tile.x - baseX + 0.5, z: tile.y - baseZ - 0.5, y: cornerHeight(sampleTile, right, north) },
+    { x: tile.x - baseX + 0.5, z: tile.y - baseZ + 0.5, y: cornerHeight(sampleTile, right, south) },
+    { x: tile.x - baseX - 0.5, z: tile.y - baseZ + 0.5, y: cornerHeight(sampleTile, left, south) },
   ];
 }
 
-function buildGround(THREE, chunk, tileByCoord, baseX, baseZ) {
+function buildGround(THREE, chunk, sampleTile, baseX, baseZ) {
   const positions = [];
   const colors = [];
-  const inChunk = new Set(chunk.tiles.map((tile) => `${tile.x},${tile.y}`));
   const wallColor = (color) => color.map((channel) => channel * 0.58);
 
   for (const tile of chunk.tiles) {
@@ -96,7 +82,7 @@ function buildGround(THREE, chunk, tileByCoord, baseX, baseZ) {
     const centerZ = tile.y - baseZ;
     const centerY = surfaceHeight(tile);
     const center = [centerX, centerY, centerZ];
-    const corners = localCorners(tile, tileByCoord, baseX, baseZ);
+    const corners = localCorners(tile, sampleTile, baseX, baseZ);
     const faceColor = tileColor(THREE, tile);
     const centerColor = faceColor.map((channel) => Math.min(1, channel * 1.045));
     const cornerColor = faceColor.map((channel) => channel * 0.96);
@@ -112,18 +98,14 @@ function buildGround(THREE, chunk, tileByCoord, baseX, baseZ) {
         centerColor, cornerColor, cornerColor);
     }
 
-    const minTileX = chunk.cx * CHUNK_SIZE;
-    const minTileZ = chunk.cy * CHUNK_SIZE;
-    const maxTileX = minTileX + CHUNK_SIZE - 1;
-    const maxTileZ = minTileZ + CHUNK_SIZE - 1;
     const sides = [];
-    if (tile.x === minTileX || !inChunk.has(`${tile.x - 1},${tile.y}`))
+    if (!sampleTile(tile.x - 1, tile.y))
       sides.push([corners[0], corners[3], -1, 0]);
-    if (tile.x === maxTileX || !inChunk.has(`${tile.x + 1},${tile.y}`))
+    if (!sampleTile(tile.x + 1, tile.y))
       sides.push([corners[1], corners[2], 1, 0]);
-    if (tile.y === minTileZ || !inChunk.has(`${tile.x},${tile.y - 1}`))
+    if (!sampleTile(tile.x, tile.y - 1))
       sides.push([corners[0], corners[1], 0, -1]);
-    if (tile.y === maxTileZ || !inChunk.has(`${tile.x},${tile.y + 1}`))
+    if (!sampleTile(tile.x, tile.y + 1))
       sides.push([corners[3], corners[2], 0, 1]);
 
     for (const [a, b, nx, nz] of sides) {
@@ -284,7 +266,7 @@ function hashOffset(x, y, salt, amount) {
   return (hash01(x, y, salt) - 0.5) * amount;
 }
 
-export function createChunkVisual(THREE, chunk) {
+export function createChunkVisual(THREE, chunk, sampleTile) {
   if (!THREE?.Group || !THREE?.Mesh || !Array.isArray(chunk?.tiles))
     throw new TypeError("createChunkVisual expects Three.js and a generated chunk");
 
@@ -300,6 +282,9 @@ export function createChunkVisual(THREE, chunk) {
   const materialMap = new Map();
   const batchMap = new Map();
   const tileByCoord = new Map(chunk.tiles.map((tile) => [`${tile.x},${tile.y}`, tile]));
+  const sample = typeof sampleTile === "function"
+    ? sampleTile
+    : (x, y) => tileByCoord.get(`${x},${y}`);
   const entityByCoord = new Map((chunk.entities || []).map((entity) => [`${entity.x},${entity.y}`, entity]));
   const grassByCoord = new Map((chunk.grass || []).map((blade) => [`${blade.x},${blade.y}`, blade]));
   const harvestRecords = [];
@@ -359,7 +344,7 @@ export function createChunkVisual(THREE, chunk) {
     batch.items.push({ matrix, color: colorOf(THREE, color), entityId });
   }
 
-  const groundGeometry = buildGround(THREE, chunk, tileByCoord, baseX, baseZ);
+  const groundGeometry = buildGround(THREE, chunk, sample, baseX, baseZ);
   geometryMap.set("ground", groundGeometry);
   const ground = new THREE.Mesh(groundGeometry, material("ground"));
   ground.name = `terrain-ground-${cx}-${cy}`;

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import * as THREE from "../../examples/world/vendor/three/three.module.js";
 import { createChunkVisual } from "../../examples/world/scene-world.js";
-import { surfaceHeight } from "../../examples/world/spatial.js";
+import { groundHeight, surfaceHeight } from "../../examples/world/spatial.js";
 
 function makeChunk(cx = -2, cy = -1) {
   const tiles = [];
@@ -69,7 +69,68 @@ test("chunk terrain has finite faceted geometry and raycasts exact negative-coor
   assert.ok(Math.abs(hit.point.x - hill.x) < 1e-5);
   assert.ok(Math.abs(hit.point.z - hill.y) < 1e-5);
   assert.ok(Math.abs(hit.point.y - expectedHeight) < 1e-5);
+
+  const localSampler = (x, y) => chunk.tiles.find((tile) => tile.x === x && tile.y === y);
+  const sampleX = hill.x + 0.28;
+  const sampleZ = hill.y - 0.13;
+  const expectedFanHeight = groundHeight(localSampler, sampleX, sampleZ);
+  raycaster.set(new THREE.Vector3(sampleX, expectedFanHeight + 8, sampleZ), new THREE.Vector3(0, -1, 0));
+  const fanHit = raycaster.intersectObject(ground, false)[0];
+  assert.ok(fanHit);
+  assert.ok(Math.abs(fanHit.point.y - expectedFanHeight) < 1e-5,
+    "raycast terrain must follow the same four-face fan used by actor foot heights");
   visual.dispose();
+});
+
+function makeBiomeChunk(cx, sampleTile) {
+  const cy = 0;
+  const tiles = [];
+  for (let y = cy * 16; y < cy * 16 + 16; y++)
+    for (let x = cx * 16; x < cx * 16 + 16; x++) tiles.push(sampleTile(x, y));
+  return { cx, cy, key: `${cx},${cy}`, tiles, entities: [], grass: [] };
+}
+
+function edgeHeights(visual, worldX, worldZ) {
+  const positions = visual.ground.geometry.getAttribute("position");
+  const heights = new Set();
+  for (let i = 0; i < positions.count; i++) {
+    const x = positions.getX(i) + visual.group.position.x;
+    const z = positions.getZ(i) + visual.group.position.z;
+    if (Math.abs(x - worldX) < 1e-6 && Math.abs(z - worldZ) < 1e-6)
+      heights.add(positions.getY(i));
+  }
+  return [...heights];
+}
+
+test("positive and negative neighboring chunks share canonical corner heights without edge skirts", () => {
+  for (const leftCx of [-1, 1]) {
+    const cutX = (leftCx + 1) * 16;
+    const sampleTile = (x, y) => ({
+      id: `tile:${x}:${y}`,
+      x,
+      y,
+      terrain: x < cutX ? "mountain" : "meadow",
+      elevation: x < cutX ? 0.82 : 0.48,
+      moisture: 0.4,
+      texture: x < cutX ? 0.44 : 0.56,
+    });
+    const left = createChunkVisual(THREE, makeBiomeChunk(leftCx, sampleTile), sampleTile);
+    const right = createChunkVisual(THREE, makeBiomeChunk(leftCx + 1, sampleTile), sampleTile);
+    const edgeX = cutX - 0.5;
+    assert.equal(edgeHeights(left, edgeX, -0.5).length, 1);
+    assert.equal(edgeHeights(right, edgeX, -0.5).length, 1);
+    assert.equal(edgeHeights(left, edgeX, 0.5).length, 1);
+    assert.equal(edgeHeights(right, edgeX, 0.5).length, 1);
+    assert.ok(Math.abs(edgeHeights(left, edgeX, -0.5)[0]
+      - edgeHeights(right, edgeX, -0.5)[0]) < 1e-6);
+    assert.ok(Math.abs(edgeHeights(left, edgeX, 0.5)[0]
+      - edgeHeights(right, edgeX, 0.5)[0]) < 1e-6);
+    assert.ok(left.ground.geometry.boundingBox.min.y > -1.39,
+      "known neighbors should prevent temporary chunk perimeter skirts");
+    assert.ok(right.ground.geometry.boundingBox.min.y > -1.39);
+    left.dispose();
+    right.dispose();
+  }
 });
 
 test("harvested tree, rock, berry bush and cache hide and can be restored", () => {
