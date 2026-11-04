@@ -60,7 +60,7 @@ export const RECIPES = Object.freeze({
     2,
     2,
     3,
-    "Move faster and spend less energy while exploring.",
+    "Ease travel through marshes and hills, and scramble over mountains.",
   ),
   fins: recipe(
     "Swim fins",
