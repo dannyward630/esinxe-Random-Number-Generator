@@ -10,6 +10,35 @@ permissions:
   contents: read
 
 jobs:
+  browser:
+    name: Built site browser journeys
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: browser-tests/package-lock.json
+      - run: npm ci
+        working-directory: browser-tests
+      - run: npx playwright install --with-deps chromium
+        working-directory: browser-tests
+      - run: npm test -- --reporter=list,json
+        working-directory: browser-tests
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_FILE: test-results/browser-report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-evidence
+          path: browser-tests/test-results/
+          if-no-files-found: ignore
+
   full-suite:
     name: Full cross-language suite
     runs-on: ubuntu-latest

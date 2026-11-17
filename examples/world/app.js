@@ -8,13 +8,23 @@ import {
   getTerrainStatus,
   RECIPES,
   serializeGame,
-  restoreGame,
-} from "./game.js?v=5";
+} from "./game.js?v=7";
 import { landmarksForSeed, biomeSitesForSeed } from "./expedition.js?v=3";
-import { ChunkStream, prove } from "./stream.js?v=3";
-import { Renderer } from "./render.js?v=3";
+import { ChunkStream, prove } from "./stream.js?v=7";
+import { Renderer } from "./render.js?v=7";
 import { interpolatePlayer, edgeLook } from "./spatial.js?v=6";
+import {
+  activeSeed,
+  parseSaveFile,
+  parseSeed,
+  readSave,
+  rememberSeed,
+  saveKey,
+} from "./saves.js";
 const $ = (id) => document.getElementById(id);
+const profile = new URLSearchParams(location.search).has("profile")
+  ? { firstPlayableMs: null, terrainLoads: [], frameMs: [] }
+  : null;
 let canvas = $("world"),
   renderer,
   renderNotice = "";
@@ -24,7 +34,7 @@ try {
 } catch {}
 if (preferredView !== "2d") {
   try {
-    const { Renderer3D } = await import("./render3d.js?v=6");
+    const { Renderer3D } = await import("./render3d.js?v=7");
     renderer = new Renderer3D(canvas);
   } catch (error) {
     console.warn("3D view unavailable:", error.message);
@@ -60,8 +70,20 @@ if (!renderer.is3D)
   $("view-help").textContent =
     "2D view: WASD moves, Space dashes or swims, J harvests or strikes, E interacts, F eats and R dives. M opens the survey; I / C / L / O open menus.";
 const cameraPointers = new Map();
+const firstRoutes = [
+  ["track-lake", "tidal-lake"],
+  ["track-bluff", "rocky-bluff"],
+];
 let pinchDistance = 0;
-let seed = "42",
+let storage;
+try {
+  storage = window.localStorage;
+} catch {}
+let seed =
+    parseSeed(new URLSearchParams(location.search).get("seed")) ??
+    activeSeed(storage),
+  saveSlot,
+  trackedRoute,
   state,
   previousPlayer,
   stream,
@@ -176,7 +198,10 @@ let sound = false,
   keys = new Set(),
   touch = { x: 0, y: 0 },
   actions = {};
-const saveKey = () => `verdant-expedition-3:${seed}`;
+function saveNotice(text) {
+  $("save-status").textContent = text;
+  $("expedition-status").textContent = text;
+}
 function message(text) {
   $("toast").textContent = text;
   toastUntil = performance.now() + 4800;
@@ -209,14 +234,20 @@ function tone(type) {
   }
 }
 function save() {
+  if (saveSlot.kind === "unreadable") {
+    saveNotice(
+      "Saved data could not be read. Export the original in Settings before replacing it.",
+    );
+    return;
+  }
   try {
-    localStorage.setItem(saveKey(), serializeGame(state));
-    $("save-status").textContent = " Saved";
+    storage.setItem(saveKey(seed), serializeGame(state));
+    saveNotice("Saved");
   } catch {
-    $("save-status").textContent = " Saving unavailable; play can continue";
+    saveNotice("Saving unavailable. Export your expedition to keep a copy.");
   }
 }
-function start(reset = false) {
+function start(expedition, slot) {
   revision++;
   stream?.dispose();
   placing = null;
@@ -224,22 +255,45 @@ function start(reset = false) {
   keys.clear();
   actions = {};
   touch = { x: 0, y: 0 };
-  let saved = null;
-  if (!reset)
-    try {
-      saved =
-        restoreGame(localStorage.getItem(saveKey()), seed) ||
-        restoreGame(localStorage.getItem(`verdant-expedition-2:${seed}`), seed);
-    } catch {}
-  state = saved || createGame(seed);
+  saveSlot = slot ?? readSave(storage, seed);
+  const saved = saveSlot.state;
+  state = expedition ?? saved ?? createGame(seed);
+  trackedRoute = null;
+  try {
+    trackedRoute = storage?.getItem(`verdant-route:${seed}`);
+  } catch {}
+  $("seed").value = seed;
+  $("active-seed").textContent = seed;
+  rememberSeed(storage, seed);
+  if (new URLSearchParams(location.search).has("seed") || seed !== "42") {
+    const url = new URL(location.href);
+    url.searchParams.set("seed", seed);
+    history.replaceState(history.state, "", url);
+  }
+  saveNotice(
+    saveSlot.kind === "unreadable"
+      ? "Saved data could not be read. Autosave is off for this seed. Export the original in Settings."
+      : saveSlot.kind === "unavailable"
+        ? "Local storage unavailable. You can export your expedition."
+        : "",
+  );
+  $("export-damaged").hidden = saveSlot.kind !== "unreadable";
   previousPlayer = { ...state.player };
   sites = landmarksForSeed(seed);
   biomes = biomeSitesForSeed(seed);
+  $("loading-status").textContent = "";
+  $("retry-terrain").hidden = true;
   stream = new ChunkStream(
     seed,
     Number($("workers").value),
     $("order").value,
     $("grass").checked,
+    {
+      onFallback: () => {
+        $("loading-status").textContent =
+          "World workers unavailable. Terrain is loading on the main thread.";
+      },
+    },
   );
   message(
     saved
@@ -270,12 +324,25 @@ function world() {
 }
 async function load() {
   const ticket = revision;
+  const started = profile ? performance.now() : 0;
   center = `${Math.floor(state.player.x / 16)},${Math.floor(state.player.y / 16)}`;
   try {
     await stream.ensureAround(state.player.x, state.player.y);
-    if (ticket === revision) hud();
+    if (ticket === revision) {
+      if (profile) {
+        profile.terrainLoads.push(performance.now() - started);
+        if (profile.terrainLoads.length > 32) profile.terrainLoads.shift();
+      }
+      $("retry-terrain").hidden = true;
+      hud();
+    }
   } catch (error) {
-    if (ticket === revision) message(error.message);
+    if (ticket === revision) {
+      $("loading-status").textContent =
+        "Some terrain could not load. Retry in Settings.";
+      $("retry-terrain").hidden = false;
+      message("Some terrain could not load. Retry in Settings.");
+    }
   }
 }
 function setPause(value) {
@@ -616,8 +683,10 @@ canvas.onpointermove = (event) => {
       pinchDistance = distance;
     }
   }
-  pointer = pointerTile(event);
-  if (placing && event.pointerType === "touch") hud();
+  if (placing) {
+    pointer = pointerTile(event);
+    if (event.pointerType === "touch") hud();
+  }
 };
 canvas.onpointerdown = (event) => {
   canvas.focus();
@@ -761,7 +830,11 @@ function hud() {
   $("compass").textContent = target
     ? `${target.title} · ${Math.round(Math.hypot(target.x - state.player.x, target.y - state.player.y))} paces ${direction(target.x - state.player.x, target.y - state.player.y)}`
     : "";
+  const tracked = biomes.find(
+    (site) => site.kind === trackedRoute && !state.finds.includes(site.id),
+  );
   const fieldTarget =
+    tracked ||
     biomes.find(
       (site) =>
         site.terrain === "water" && !(state.finds || []).includes(site.id),
@@ -773,9 +846,23 @@ function hud() {
           Math.hypot(a.x - state.player.x, a.y - state.player.y) -
           Math.hypot(b.x - state.player.x, b.y - state.player.y),
       )[0];
-  $("field-compass").textContent = fieldTarget
-    ? `Explore: ${fieldTarget.title} · ${Math.round(Math.hypot(fieldTarget.x - state.player.x, fieldTarget.y - state.player.y))} paces ${direction(fieldTarget.x - state.player.x, fieldTarget.y - state.player.y)}`
-    : "All four field notes recovered.";
+  const routeGear =
+    tracked?.kind === "tidal-lake" && !state.tools.fins
+      ? " · craft fins"
+      : tracked?.kind === "rocky-bluff" && !state.tools.boots
+        ? " · craft boots"
+        : "";
+  if (!tracked && state.finds.length === 0)
+    $("field-compass").textContent = "L · Pick your first route: lake or bluff";
+  else
+    $("field-compass").textContent = fieldTarget
+      ? `${tracked ? "Tracking" : "Explore"}: ${fieldTarget.title} · ${Math.round(Math.hypot(fieldTarget.x - state.player.x, fieldTarget.y - state.player.y))} paces ${direction(fieldTarget.x - state.player.x, fieldTarget.y - state.player.y)}${routeGear}`
+      : "All four field notes recovered.";
+  for (const [buttonId, kind] of firstRoutes) {
+    const site = biomes.find((candidate) => candidate.kind === kind);
+    $(buttonId).disabled = !site || state.finds.includes(site.id);
+    $(buttonId).setAttribute("aria-pressed", String(tracked?.kind === kind));
+  }
   $("cancel-place").hidden = !placing;
   $("confirm-place").hidden = !(placing && placementTouch && pointer);
   $("confirm-place").disabled = !(
@@ -920,25 +1007,107 @@ for (const [id, recipe] of Object.entries(RECIPES)) {
 }
 $("apply").onclick = () => {
   save();
-  start();
+  start(state, saveSlot);
   canvas.focus();
 };
+for (const [buttonId, kind] of firstRoutes) {
+  $(buttonId).onclick = () => {
+    trackedRoute = trackedRoute === kind ? null : kind;
+    try {
+      if (trackedRoute) storage?.setItem(`verdant-route:${seed}`, trackedRoute);
+      else storage?.removeItem(`verdant-route:${seed}`);
+    } catch {}
+    hud();
+    closePanel();
+  };
+}
+$("retry-terrain").onclick = () => {
+  $("loading-status").textContent = "";
+  load();
+};
+$("resume-seed").onclick = () => {
+  const selected = parseSeed($("seed").value);
+  if (selected === null) return saveNotice("Enter a valid integer seed.");
+  save();
+  const selectedSlot = readSave(storage, selected);
+  if (selectedSlot.kind !== "saved") {
+    saveNotice(
+      selectedSlot.kind === "unreadable"
+        ? "That save is unreadable. Open its recovery session to export the original."
+        : "No saved expedition for that seed.",
+    );
+    if (selectedSlot.kind !== "unreadable") return;
+  }
+  seed = selected;
+  start(undefined, selectedSlot);
+  if (selectedSlot.kind === "saved") closePanel();
+};
 $("new").onclick = () => {
+  const selected = parseSeed($("seed").value);
+  if (selected === null) return saveNotice("Enter a valid integer seed.");
+  const selectedSlot = readSave(storage, selected);
   if (
+    (selected === seed ||
+      (selectedSlot.kind !== "missing" &&
+        selectedSlot.kind !== "unavailable")) &&
     !confirm(
       "Start a new expedition? Saved progress for this seed will be replaced.",
     )
   )
     return;
-  try {
-    seed = BigInt($("seed").value).toString();
-  } catch {
-    message("Enter an integer seed.");
-    return;
-  }
-  start(true);
   save();
+  seed = selected;
+  start(createGame(seed), { kind: "missing" });
+  save();
+  closePanel();
   canvas.focus();
+};
+function downloadSave(text, filename) {
+  const url = URL.createObjectURL(
+    new Blob([text], { type: "application/json" }),
+  );
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+$("export-save").onclick = () => {
+  try {
+    downloadSave(serializeGame(state), `verdant-${seed}.json`);
+  } catch {
+    saveNotice("This expedition could not be exported.");
+  }
+};
+$("export-damaged").onclick = () =>
+  downloadSave(saveSlot.text, `verdant-${seed}-recovery.json`);
+$("import-save").onchange = async (event) => {
+  const file = event.target.files[0];
+  event.target.value = "";
+  if (!file) return;
+  const ticket = revision;
+  let imported;
+  try {
+    if (file.size <= 8_000_000) imported = parseSaveFile(await file.text());
+  } catch {}
+  if (ticket !== revision) return;
+  if (!imported)
+    return saveNotice("That file is not a supported Verdant save.");
+  const target = readSave(storage, imported.seed);
+  if (
+    (target.kind === "saved" || target.kind === "unreadable") &&
+    !confirm(`Replace the saved expedition for seed ${imported.seed}?`)
+  )
+    return;
+  save();
+  try {
+    storage.setItem(saveKey(imported.seed), serializeGame(imported));
+  } catch {
+    return saveNotice("Import could not be saved. Keep the original file.");
+  }
+  seed = imported.seed;
+  start(imported, { kind: "saved", state: imported });
+  closePanel();
 };
 $("prove").onclick = async () => {
   $("prove").disabled = true;
@@ -974,7 +1143,8 @@ let last = performance.now(),
   saveTimer = 0,
   priorDiscoveries = "";
 function frame(now) {
-  const dt = Math.min(0.05, (now - last) / 1000);
+  const elapsed = now - last;
+  const dt = Math.min(0.05, elapsed / 1000);
   last = now;
   if (hoverLook && lastLookPoint && canMouseLook()) {
     const bounds = canvas.getBoundingClientRect();
@@ -1065,6 +1235,37 @@ function frame(now) {
       canPlace(state, placing, pointer.x, pointer.y, world()).ok,
     ),
   });
+  if (profile) {
+    const ready = world().loaded;
+    if (profile.firstPlayableMs === null && ready)
+      profile.firstPlayableMs = performance.now();
+    if (
+      ready &&
+      !paused &&
+      !pack.open &&
+      !showMap &&
+      !document.hidden &&
+      elapsed > 0
+    ) {
+      profile.frameMs.push(elapsed);
+      if (profile.frameMs.length > 240) profile.frameMs.shift();
+    }
+    if (profile.frameMs.length < 2 || now - (profile.lastReport ?? 0) >= 1000) {
+      const sorted = [...profile.frameMs].sort((a, b) => a - b);
+      const percentile = (p) =>
+        sorted[Math.ceil(sorted.length * p) - 1] ?? null;
+      canvas.dataset.performance = JSON.stringify({
+        view: renderer.is3D ? "3d" : "2d",
+        quality: $("quality").value,
+        firstPlayableMs: profile.firstPlayableMs,
+        terrainLoadsMs: profile.terrainLoads,
+        samples: sorted.length,
+        p50FrameMs: percentile(0.5),
+        p95FrameMs: percentile(0.95),
+      });
+      profile.lastReport = now;
+    }
+  }
   if (!renderer.is3D && placing && pointer) {
     const g = renderer.ctx,
       r = Math.hypot(pointer.x - state.player.x, pointer.y - state.player.y);

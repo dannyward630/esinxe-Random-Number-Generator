@@ -12,6 +12,17 @@ const choiceDetail = document.querySelector("#choice-detail");
 const languageSelect = document.querySelector("#language");
 const snippet = document.querySelector("#snippet");
 const fingerprint = document.querySelector("#fingerprint");
+const shareLink = document.querySelector("#share");
+const shareStatus = document.querySelector("#share-status");
+const query = new URLSearchParams(location.search);
+if (query.has("seed")) seedInput.value = query.get("seed");
+if (query.has("namespace")) namespaceInput.value = query.get("namespace");
+function gridCoordinate(name) {
+  const value = Number(query.get(name));
+  return Number.isInteger(value) && Math.abs(value) <= 4 ? value : 0;
+}
+let selectedX = gridCoordinate("x");
+let selectedY = gridCoordinate("y");
 
 const biomes = ["Forest", "Desert", "Tundra", "Wetland", "Highlands"];
 const encounters = ["Quiet trail", "Supply cache", "Scout patrol", "Ancient marker"];
@@ -60,6 +71,13 @@ function selectCell(button, x, y, raw, biome) {
   activeCell?.setAttribute("aria-pressed", "false");
   button.setAttribute("aria-pressed", "true");
   activeCell = button;
+  selectedX = x;
+  selectedY = y;
+  const url = new URL(location.href);
+  for (const [name, value] of Object.entries({
+    seed: currentField.seed, namespace: currentNamespace, x, y,
+  })) url.searchParams.set(name, String(value));
+  history.replaceState(history.state, "", url);
   selected.value = `(${x}, ${y})  0x${raw.toString(16).padStart(16, "0")}`;
   choice.textContent = biome;
   const encounter = currentField.choose(encounters, "encounter", i64(x), i64(y));
@@ -93,7 +111,7 @@ function render() {
       button.setAttribute("aria-pressed", "false");
       button.addEventListener("click", () => selectCell(button, x, y, raw, biome));
       grid.append(button);
-      if (x === 0 && y === 0) selectCell(button, x, y, raw, biome);
+      if (x === selectedX && y === selectedY) selectCell(button, x, y, raw, biome);
     }
   }
 
@@ -150,6 +168,14 @@ String loot = field.choose(
 }
 
 regenerateButton.addEventListener("click", render);
+shareLink.addEventListener("click", async () => {
+  try {
+    await navigator.clipboard.writeText(location.href);
+    shareStatus.textContent = "Link copied.";
+  } catch {
+    shareStatus.textContent = "Copy the current address to share this cell.";
+  }
+});
 viewSelect.addEventListener("change", render);
 languageSelect.addEventListener("change", renderSnippet);
 seedInput.addEventListener("keydown", (event) => {

@@ -6,14 +6,14 @@ compatibility version is independent and is named explicitly.
 
 ## Unreleased
 
-### Fixed
-
-- Verdant walking now interpolates between simulation updates and integrates
-  its stride phase continuously, preventing snapping at high refresh rates or
-  after long play sessions. Mouse-look works with a click, releases on Escape
-  and menus, and supports embedded browsers without cursor capture.
+## 1.2.0 - 2026-11-17
 
 ### Added
+
+- Verdant Settings can resume a saved seed and export or import an expedition.
+- Two trackable opening routes lead to Tideglass Lake and the Windcut Bluff.
+- The field inspector shares a selected grid cell, seed and namespace by URL.
+- Browser CI tests the generated site. Tag builds verify and publish downloads.
 
 - Verdant 3D adventure: a third-person orbit camera, camera-relative movement,
   physical jumping, raised faceted terrain, animated explorer/sentinels, distinct
@@ -52,6 +52,14 @@ compatibility version is independent and is named explicitly.
 
 ### Fixed
 
+- Verdant remembers its active seed when the page reloads or switches renderers.
+  Autosave preserves unreadable slots until the player explicitly replaces them.
+- Terrain worker failures fall back to local generation without resetting play.
+  Dry biome caches award their intended supplies and journal notes.
+- Verdant walking now interpolates between simulation updates and integrates
+  its stride phase continuously, preventing snapping at high refresh rates or
+  after long play sessions. Mouse-look works with a click, releases on Escape
+  and menus, and supports embedded browsers without cursor capture.
 - Windows compiler/launcher discovery, Unicode subprocess source, and explicit
   source-file encoding; honored quoted `CC`/`CXX` compiler overrides.
 - Rust lockfile compatibility with the documented 1.70 compiler floor.

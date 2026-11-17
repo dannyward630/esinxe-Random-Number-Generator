@@ -302,6 +302,20 @@
                         The trails lead to three places the sea could not erase.
                         Follow them in any order, or build your own life here.
                     </p>
+                    <h2>First routes</h2>
+                    <div class="settings">
+                        <button id="track-lake" aria-pressed="false">
+                            Track Tideglass Lake
+                        </button>
+                        <button id="track-bluff" aria-pressed="false">
+                            Track Windcut Bluff
+                        </button>
+                    </div>
+                    <p class="hint">
+                        Both recipes take 2 wood, 2 stone and 3 berries. Fins
+                        help you dive for salvage at Tideglass. Trail boots give
+                        you a steadier path to the Windcut stone cache.
+                    </p>
                     <div id="journal"></div>
                 </section>
                 <section
@@ -341,14 +355,34 @@
                         strokes in water; Shift dashes.
                     </p>
                     <p id="render-notice" role="status"></p>
-                    <h2>Field lab</h2>
+                    <h2>Expedition saves</h2>
+                    <p>Active seed <strong id="active-seed">42</strong></p>
                     <div class="settings">
                         <label
                             >Seed<input
                                 id="seed"
                                 value="42"
-                                inputmode="numeric" /></label
-                        ><label
+                                inputmode="numeric"
+                                maxlength="128" /></label
+                        ><button id="resume-seed">
+                            Resume saved expedition
+                        </button>
+                        <button id="new">New expedition</button>
+                        <button id="export-save">Export expedition</button>
+                        <button id="export-damaged" hidden>
+                            Export unreadable save
+                        </button>
+                        <label
+                            >Import expedition<input
+                                id="import-save"
+                                type="file"
+                                accept=".json,application/json"
+                        /></label>
+                    </div>
+                    <p id="expedition-status" role="status"></p>
+                    <h2>Field lab</h2>
+                    <div class="settings">
+                        <label
                             >Workers<select id="workers">
                                 <option value="0">Main thread</option>
                                 <option value="1">1 worker</option>
@@ -363,8 +397,7 @@
                         ><label
                             ><input id="grass" type="checkbox" checked />
                             Grass</label
-                        ><button id="apply">Apply loading settings</button
-                        ><button id="new">New expedition</button>
+                        ><button id="apply">Apply loading settings</button>
                     </div>
                     <p>
                         New expedition resets this seed's saved progress.
@@ -374,6 +407,10 @@
                     </p>
                     <button id="prove">Verify base reproducibility</button
                     ><button id="export" disabled>Export evidence</button>
+                    <button id="retry-terrain" hidden>
+                        Retry terrain loading
+                    </button>
+                    <p id="loading-status" role="status"></p>
                     <p id="proof" role="status"></p>
                     <footer>
                         Progress saves locally on this device.
@@ -388,6 +425,6 @@
                 </section>
             </dialog>
         </main>
-        <script type="module" src="app.js?v=6"></script>
+        <script type="module" src="app.js?v=7"></script>
     </body>
 </html>

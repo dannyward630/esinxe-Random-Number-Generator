@@ -1,8 +1,8 @@
 # Verdant: The Drowned Signal
 
 A colorful 3D survival expedition built on esinxe, with a self-hosted Three.js
-renderer and an optional 2D compatibility view. Run `python -m http.server
-8778 --bind 127.0.0.1` from the repository root and open
+renderer and an optional 2D compatibility view. Run `python scripts/serve_site.py
+8778` from the repository root and open
 `http://127.0.0.1:8778/examples/world/`.
 
 Move with WASD/arrows or the on-screen arrows. In 3D, movement follows the
@@ -17,6 +17,9 @@ On touch, drag the world to orbit or use the camera buttons. M opens the survey
 map and P pauses. Foreground trees fade when they obscure the explorer.
 
 The bottom hotbar opens Satchel (I), Crafting (C), Journal (L) and Settings (O).
+The Journal offers two opening routes. Track Tideglass Lake to dive for salvage
+with crafted fins, or track Windcut Bluff to reach its stone cache with trail
+boots. The on-screen compass follows your choice.
 Menus and the survey pause the world, including jump and survival timers.
 Escape or Close returns to play; a manual pause stays paused. Menu tabs support
 left/right arrows. Long content scrolls inside the popup on small screens.
@@ -55,7 +58,11 @@ Free exploration continues after the ending.
 Progress saves locally every five active seconds and on hiding the tab; Save
 expedition saves immediately. Storage errors do not prevent play. New expedition
 asks before replacing progress for the chosen seed. Saves are local to the
-browser/origin, not cloud saves. Version 2 expeditions migrate automatically,
+browser/origin, not cloud saves. Settings lists the active seed. Enter a
+different seed and choose Resume saved expedition to return to its progress.
+Export/import lets you keep a copy or move it between browsers. Unreadable
+local saves disable autosave for that seed until explicitly replaced and can
+be exported from Settings. Version 2 expeditions migrate automatically,
 retaining progress and leaving the old save entry untouched. Sound is optional and starts
 only on a user gesture; reduced-motion preferences limit animation/particles.
 

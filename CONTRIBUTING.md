@@ -74,6 +74,15 @@ vectors when adding cases. New helper behavior belongs in its additive spec.
 Check installed Python consumers with `python scripts/check_python_package.py`;
 this checks wheel typing files and generic inference as well as runtime behavior.
 
+To test the built site in Chromium, run the following in `browser-tests/`.
+The test runner builds the site and starts the local preview server.
+
+```sh
+npm ci
+npx playwright install chromium
+npm test
+```
+
 ## Pull Requests
 
 - Keep each commit focused on one coherent change.

@@ -1,0 +1,126 @@
+name: Release packages
+
+on:
+  push:
+    tags:
+      - "v[0-9]*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  wheels:
+    name: CPython 3.12 wheel on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install build twine
+      - run: python scripts/check_repo.py
+      - name: Verify tag version
+        shell: bash
+        run: |
+          version=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml', 'rb'))['project']['version'])")
+          test "$GITHUB_REF_NAME" = "v$version"
+      - run: python -m build --wheel --outdir artifacts
+      - name: Verify the installed native wheel
+        shell: python
+        run: |
+          from pathlib import Path
+          import subprocess
+          import sys
+          import tempfile
+
+          wheel, = Path("artifacts").resolve().glob("*.whl")
+          with tempfile.TemporaryDirectory() as directory:
+              subprocess.run([sys.executable, "-m", "pip", "install", "--no-deps", str(wheel)], cwd=directory, check=True)
+              subprocess.run(
+                  [sys.executable, "-c",
+                   "import esinxe; assert esinxe._native is not None; "
+                   "field = esinxe.Random(12345); "
+                   "assert field.at2D(-4, 9, 'terrain') == 0x14e52321906f5a4f; "
+                   "assert field.rawBatch([('tile', esinxe.i64(-4))]) == [field.raw('tile', esinxe.i64(-4))]"],
+                  cwd=directory, check=True,
+              )
+      - run: python -m twine check artifacts/*
+        shell: bash
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheel-${{ matrix.os }}
+          path: artifacts/*.whl
+          if-no-files-found: error
+
+  source:
+    name: Python source, npm tarball and Rust crate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+      - uses: dtolnay/rust-toolchain@stable
+      - run: python -m pip install build twine
+      - run: npm ci --prefix JavaScript
+      - run: python scripts/check_javascript_package.py
+      - run: python scripts/check_rust_package.py
+      - name: Assemble downloads
+        shell: bash
+        run: |
+          python -m build --sdist --outdir artifacts
+          python -m twine check artifacts/*.tar.gz
+          npm pack ./JavaScript --pack-destination artifacts
+          cargo package --manifest-path Rust/Cargo.toml --locked --offline --target-dir "$RUNNER_TEMP/esinxe-crate"
+          cp "$RUNNER_TEMP"/esinxe-crate/package/*.crate artifacts/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: source-packages
+          path: artifacts/
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub release
+    needs: [wheels, source]
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+      - name: Generate checksums and release notes
+        shell: bash
+        run: |
+          (cd release-assets && sha256sum *.whl *.tar.gz *.tgz *.crate > SHA256SUMS)
+          awk -v version="${GITHUB_REF_NAME#v}" '
+            $1 == "##" && found {exit}
+            $1 == "##" && $2 == version {found=1; next}
+            found {print}
+          ' CHANGELOG.md > release-notes.md
+          test -s release-notes.md
+      - name: Publish verified assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "Release $GITHUB_REF_NAME already exists"
+            exit 0
+          fi
+          gh release create "$GITHUB_REF_NAME" --verify-tag --title "esinxe $GITHUB_REF_NAME" --notes-file release-notes.md release-assets/*

@@ -1,4 +1,4 @@
-import { getTerrainStatus } from "./game.js?v=3";
+import { getTerrainStatus } from "./game.js?v=7";
 const TILE = 32;
 const palette = {
   water: "#244c60",
