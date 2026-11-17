@@ -9,8 +9,8 @@ publication can use the same verified builds once trusted publishing is configur
 3. Set the release version in `pyproject.toml` and synchronize `JavaScript/package.json`,
    `JavaScript/package-lock.json`, `Rust/Cargo.toml`, `Rust/Cargo.lock`, and
    `src/esinxe/__init__.py`, and `CITATION.cff`. Run `python scripts/check_repo.py`.
-4. Regenerate `tests/vectors-v1.json` and confirm it is unchanged unless a new
-   algorithm version is intentionally being introduced.
+4. Regenerate `tests/vectors-v1.json` and confirm that only its package version
+   metadata changed. Algorithm v1 results are frozen.
 5. Add a version heading such as `## 1.2.0 - 2026-11-17` to `CHANGELOG.md`.
 6. Run `./scripts/ci.sh` and wait for the published commit to pass CI.
 7. Tag the tested commit with `v1.2.0` and `Go/v1.2.0` for the nested Go module.

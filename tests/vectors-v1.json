@@ -1,6 +1,6 @@
 {
   "algorithm": "esinxe-v1",
-  "packageVersion": "1.1.0",
+  "packageVersion": "1.2.0",
   "seed": "12345",
   "cases": {
     "rawEmpty": "1011603955933495094",
