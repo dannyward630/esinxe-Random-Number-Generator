@@ -14,3 +14,5 @@ node_modules/
 coverage.xml
 htmlcov/
 _site/
+browser-tests/test-results/
+browser-tests/playwright-report/

@@ -38,6 +38,7 @@ def build(output):
             "examples/world/index.html",
             "examples/world/style.css",
             "examples/world/app.js",
+            "examples/world/saves.js",
             "examples/world/game.js",
             "examples/world/expedition.js",
             "examples/world/stream.js",

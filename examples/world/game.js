@@ -959,7 +959,7 @@ function interact(state, world) {
     }
     if (
       entity.type === "cache" &&
-      entity.requiresDive &&
+      (entity.biomeCache || entity.requiresDive) &&
       (!entity.reward ||
         typeof entity.reward !== "object" ||
         RESOURCE_TYPES.some(
@@ -969,7 +969,7 @@ function interact(state, world) {
             entity.reward[key] > MAX_RESOURCE,
         ))
     ) {
-      const message = "The underwater cache is too damaged to read.";
+      const message = "The field cache is too damaged to read.";
       pushEvent(state, "hint", message, entity.x, entity.y);
       return { ok: false, message };
     }
@@ -995,7 +995,7 @@ function interact(state, world) {
         entity.x,
         entity.y,
       );
-    } else if (entity.requiresDive) {
+    } else if (entity.biomeCache || entity.requiresDive) {
       for (const key of RESOURCE_TYPES) {
         state.inventory[key] = Math.min(
           MAX_RESOURCE,
@@ -1005,12 +1005,13 @@ function interact(state, world) {
       const recorded = addUnique(state.finds, entity.noteId, MAX_FINDS);
       const note =
         typeof entity.note === "string" && entity.note ? ` ${entity.note}` : "";
+      const cache = entity.requiresDive ? "underwater cache" : "field cache";
       pushEvent(
         state,
         "cache",
         recorded
-          ? `You recover the underwater cache and record its field note.${note}`
-          : `You recover the underwater cache.${note}`,
+          ? `You recover the ${cache} and record its field note.${note}`
+          : `You recover the ${cache}.${note}`,
         entity.x,
         entity.y,
       );
@@ -1030,6 +1031,19 @@ function interact(state, world) {
       );
     }
     pushEffect(state, "pickup", entity.x, entity.y);
+    return { ok: true, message: state.events.at(-1).text };
+  }
+
+  // Earlier builds paid generic supplies for dry biome caches. Let an explorer
+  // retrieve the missing note on return without paying out supplies twice.
+  const missedNote = world.entitiesNear?.(player.x, player.y, INTERACTION_RANGE)
+    ?.find((candidate) =>
+      candidate.biomeCache && !candidate.requiresDive &&
+      state.harvested.includes(candidate.id) &&
+      !state.finds.includes(candidate.noteId),
+    );
+  if (missedNote && addUnique(state.finds, missedNote.noteId, MAX_FINDS)) {
+    pushEvent(state, "cache", `You record the field note left by the cache. ${missedNote.note ?? ""}`, missedNote.x, missedNote.y);
     return { ok: true, message: state.events.at(-1).text };
   }
 

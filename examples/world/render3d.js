@@ -15,7 +15,7 @@ import {
   cameraHeading,
   tileFromStream,
 } from "./spatial.js";
-import { getWorldPhase } from "./game.js?v=5";
+import { getWorldPhase } from "./game.js?v=7";
 
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const hash = (n) => {

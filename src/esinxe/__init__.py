@@ -12,7 +12,7 @@ except ImportError:  # pragma: no cover - exercised when extension is not built
     _native = None
 
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 MASK_64 = (1 << 64) - 1
 UINT64_SIZE = 1 << 64
 GOLDEN_GAMMA = 0x9E3779B97F4A7C15

@@ -16,7 +16,6 @@ except ModuleNotFoundError:  # Python 3.9 and 3.10
     import tomli as tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "1.1.0"
 REPOSITORY = "https://github.com/dannyward630/esinxe-Random-Number-Generator"
 
 MANUALS = (
@@ -62,6 +61,8 @@ def check_versions() -> None:
         pyproject = tomllib.load(handle)
     with (ROOT / "Rust/Cargo.toml").open("rb") as handle:
         cargo = tomllib.load(handle)
+    with (ROOT / "Rust/Cargo.lock").open("rb") as handle:
+        cargo_lock = tomllib.load(handle)
 
     package = load_json(ROOT / "JavaScript/package.json")
     package_lock = load_json(ROOT / "JavaScript/package-lock.json")
@@ -76,20 +77,28 @@ def check_versions() -> None:
     if citation_version is None:
         fail("CITATION.cff has no version field")
 
+    version = pyproject["project"]["version"]
     versions = {
-        "pyproject.toml": pyproject["project"]["version"],
         "JavaScript/package.json": package["version"],
         "JavaScript/package-lock.json": package_lock["version"],
         "JavaScript/package-lock.json package": package_lock["packages"][""]["version"],
         "Rust/Cargo.toml": cargo["package"]["version"],
+        "Rust/Cargo.lock": next(
+            (
+                item["version"]
+                for item in cargo_lock["package"]
+                if item["name"] == "esinxe"
+            ),
+            None,
+        ),
         "src/esinxe/__init__.py": python_version.group(1),
         "CITATION.cff": citation_version.group(1),
     }
     mismatches = [
-        f"{name}={value}" for name, value in versions.items() if value != VERSION
+        f"{name}={value}" for name, value in versions.items() if value != version
     ]
     if mismatches:
-        fail("version drift: " + ", ".join(mismatches))
+        fail(f"version drift from pyproject.toml ({version}): " + ", ".join(mismatches))
 
     urls = {
         pyproject["project"]["urls"]["Repository"],

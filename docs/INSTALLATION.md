@@ -1,8 +1,25 @@
 # Install and verify esinxe
 
-The repository is the source of truth. These instructions build the current
-checkout and do not assume that a package with this name/version on a registry
-contains these changes. Runtime dependencies are not required.
+Get the Python source distribution, CPython 3.12 wheels for the listed
+platforms, npm tarball, Rust crate and SHA-256 manifest from
+[GitHub Releases](https://github.com/dannyward630/esinxe-Random-Number-Generator/releases/tag/v1.2.0).
+Use the source archive if your interpreter or platform does not match a wheel.
+
+```sh
+python -m pip install https://github.com/dannyward630/esinxe-Random-Number-Generator/releases/download/v1.2.0/esinxe-1.2.0.tar.gz
+npm install https://github.com/dannyward630/esinxe-Random-Number-Generator/releases/download/v1.2.0/esinxe-1.2.0.tgz
+go get github.com/dannyward630/esinxe-Random-Number-Generator/Go/esinxe@v1.2.0
+```
+
+For Rust, add this dependency to `Cargo.toml`.
+
+```toml
+[dependencies]
+esinxe = { git = "https://github.com/dannyward630/esinxe-Random-Number-Generator.git", tag = "v1.2.0" }
+```
+
+For C, C++, C#, Ruby, Java and Kotlin, use the tagged source archive and
+the [language quick starts](QUICK_STARTS.md).
 
 ## Python
 
@@ -31,7 +48,7 @@ biome = world.stableChoice(ids, ids, "region", esinxe.i64(-1))
 
 From the repository root, run `npm pack ./JavaScript --pack-destination .`.
 In your application, install the resulting tarball using
-`npm install /absolute/path/to/esinxe-1.1.0.tgz`. The ESM package includes TypeScript
+`npm install /absolute/path/to/esinxe-1.2.0.tgz`. The ESM package includes TypeScript
 declarations and supports Node 18+. Browser projects can import
 `JavaScript/src/index.js` directly or use their normal bundler.
 
@@ -56,7 +73,8 @@ install `requirements-dev.txt`, run `npm ci --prefix JavaScript`, then run
 `python scripts/check_python_package.py` and
 `python scripts/check_javascript_package.py`.
 
-[Verdant](../examples/world/README.md) is a dependency-free browser integration.
+[Verdant](../examples/world/README.md) is a browser integration with a
+self-hosted Three.js renderer and a 2D compatibility view.
 Its reusable generator and worker protocol demonstrate streamed chunks, stable
 IDs, and optional decoration without changing core content. Its terrain smoothing
 is application code. See the [measured backend comparison](../research/PRACTICAL_VALUE_BENCHMARK.md)

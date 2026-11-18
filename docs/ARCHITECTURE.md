@@ -42,8 +42,9 @@ The Python implementation in `src/esinxe/__init__.py` is the readable canonical
 reference. `scripts/generate_vectors.py` emits the checked-in v1 vectors.
 Every other language consumes or reproduces those values in its tests.
 
-The C extension accelerates historical Python batch generation only. It does
-not define keyed behavior and cannot change v1 outputs.
+The C extension accelerates historical Python batch generation and keyed
+`rawBatch` hashing. The Python encoder defines the keys fed to the native
+implementation. Tests compare native and fallback output against the v1 contract.
 
 ## Repository Layout
 

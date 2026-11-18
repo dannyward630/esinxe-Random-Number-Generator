@@ -6,7 +6,13 @@ import {
 import { decorateChunk } from "./expedition.js?v=3";
 
 export class ChunkStream {
-  constructor(seed, workers = 4, order = "normal", grass = true) {
+  constructor(
+    seed,
+    workers = 4,
+    order = "normal",
+    grass = true,
+    { fallback = true, onFallback = () => {} } = {},
+  ) {
     this.seed = seed;
     this.order = order;
     this.grass = grass;
@@ -15,31 +21,65 @@ export class ChunkStream {
     this.queue = [];
     this.serial = 0;
     this.closed = false;
-    this.pool = Array.from({ length: workers }, () => {
-      const slot = {
-        worker: new Worker(new URL("./worker.js", import.meta.url), {
-          type: "module",
-        }),
-        busy: false,
-      };
-      slot.worker.onmessage = ({ data }) => {
-        const job = slot.job;
-        slot.busy = false;
-        slot.job = null;
-        if (data.kind === "error") job.reject(new Error(data.error.message));
-        else job.resolve(data.chunk);
-        this.pump();
-      };
-      slot.worker.onerror = () => {
-        if (slot.job)
-          slot.job.reject(
-            new Error("World worker failed. Try New expedition."),
-          );
-        slot.busy = false;
-        slot.job = null;
-        this.dispose();
-      };
-      return slot;
+    this.pool = [];
+    this.fallback = fallback;
+    this.onFallback = onFallback;
+    try {
+      for (let i = 0; i < workers; i++) this.openWorker();
+    } catch (error) {
+      this.workerFailed();
+      if (!fallback) throw error;
+    }
+  }
+  openWorker() {
+    const slot = {
+      worker: new Worker(new URL("./worker.js", import.meta.url), {
+        type: "module",
+      }),
+      busy: false,
+    };
+    slot.worker.onmessage = ({ data }) => {
+      const job = slot.job;
+      if (!job) return;
+      slot.busy = false;
+      slot.job = null;
+      if (data.kind === "error") job.reject(new Error(data.error.message));
+      else job.resolve(data.chunk);
+      this.pump();
+    };
+    slot.worker.onerror = (event) => {
+      event?.preventDefault?.();
+      this.workerFailed();
+    };
+    slot.worker.onmessageerror = () => this.workerFailed();
+    this.pool.push(slot);
+  }
+  workerFailed() {
+    if (this.closed) return;
+    if (!this.fallback) {
+      this.dispose(new Error("World worker failed during verification"));
+      return;
+    }
+    const jobs = this.queue.splice(0);
+    for (const slot of this.pool.splice(0)) {
+      slot.worker.terminate();
+      if (slot.job) jobs.push(slot.job);
+      slot.job = null;
+    }
+    this.onFallback();
+    for (const job of jobs)
+      this.generateLocally(job.request).then(job.resolve, job.reject);
+  }
+  generateLocally(request) {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        try {
+          if (this.closed) throw new Error("World stream closed");
+          resolve(generateChunk(request));
+        } catch (error) {
+          reject(error);
+        }
+      }, 0);
     });
   }
   pump() {
@@ -47,25 +87,21 @@ export class ChunkStream {
       if (slot.busy || !this.queue.length) continue;
       slot.busy = true;
       slot.job = this.queue.shift();
-      slot.worker.postMessage({
-        kind: "generate",
-        requestId: ++this.serial,
-        request: slot.job.request,
-      });
+      try {
+        slot.worker.postMessage({
+          kind: "generate",
+          requestId: ++this.serial,
+          request: slot.job.request,
+        });
+      } catch {
+        this.workerFailed();
+        return;
+      }
     }
   }
   raw(request) {
     if (this.closed) return Promise.reject(new Error("World stream closed"));
-    if (!this.pool.length)
-      return new Promise((resolve, reject) =>
-        setTimeout(() => {
-          try {
-            resolve(generateChunk(request));
-          } catch (e) {
-            reject(e);
-          }
-        }, 0),
-      );
+    if (!this.pool.length) return this.generateLocally(request);
     return new Promise((resolve, reject) => {
       this.queue.push({ request, resolve, reject });
       this.pump();
@@ -138,12 +174,12 @@ export class ChunkStream {
     }
     return out;
   }
-  dispose() {
+  dispose(error = new Error("World stream closed")) {
     this.closed = true;
-    const error = new Error("World stream closed");
-    for (const slot of this.pool) {
+    for (const slot of this.pool.splice(0)) {
       slot.worker.terminate();
       if (slot.job) slot.job.reject(error);
+      slot.job = null;
     }
     for (const job of this.queue) job.reject(error);
     this.queue = [];
@@ -159,7 +195,9 @@ export async function prove(seed, progress) {
     for (const workers of [0, 1, 4])
       for (const grass of [false, true]) {
         progress(`${order} · ${workers} workers · grass ${grass}`);
-        const stream = new ChunkStream(seed, workers, order, grass);
+        const stream = new ChunkStream(seed, workers, order, grass, {
+          fallback: false,
+        });
         try {
           const chunks = await Promise.all(
             orderChunkCoordinates(coords, seed, order).map(({ x, y }) =>

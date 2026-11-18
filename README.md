@@ -1,6 +1,6 @@
 # esinxe
 
-**Version 1.1.0 · algorithm v1**
+**Version 1.2.0 · algorithm v1**
 
 [![CI](https://github.com/dannyward630/esinxe-Random-Number-Generator/actions/workflows/ci.yml/badge.svg)](https://github.com/dannyward630/esinxe-Random-Number-Generator/actions/workflows/ci.yml)
 [![Demo](https://img.shields.io/badge/demo-field_inspector-147d64)](https://dannyward630.github.io/esinxe-Random-Number-Generator/demo/)
@@ -12,6 +12,20 @@ Give it a seed and a structured key, and it returns the same value in Python,
 C, C++, C#, Ruby, JavaScript/TypeScript, Rust, Go, Java, and Kotlin. No prior
 values need to be generated, and work can be split across machines without
 changing the result.
+
+Install from the [v1.2.0 release](https://github.com/dannyward630/esinxe-Random-Number-Generator/releases/tag/v1.2.0).
+
+```sh
+python -m pip install https://github.com/dannyward630/esinxe-Random-Number-Generator/releases/download/v1.2.0/esinxe-1.2.0.tar.gz
+npm install https://github.com/dannyward630/esinxe-Random-Number-Generator/releases/download/v1.2.0/esinxe-1.2.0.tgz
+```
+
+These two commands compute the same tile value, `14e52321906f5a4f`.
+
+```sh
+python -c "import esinxe; print(format(esinxe.Random(12345).at2D(-4, 9, 'terrain'), '016x'))"
+node --input-type=module -e "import { Random } from 'esinxe'; console.log(new Random(12345n).at2D(-4, 9, 'terrain').toString(16).padStart(16, '0'))"
+```
 
 ```python
 import esinxe
@@ -120,7 +134,7 @@ Use the [hosted deterministic field inspector](https://dannyward630.github.io/es
 or run it locally:
 
 ```sh
-python3 -m http.server 8765
+python3 scripts/serve_site.py
 ```
 
 Then visit `http://localhost:8765/demo/`. Change the seed, namespace, display
@@ -154,18 +168,13 @@ python3 setup.py build_ext --inplace
 ESINXE_BENCH_N=200000 python3 scripts/benchmark.py
 ```
 
-## Install and Publication Status
+## Packages and source ports
 
-The repository is the source of truth until registry access is available.
-
-| Port | Version | Registry status | Source install |
-| --- | --- | --- | --- |
-| Python | 1.1.0 | Not published | `python3 -m pip install -e .` |
-| JavaScript/TypeScript | 1.1.0 | Not published | import `JavaScript/src/index.js` |
-| Rust | 1.1.0 | Not published | path dependency on `Rust/` |
-| Go | algorithm v1 | Not published | local module under `Go/` |
-| Java/Kotlin | algorithm v1 | Not published | compile sources under `JVM/` |
-| C/C++/C#/Ruby | algorithm v1 | Not published | include/load repository sources |
+[Release downloads](https://github.com/dannyward630/esinxe-Random-Number-Generator/releases)
+include checksummed Python, JavaScript and Rust packages. The
+[install guide](docs/INSTALLATION.md) covers the versioned Rust and Go
+dependencies, Python wheel compatibility, and source installs for the
+remaining ports. Package indexes are not required for the GitHub downloads.
 
 The historical `Python/Esinxepy1-0-0.py` filename remains a compatibility shim.
 

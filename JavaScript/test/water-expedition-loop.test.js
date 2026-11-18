@@ -64,3 +64,42 @@ test("a generated underwater discovery needs diving and survives a save round tr
   assert.deepEqual(saved.finds, state.finds);
   assert.ok(saved.player.air > 0 && saved.player.air <= 100);
 });
+
+test("the dry bluff cache awards stone and a note, including note recovery for older saves", () => {
+  const seed = "42";
+  const site = biomeSitesForSeed(seed).find(
+    (candidate) => candidate.kind === "rocky-bluff",
+  );
+  let chest;
+  for (
+    let cy = Math.floor((site.y - 4) / 16);
+    cy <= Math.floor((site.y + 4) / 16);
+    cy++
+  )
+    for (
+      let cx = Math.floor((site.x - 4) / 16);
+      cx <= Math.floor((site.x + 4) / 16);
+      cx++
+    )
+      chest ??= decorateChunk(generateChunk({ seed, cx, cy })).entities.find(
+        (item) => item.noteId === site.id,
+      );
+  assert.ok(chest);
+  assert.equal(chest.requiresDive, false);
+  const world = { entitiesNear: () => [chest] };
+  const game = createGame(seed);
+  game.player.x = chest.x;
+  game.player.y = chest.y;
+  assert.ok(interact(game, world).ok);
+  assert.equal(game.inventory.stone, 3);
+  assert.deepEqual(game.finds, [site.id]);
+  assert.deepEqual(game.discoveries, []);
+
+  // Earlier builds recorded the empty chest without awarding the field note.
+  game.finds = [];
+  const migrated = restoreGame(serializeGame(game), seed);
+  assert.ok(interact(migrated, world).ok);
+  assert.equal(migrated.inventory.stone, 3);
+  assert.deepEqual(migrated.finds, [site.id]);
+  assert.ok(!interact(migrated, world).ok);
+});
